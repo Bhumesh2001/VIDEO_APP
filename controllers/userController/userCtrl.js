@@ -231,9 +231,11 @@ exports.loginUser = async (req, res) => {
 exports.logoutUser = async (req, res) => {
     try {
         res.clearCookie('userToken');
+        const userToken = req.cookies.userToken;
         res.status(200).json({
             success: true,
             message: 'Logged out successfully...',
+            userToken,
         });
     } catch (error) {
         res.status(500).json({

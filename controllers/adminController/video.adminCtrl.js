@@ -50,7 +50,8 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             videoObj.video.publicId = videoResult.public_id;
             videoObj.video.url = videoResult.secure_url;
 
-        } else if (video) {
+        } 
+        else if (video) {
             const videoResult = await cloudinary.uploader.upload(video, {
                 resource_type: 'video'
             });
@@ -76,13 +77,14 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             videoObj.thumbnail.publicId = thumbnailResult.public_id;
             videoObj.thumbnail.url = thumbnailResult.secure_url;
 
-        } else if (thumbnail) {
+        } 
+        else if (thumbnail) {
             const thumbnailResult = await cloudinary.uploader.upload(thumbnail, {
                 resource_type: 'image'
             });
             videoObj.thumbnail.publicId = thumbnailResult.public_id;
             videoObj.thumbnail.url = thumbnailResult.secure_url;
-        }
+        };
 
         const newVideo = new Video(videoObj);
         await newVideo.save();

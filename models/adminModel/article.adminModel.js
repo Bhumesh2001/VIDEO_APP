@@ -85,10 +85,6 @@ const articleSchema = new mongoose.Schema({
         default: []
     },
     comments: [commentSchema],
-    shares: {
-        type: Number,
-        default: 0
-    },
 }, { timestamps: true }
 );
 

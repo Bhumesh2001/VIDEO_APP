@@ -81,10 +81,6 @@ const videoSchema = new mongoose.Schema({
         default: []
     },
     comments: [commentSchema],
-    shares: {
-        type: Number,
-        default: 0
-    },
 }, { timestamps: true });
 
 videoSchema.index({ title: 1 }, { unique: true });

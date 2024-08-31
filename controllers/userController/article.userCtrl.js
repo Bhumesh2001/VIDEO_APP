@@ -326,34 +326,3 @@ exports.deleteComment = async (req, res) => {
     };
 };
 
-// share an article
-exports.shareArticle = async (req, res) => {
-    const { articleId } = req.query || req.body;
-
-    try {
-        const article = await Article.findByIdAndUpdate(
-            articleId,
-            { $inc: { shares: 1 } },
-            { new: true }
-        );
-
-        if (!article) {
-            return res.status(404).json({
-                success: true,
-                message: 'Article not found',
-            });
-        };
-
-        res.status(200).json({
-            success: true,
-            message: 'Article shared successfully...',
-            shares: article.shares
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error sharing article',
-            error: error.message
-        });
-    };
-};

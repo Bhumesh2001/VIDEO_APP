@@ -7,6 +7,7 @@ const videoUserController = require('../controllers/userController/video.userCtr
 const paymentUserController = require('../controllers/userController/payment.userCtrl');
 const articleUserController = require('../controllers/userController/article.userCtrl');
 const storyUserController = require('../controllers/userController/story.userCtrl');
+const categorUserController = require('../controllers/adminController/category.adminCtrl');
 
 // middlewares
 const { userAuthentication } = require('../middlewares/userMiddleware/userMidlwr');
@@ -44,6 +45,14 @@ userRouter.get(
     userAuthentication,
     validateObjectIds(['paymentId']),
     paymentUserController.getSinglePayment
+);
+
+// ********************* category routes ********************
+
+userRouter.get(
+    '/categories',
+    userAuthentication,
+    categorUserController.getAllCategories
 );
 
 // ********************* article routes **********************
@@ -141,13 +150,6 @@ userRouter.delete(
     articleUserController.deleteComment
 );
 
-userRouter.post(
-    '/article-share',
-    userAuthentication,
-    validateObjectIds(['articleId']),
-    articleUserController.shareArticle
-);
-
 // ************************ video like/comment/share routes *************************
 
 userRouter.post(
@@ -181,13 +183,6 @@ userRouter.delete(
     userAuthentication,
     validateObjectIds(['videoId', 'commentId']),
     videoUserController.deleteComment
-);
-
-userRouter.post(
-    '/video-share',
-    userAuthentication,
-    validateObjectIds(['videoId']),
-    videoUserController.shareVideo
 );
 
 module.exports = userRouter;

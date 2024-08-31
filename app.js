@@ -17,8 +17,8 @@ app.use(cors({
     origin: [
         'https://web-digital-vle.netlify.app',
         'https://bhumesh2001.github.io',
-        'https://videoapp-api.onrender.com',
-        'http://localhost:3001',
+        'https://digital-vle-admin-login.netlify.app',
+        'http://127.0.0.1:5500',
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
