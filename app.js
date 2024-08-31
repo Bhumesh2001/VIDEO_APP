@@ -1,5 +1,5 @@
 require('dotenv').config();
-require('./utils/userUtils/subs.userUtil');
+require('./utils/subs.userUtil');
 const express = require('express');
 const cors = require('cors');
 const cookiParser = require('cookie-parser');
@@ -23,16 +23,13 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-}));   
+}));
 
 app.use(cookiParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(fileUpload({
-    useTempFiles: true,
-    tempFileDir: '/tmp/'
-}));
+app.use(fileUpload());
 
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,

@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const userPaymentModel = require('../../models/userModel/payment.userModel');
+const userPaymentModel = require('../models/userModel/payment.userModel');
 
 const checkAndUpdateExpiredSubscriptions = async () => {
     try {

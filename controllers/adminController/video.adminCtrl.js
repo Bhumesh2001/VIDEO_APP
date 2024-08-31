@@ -1,8 +1,5 @@
 const cloudinary = require('cloudinary').v2;
-const fs = require('fs');
-
 const Video = require('../../models/adminModel/video.adminModel');
-const { uploadStream } = require('../../utils/adminUtils/video.adminUtil');
 
 // ------------- upload video -----------------
 
@@ -10,16 +7,16 @@ exports.uploadVideoToCloudinary = async (req, res) => {
     try {
         const { title, description, category, video, thumbnail } = req.body;
 
-        const videoFile = req.files?.video || video;
-        const thumbnailFile = req.files?.thumbnail || thumbnail;
+        const videoFile = req.files?.video;
+        const thumbnailFile = req.files?.thumbnail;
 
-        if (!title || !description || !category || !videoFile || !thumbnailFile) {
+        if (!title || !description || !category || (!video && !videoFile) || (!thumbnail && !thumbnailFile)) {
             return res.status(400).json({
                 success: false,
                 message: 'Title, description, category, video, and thumbnail are required.',
             });
         };
-        // Initialize video object
+
         let videoObj = {
             title,
             description,
@@ -33,16 +30,26 @@ exports.uploadVideoToCloudinary = async (req, res) => {
                 url: ''
             },
         };
-        // Handle video upload
-        if (req.files && req.files.video) {
-            const videoBuffer = fs.readFileSync(req.files.video.tempFilePath);
 
-            const videoResult = await uploadStream(videoBuffer, {
-                resource_type: 'video',
-                chunk_size: 6000000,  // Chunk size for large file uploads
+        if (videoFile) {
+            const videoBuffer = videoFile.data; 
+
+            const videoResult = await new Promise((resolve, reject) => {
+                cloudinary.uploader.upload_stream(
+                    {
+                        resource_type: 'video',
+                        chunk_size: 6000000,
+                    },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                ).end(videoBuffer); 
             });
+
             videoObj.video.publicId = videoResult.public_id;
             videoObj.video.url = videoResult.secure_url;
+
         } else if (video) {
             const videoResult = await cloudinary.uploader.upload(video, {
                 resource_type: 'video'
@@ -51,20 +58,31 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             videoObj.video.url = videoResult.secure_url;
         };
 
-        // Handle thumbnail upload
-        if (req.files && req.files.thumbnail) {
-            const thumbnailResult = await cloudinary.uploader.upload(req.files.thumbnail.tempFilePath, {
-                resource_type: 'image'
+        if (thumbnailFile) {
+            const thumbnailBuffer = thumbnailFile.data;  
+
+            const thumbnailResult = await new Promise((resolve, reject) => {
+                cloudinary.uploader.upload_stream(
+                    {
+                        resource_type: 'image',
+                    },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                ).end(thumbnailBuffer);
             });
+
             videoObj.thumbnail.publicId = thumbnailResult.public_id;
             videoObj.thumbnail.url = thumbnailResult.secure_url;
+
         } else if (thumbnail) {
             const thumbnailResult = await cloudinary.uploader.upload(thumbnail, {
                 resource_type: 'image'
             });
             videoObj.thumbnail.publicId = thumbnailResult.public_id;
             videoObj.thumbnail.url = thumbnailResult.secure_url;
-        };
+        }
 
         const newVideo = new Video(videoObj);
         await newVideo.save();
@@ -75,6 +93,8 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             video: newVideo,
         });
     } catch (error) {
+        console.error(error);
+
         if (error.name === 'ValidationError') {
             const validationErrors = Object.values(error.errors).map(err => err.message);
             return res.status(400).json({
@@ -83,6 +103,7 @@ exports.uploadVideoToCloudinary = async (req, res) => {
                 errors: validationErrors,
             });
         };
+
         if (error.code === 11000) {
             const field = Object.keys(error.keyValue);
             return res.status(409).json({
@@ -90,28 +111,11 @@ exports.uploadVideoToCloudinary = async (req, res) => {
                 message: `Duplicate field value entered for ${field}: ${error.keyValue[field]}. Please use another value!`,
             });
         };
+
         res.status(500).json({
             success: false,
             message: 'Error occurred while uploading the video',
             error,
-        });
-    };
-};
-
-exports.deleteYoutubeVideo = async (req, res) => {
-    try {
-        const { id } = req.body || req.query;
-        const response = await youtube.videos.delete({ id });
-        res.status(200).json({
-            success: true,
-            message: 'Youtube video deleted successfully...!',
-            data: response.data
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'error occured while deleting the youtube video',
         });
     };
 };

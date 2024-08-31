@@ -3,7 +3,7 @@ const nodemailer = require('nodemailer');
 const axios = require('axios');
 
 const userModel = require('../../models/userModel/userModel');
-const { generateCode } = require('../../utils/userUtils/resendOtp.userUtil');
+const { generateCode } = require('../../utils/resendOtp.userUtil');
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(
