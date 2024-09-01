@@ -23,20 +23,24 @@ exports.totalLikesAndComment = async (req, res) => {
             }
         ]);
 
-        const totalLikesAndCommentObj = {
+        const totalArticleLikes = articlesAggregation.length ? articlesAggregation[0].totalLikes : 0;
+        const totalVideoLikes = videosAggregation.length ? videosAggregation[0].totalLikes : 0;
+
+        const totalVideoComments = videosAggregation.length ? videosAggregation[0].totalComments : 0;
+        const totalArticleComments = articlesAggregation.length ? articlesAggregation[0].totalComments : 0;
+
+        const totalArticleAndVideoLikes = totalArticleLikes + totalVideoLikes;
+        const totalArticleAndVideoComments = totalArticleComments + totalVideoComments;
+
+
+        const totalLikesAndCommentsObj = {
             success: true,
             message: "Total likes and comments fetched successfully...",
-            articles: {
-                totalLikes: articlesAggregation.length ? articlesAggregation[0].totalLikes : 0,
-                totalComments: articlesAggregation.length ? articlesAggregation[0].totalComments : 0,
-            },
-            videos: {
-                totalLikes: videosAggregation.length ? videosAggregation[0].totalLikes : 0,
-                totalComments: videosAggregation.length ? videosAggregation[0].totalComments : 0,
-            }
+            totalArticleAndVideoLikes,
+            totalArticleAndVideoComments
         };
 
-        res.status(200).json(totalLikesAndCommentObj);
+        res.status(200).json(totalLikesAndCommentsObj);
 
     } catch (error) {
         console.error(error);
