@@ -110,7 +110,7 @@ adminRouter.put('/update-subscription', adminAuth, validateObjectIds(['subscript
 adminRouter.delete('/delete-subscription', adminAuth, validateObjectIds(['subscriptionId']), subscriptionController.deleteSubscription);
 
 // total likes and comment routes
-adminRouter.get('/total-likes-comments', dashboardController.totalLikesAndComment);
+adminRouter.get('/dashboard-count', dashboardController.dashboardCount);
 
 // razorpay routes
 adminRouter.post('/create-order', adminAuth, paymentGetwayController.createOrder);
