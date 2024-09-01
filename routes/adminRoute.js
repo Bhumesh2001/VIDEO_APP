@@ -22,7 +22,7 @@ const {
 // login/signup routes
 
 adminRouter.get('/', adminController.adminLoginPage);
-adminRouter.get('/dashboard', adminAuth, adminController.adminDashboard);
+adminRouter.get('/dashboard', adminController.adminDashboard);
 
 adminRouter.post('/create-admin', adminController.createAdmin);
 adminRouter.post('/login-admin', adminController.loginAdmin);
