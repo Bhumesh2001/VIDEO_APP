@@ -11,6 +11,7 @@ const storyController = require('../controllers/adminController/story.adminCtrl'
 const bannerController = require('../controllers/adminController/banner.adminCtrl');
 const subscriptionController = require('../controllers/adminController/subs.admin.Ctrl');
 const paymentGetwayController = require('../controllers/adminController/pGetway.adminCtrl');
+const dashboardController = require('../controllers/adminController/dashboard.adminCtrl');
 
 // admin middlewares
 const { adminAuth } = require('../middlewares/adminMiddleware/auth.adminMdlwr');
@@ -76,7 +77,7 @@ adminRouter.delete('/delete-article', adminAuth, validateObjectIds(['articleId']
 adminRouter.post(
     '/create-story',
     adminAuth,
-    validateRequiredFields(['title', 'authorName', 'publicationDate', 'genre', 'image']),   
+    validateRequiredFields(['title', 'authorName', 'publicationDate', 'genre', 'image']),
     storyController.createStory
 );
 adminRouter.get('/stories', adminAuth, storyController.getAllStories);
@@ -107,6 +108,9 @@ adminRouter.get('/subscriptions', adminAuth, subscriptionController.getSubscript
 adminRouter.get('/subscription', adminAuth, validateObjectIds(['subscriptionId']), subscriptionController.getSubscription);
 adminRouter.put('/update-subscription', adminAuth, validateObjectIds(['subscriptionId']), subscriptionController.updateSubscription);
 adminRouter.delete('/delete-subscription', adminAuth, validateObjectIds(['subscriptionId']), subscriptionController.deleteSubscription);
+
+// total likes and comment routes
+adminRouter.get('/total-likes-comments', dashboardController.totalLikesAndComment);
 
 // razorpay routes
 adminRouter.post('/create-order', adminAuth, paymentGetwayController.createOrder);

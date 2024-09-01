@@ -13,7 +13,6 @@ const { connectToDB } = require('./db/connect');
 const adminRouter = require('./routes/adminRoute');
 const userRouter = require('./routes/userRoute');
 
-
 app.use(cors({
     origin: [
         'https://web-digital-vle.netlify.app',
