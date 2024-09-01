@@ -21,8 +21,8 @@ const {
 
 // login/signup routes
 
-adminRouter.get('/', adminController.adminLoginPage);
-adminRouter.get('/dashboard', adminController.adminDashboard);
+// adminRouter.get('/', adminController.adminLoginPage);
+// adminRouter.get('/dashboard', adminController.adminDashboard);
 
 adminRouter.post('/create-admin', adminController.createAdmin);
 adminRouter.post('/login-admin', adminController.loginAdmin);
@@ -33,7 +33,7 @@ adminRouter.post(
     adminAuth,
     videoController.uploadVideoToCloudinary
 );
-adminRouter.get('/videos', adminAuth, videoController.getAllvideos);
+adminRouter.get('/videos', videoController.getAllvideos);
 adminRouter.get('/videos-by-category', adminAuth, videoController.getAllvideosByCategory);
 
 // Category routes
@@ -43,7 +43,7 @@ adminRouter.post(
     validateRequiredFields(['name', 'description', 'prices', 'status']),
     categoryController.createCategory
 );
-adminRouter.get('/categories', adminAuth, categoryController.getAllCategories);
+adminRouter.get('/categories', categoryController.getAllCategories);
 adminRouter.get('/category', adminAuth, validateObjectIds(['categoryId']), categoryController.getCategory);
 adminRouter.put('/update-category', adminAuth, validateObjectIds(['categoryId']), categoryController.updateCategory);
 adminRouter.delete('/delete-category', adminAuth, validateObjectIds(['categoryId']), categoryController.deleteCategories);
@@ -55,7 +55,7 @@ adminRouter.post(
     validateRequiredFields(['name', 'email', 'password', 'mobileNumber']),
     userAdminController.createUserByAdmin
 );
-adminRouter.get('/users', adminAuth, userAdminController.getAllUsersByAdmin);
+adminRouter.get('/users', userAdminController.getAllUsersByAdmin);
 adminRouter.get('/user', adminAuth, validateObjectIds(['userId']), userAdminController.getSingleUserByAdmin);
 adminRouter.put('/update-user', adminAuth, validateObjectIds(['userId']), userAdminController.updateUserByAdmin);
 adminRouter.delete('/delete-user', adminAuth, validateObjectIds(['userId']), userAdminController.deleteUserByAdmin);

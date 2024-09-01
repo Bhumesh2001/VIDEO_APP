@@ -13,13 +13,14 @@ const { connectToDB } = require('./db/connect');
 const adminRouter = require('./routes/adminRoute');
 const userRouter = require('./routes/userRoute');
 
+
 app.use(cors({
     origin: [
         'https://web-digital-vle.netlify.app',
         'https://digital-vle-admin-login.netlify.app',
         'http://127.0.0.1:5500',
     ],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
 }));
