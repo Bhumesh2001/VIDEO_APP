@@ -6,6 +6,7 @@ exports.createArticle = async (req, res) => {
             userId: req.admin._id,
             ...req.body,
         };
+        
         const article = new Article(articleData);
         await article.save();
 
@@ -41,23 +42,28 @@ exports.createArticle = async (req, res) => {
 
 exports.getAllArticles = async (req, res) => {
     try {
-        const articls = await Article.find({});
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+
+        const skip = (page - 1) * limit;
+
+        const articls = await Article.find({}).skip(skip).limit(limit);
         const totalArticles = await Article.countDocuments();
+
         if (!articls) {
             return res.status(404).json({
                 success: false,
                 message: 'Article not found!',
             });
         };
-        const response = {
-            totalArticles,
-            articls
-        };
 
         res.status(200).json({
             success: true,
             message: 'Article fetched successfully...',
-            articls: response,
+            articls,
+            totalArticles,
+            page,
+            totalPages: Math.ceil(totalArticles / limit),
         });
 
     } catch (error) {
@@ -102,8 +108,8 @@ exports.updateArticle = async (req, res) => {
         const { articleId } = req.query || req.body;
 
         const article = await Article.findByIdAndUpdate(
-            articleId, 
-            req.body, 
+            articleId,
+            req.body,
             { new: true, runValidators: true }
         );
         if (!article) {

@@ -47,27 +47,39 @@ exports.createUserByAdmin = async (req, res) => {
 
 exports.getAllUsersByAdmin = async (req, res) => {
     try {
-        let users = await userModel.find({})
+        const page = parseInt(req.query.page) || 1;  
+        const limit = parseInt(req.query.limit) || 10; 
+        
+        const skip = (page - 1) * limit;
+
+        const users = await userModel.find({})
+            .skip(skip)
+            .limit(limit);
+
         const totalUsers = await userModel.countDocuments();
 
-        if (!users) {
+        if (!users.length) {
             return res.status(404).json({
                 success: false,
-                message: "User not found!",
+                message: "No users found!",
             });
-        };
+        }
+
         res.status(200).json({
             success: true,
             message: "Users fetched successfully...",
             users,
             totalUsers,
+            page,
+            totalPages: Math.ceil(totalUsers / limit),
         });
+
     } catch (error) {
-        console.log(error);
+        console.error(error);
         res.status(500).json({
             success: false,
-            message: 'error occured while fetching the users',
-            error,
+            message: 'Error occurred while fetching the users',
+            error: error.message,
         });
     };
 };

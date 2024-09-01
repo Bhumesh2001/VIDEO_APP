@@ -37,7 +37,12 @@ exports.createCategory = async (req, res) => {
 
 exports.getAllCategories = async (req, res) => {
     try {
-        const categories = await Category.find({});
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+
+        const skip = (page - 1) * limit;
+
+        const categories = await Category.find({}).skip(skip).limit(limit);
         const totalCategory = await Category.countDocuments();
 
         res.status(200).json({
@@ -45,6 +50,8 @@ exports.getAllCategories = async (req, res) => {
             message: "All categories fetched successfully...",
             categories,
             totalCategory,
+            page,
+            totalPages: Math.ceil(totalUsers / limit),
         });
     } catch (error) {
         console.log(error);

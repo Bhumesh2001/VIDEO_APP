@@ -124,7 +124,12 @@ exports.uploadVideoToCloudinary = async (req, res) => {
 
 exports.getAllvideos = async (req, res) => {
     try {
-        const videos = await Video.find({}, { __v: 0 });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+
+        const skip = (page - 1) * limit;
+
+        const videos = await Video.find({}, { __v: 0 }).skip(skip).limit(limit);
         const totalVideos = await Video.countDocuments();
 
         if (videos.length === 0) {
@@ -138,6 +143,8 @@ exports.getAllvideos = async (req, res) => {
             message: 'Video fetched successfully...',
             videos,
             totalVideos,
+            page,
+            totalPages: Math.ceil(totalVideos / limit),
         });
     } catch (error) {
         console.log(error);

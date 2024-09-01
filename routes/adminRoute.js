@@ -68,7 +68,7 @@ adminRouter.post(
     validateRequiredFields(['title', 'content', 'authorName', 'publicationDate', 'image', 'topic']),
     articleController.createArticle
 );
-adminRouter.get('/articls', adminAuth, articleController.getAllArticles);
+adminRouter.get('/articls', articleController.getAllArticles);
 adminRouter.get('/article', adminAuth, validateObjectIds(['articleId']), articleController.getSingleArticle);
 adminRouter.put('/update-article', adminAuth, validateObjectIds(['articleId']), articleController.updateArticle);
 adminRouter.delete('/delete-article', adminAuth, validateObjectIds(['articleId']), articleController.deleteArticle);

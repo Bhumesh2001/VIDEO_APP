@@ -3,11 +3,10 @@ const jwt = require('jsonwebtoken');
 exports.adminAuth = async (req, res, next) => {
     const token = req.cookies.adminToken;
     if (!token) {
-        // return res.status(401).json({
-        //     success: false,
-        //     message: 'Unauthorized. Please log in.',
-        // });
-        return res.redirect('/admin');
+        return res.status(401).json({
+            success: false,
+            message: 'Unauthorized. Please log in.',
+        });
     };
     try {
         const decoded = jwt.verify(token, process.env.ADMIN_SECRET_KEY);
