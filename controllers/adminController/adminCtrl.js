@@ -2,6 +2,33 @@ const jwt = require('jsonwebtoken');
 const Admin = require('../../models/adminModel/adminModel');
 
 // -------------- signup/login -----------------
+
+exports.adminLoginPage = (req, res) => {
+    try {
+        res.redirect('https://digital-vle-admin-login.netlify.app');
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error!',
+            error,
+        });
+    };
+};
+
+exports.adminDashboard = (req, res) => {
+    try {
+        res.redirect('https://web-digital-vle.netlify.app');
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error!',
+            error,
+        });
+    };
+};
+
 exports.createAdmin = async (req, res) => {
     try {
         const { username, email, password } = req.body;

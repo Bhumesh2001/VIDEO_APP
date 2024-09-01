@@ -7,7 +7,7 @@ exports.adminAuth = async (req, res, next) => {
         //     success: false,
         //     message: 'Unauthorized. Please log in.',
         // });
-        return res.redirect('https://digital-vle-admin-login.netlify.app');
+        return res.redirect('/admin');
     };
     try {
         const decoded = jwt.verify(token, process.env.ADMIN_SECRET_KEY);
