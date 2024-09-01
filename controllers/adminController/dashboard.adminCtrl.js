@@ -1,7 +1,7 @@
 const Article = require('../../models/adminModel/article.adminModel');
 const Video = require('../../models/adminModel/video.adminModel');
 const User = require('../../models/userModel/userModel');
-const Category = require('../../models/adminModel/video.adminModel');
+const Category = require('../../models/adminModel/category.adminModel');
 
 exports.dashboardCount = async (req, res) => {
     try {
@@ -34,7 +34,7 @@ exports.dashboardCount = async (req, res) => {
         const totalArticleAndVideoLikes = totalArticleLikes + totalVideoLikes;
         const totalArticleAndVideoComments = totalArticleComments + totalVideoComments;
 
-        const totlalUsers = await User.countDocuments();
+        const totalUser = await User.countDocuments();
         const totalCategory = await Category.countDocuments();
         const totalArticle = await Article.countDocuments();
         const totalVideo = await Video.countDocuments();
@@ -42,7 +42,7 @@ exports.dashboardCount = async (req, res) => {
         const response = {
             success: true,
             message: "Total likes and comments fetched successfully...",
-            totlalUsers,
+            totalUser,
             totalVideo,
             totalCategory,
             totalArticleAndVideoLikes,
