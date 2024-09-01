@@ -51,7 +51,7 @@ exports.getAllCategories = async (req, res) => {
             categories,
             totalCategory,
             page,
-            totalPages: Math.ceil(totalUsers / limit),
+            totalPages: Math.ceil(totalCategory / limit),
         });
     } catch (error) {
         console.log(error);
