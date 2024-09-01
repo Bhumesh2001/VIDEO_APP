@@ -16,7 +16,6 @@ const userRouter = require('./routes/userRoute');
 app.use(cors({
     origin: [
         'https://web-digital-vle.netlify.app',
-        'https://bhumesh2001.github.io',
         'https://digital-vle-admin-login.netlify.app',
         'http://127.0.0.1:5500',
     ],
@@ -47,7 +46,7 @@ app.use('/admin', adminRouter);
 app.use('/user', userRouter);
 
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}/\n`);
+    console.log(`Server running at http://localhost:${PORT}/admin\n`);
     console.log(`Go to this url for google login => http://localhost:${PORT}/user/auth/google`);
     console.log(`Go to this url for facebook login => http://localhost:${PORT}/user/auth/facebook\n`);
 });
