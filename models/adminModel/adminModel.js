@@ -25,8 +25,18 @@ const adminSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['superadmin', 'admin', 'moderator'], // Role options
+        enum: ['superadmin', 'admin', 'moderator'],
         default: 'admin',
+    },
+    profilePicture: {
+        type: String,
+        validate: {
+            validator: function (v) {
+                return /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(v);
+            },
+            message: props => `${props.value} is not a valid image URL!`
+        },
+        default: 'https://example.com/default-profile-picture.png',
     },
 },{ timestamps: true }
 );
@@ -46,6 +56,11 @@ adminSchema.pre('save', async function (next) {
 
 adminSchema.methods.comparePassword = async function (password) {
     return bcrypt.compare(password, this.password);
+};
+
+adminSchema.method.updateProfilePicture = async (url) => {
+    this.profilePicture = url;
+    await this.save();
 };
 
 const Admin = mongoose.model('Admin', adminSchema);

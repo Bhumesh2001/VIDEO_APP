@@ -45,14 +45,11 @@ exports.getAllBanners = async (req, res) => {
     try {
         const banners = await Banner.find({});
         const totalBanners = await Banner.countDocuments();
-        const response = {
-            totalBanners,
-            banners,
-        };
         res.status(200).json({
             success: true,
             message: 'Banners fetched successfully...',
-            banners: response,
+            banners,
+            totalBanners
         });
     } catch (error) {
         res.status(500).json({

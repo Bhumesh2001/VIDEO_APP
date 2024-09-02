@@ -41,7 +41,7 @@ exports.dashboardCount = async (req, res) => {
 
         const response = {
             success: true,
-            message: "Total likes and comments fetched successfully...",
+            message: "Total data fetched successfully...",
             totalUser,
             totalVideo,
             totalCategory,

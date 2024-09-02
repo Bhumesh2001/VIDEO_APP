@@ -153,13 +153,15 @@ exports.verifyUser = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Email verified successfully. You can now log in.'
+            message: 'Email verified successfully. You can now log in.',
+            verified: user.isVerified,
         });
     } catch (error) {
         console.log(error);
         res.status(500).json({
             success: false,
             message: 'error occured during verify the user',
+            error,
         });
     };
 };
@@ -167,6 +169,12 @@ exports.verifyUser = async (req, res) => {
 exports.resendCodeOrOtp = (req, res) => {
     try {
         const CodeOrOtp = generateCode();
+        if (!CodeOrOtp) {
+            return res.status(404).json({
+                success: true,
+                message: 'Code not found!',
+            });
+        };
         res.status(200).json({
             success: true,
             message: "Otp or Code gernerated successfully...",
@@ -204,7 +212,7 @@ exports.loginUser = async (req, res) => {
         const token = jwt.sign(
             { email: user.email, role: user.role, _id: user._id },
             process.env.USER_SECRET_KEY,
-            { expiresIn: '6h' }
+            { expiresIn: '6h' },
         );
 
         res.cookie('userToken', token, {
@@ -286,7 +294,7 @@ exports.getGoogleProfile = async (req, res) => {
         const name = payload['name'];
 
         const token = jwt.sign(
-            { email, role: user.role, _id: user._id },
+            { email, role: 'user', _id: userId },
             process.env.USER_SECRET_KEY,
             { expiresIn: '6h' }
         );
@@ -294,12 +302,13 @@ exports.getGoogleProfile = async (req, res) => {
         res.cookie('userToken', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 6 * 60 * 60 * 1000 
+            maxAge: 6 * 60 * 60 * 1000
         });
 
         res.status(200).json({
             success: true,
             message: 'User logged in successful...',
+            token,
         });
     } catch (error) {
         console.error('Error during authentication:', error);
@@ -349,9 +358,9 @@ exports.getFacebookProfile = async (req, res) => {
                 access_token: accessToken,
             },
         });
-        const { email } = userResponse.data;
+        const { id, email } = userResponse.data;
         const token = jwt.sign(
-            { email, role: user.role, _id: user._id },
+            { email, role: 'user', _id: id },
             process.env.USER_SECRET_KEY,
             { expiresIn: '6h' }
         );
@@ -359,7 +368,7 @@ exports.getFacebookProfile = async (req, res) => {
         res.cookie('userToken', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 6 * 60 * 60 * 1000 
+            maxAge: 6 * 60 * 60 * 1000
         });
 
         res.status(200).json({
@@ -371,5 +380,87 @@ exports.getFacebookProfile = async (req, res) => {
     } catch (error) {
         console.error('Error during Facebook authentication:', error);
         res.status(500).json({ success: false, message: 'Authentication failed' });
+    };
+};
+
+// -------------------- update user ---------------------
+
+exports.updateUser = async (req, res) => {
+    try {
+        const userId = req.user ? req.user._id : req.query.userId;
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: "userId is not found",
+            });
+        };
+
+        const { profilePicture, ...userData } = req.body;
+
+        const user = await userModel.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found!',
+            });
+        };
+
+        if (profilePicture) {
+            const isValidURL = /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(profilePicture);
+            if (!isValidURL) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid profile picture URL!',
+                });
+            };
+            await user.updateProfilePicture(profilePicture);
+        };
+
+        Object.assign(user, userData);
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'User updated successfully...',
+            user,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: 'Error occurred while updating the profile',
+            error: error.message,
+        });
+    };
+};
+
+exports.deleteUser = async (req, res) => {
+    try {
+        const userId = req.user ? req.user._id : req.query.userId;
+        if (!userId) {
+            return res.status(404).json({
+                success: true,
+                message: "userId is not found",
+            });
+        };
+        const deleteUser = await userModel.findByIdAndDelete(userId);
+        if (!deleteUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found!',
+            });
+        };
+        res.status(200).json({
+            success: true,
+            message: 'User deleted successfully...',
+            deleteUser,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: 'error occured while deleting the profile',
+            error: error.message,
+        });
     };
 };

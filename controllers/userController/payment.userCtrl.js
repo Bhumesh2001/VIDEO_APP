@@ -1,18 +1,59 @@
 const UserPayment = require('../../models/userModel/payment.userModel');
 const categoryModel = require('../../models/adminModel/category.adminModel');
+const Coupon = require('../../models/adminModel/coupan.adminModel');
 
 exports.CreatePayment = async (req, res) => {
     try {
-        const { category, subscriptionType, plan, price } = req.body;
+        const { category, subscriptionType, plan, price, couponCode } = req.body;
 
         const userId = req.user._id;
 
-        if (!userId || !category || !subscriptionType || (subscriptionType === 'subscription' && !plan) || !price) {
+        if (!userId || !category || !subscriptionType ||
+            (subscriptionType === 'subscription' && !plan) ||
+            !price
+        ) {
             return res.status(400).json({
                 success: false,
                 message: 'userId, category, subscriptionType, price, and plan (if subscription) are required.'
             });
         };
+
+        let discount = 0;
+        if (couponCode) {
+            const coupon = await Coupon.findOne({ code: couponCode });
+
+            if (!coupon) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Invalid coupon code.'
+                });
+            };
+
+            if (coupon.isExpired()) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Coupon code has expired.'
+                });
+            };
+
+            if (coupon.isExpired()) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Coupon has expired.'
+                });
+            };
+
+            if (!coupon.isActive) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Coupon is inactive.'
+                });
+            };
+
+            discount = (price * coupon.discountPercentage) / 100;
+        };
+
+        const finalPrice = price - discount;
 
         let expiryDate;
         if (subscriptionType === 'subscription') {
@@ -48,7 +89,7 @@ exports.CreatePayment = async (req, res) => {
             category,
             subscriptionType,
             plan,
-            price,
+            price: finalPrice ? finalPrice : price,
             expiryDate,
         });
         await payment.save();
@@ -57,6 +98,7 @@ exports.CreatePayment = async (req, res) => {
             success: true,
             message: "Payment successfull...",
             payment,
+            discount: `${discount}%`,
         });
 
     } catch (error) {
@@ -116,7 +158,7 @@ exports.getAllPayments = async (req, res) => {
 
 exports.getSinglePayment = async (req, res) => {
     try {
-        const { paymentId } = req.query || req.body ;
+        const { paymentId } = req.query || req.body;
 
         const payment = await UserPayment.findById(paymentId);
 

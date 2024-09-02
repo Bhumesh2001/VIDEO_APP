@@ -2,7 +2,8 @@ const jwt = require('jsonwebtoken');
 
 exports.userAuthentication = async (req, res, next) => {
     try {
-        const token = req.cookies.userToken;
+        const token = req.headers['authorization'].split(' ')[1];
+
         if (!token) {
             return res.status(401).json({ message: 'Unautorized, Please login...' });
         };

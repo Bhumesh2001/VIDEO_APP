@@ -1,15 +1,19 @@
 const express = require('express');
 const userRouter = express.Router();
 
-// controllers
+// **************** controllers ****************
+
 const userController = require('../controllers/userController/userCtrl');
 const videoUserController = require('../controllers/userController/video.userCtrl');
 const paymentUserController = require('../controllers/userController/payment.userCtrl');
 const articleUserController = require('../controllers/userController/article.userCtrl');
 const storyUserController = require('../controllers/userController/story.userCtrl');
-const categorUserController = require('../controllers/adminController/category.adminCtrl');
+const categorAdminController = require('../controllers/adminController/category.adminCtrl');
+const couponUserController = require('../controllers/userController/coupon.userCtrl');
+const bannerAdminController = require('../controllers/adminController/banner.adminCtrl');
 
-// middlewares
+// ****************** middlewares *******************
+
 const { userAuthentication } = require('../middlewares/userMiddleware/userMidlwr');
 const {
     validateObjectIds,
@@ -31,6 +35,12 @@ userRouter.get('/auth/facebook/callback', userController.getFacebookProfile);
 
 userRouter.get('/resend-otp', userController.resendCodeOrOtp);
 
+
+// ******************** User profile routes *****************
+
+userRouter.put('/update-profile', userAuthentication, userController.updateUser);
+userRouter.delete('/delete-profile', userAuthentication, userController.deleteUser);
+
 // ******************** video routes **********************
 
 userRouter.get('/videos', userAuthentication, videoUserController.getAllVideos);
@@ -47,13 +57,21 @@ userRouter.get(
     paymentUserController.getSinglePayment
 );
 
+// ****************** coupans routes *****************
+
+userRouter.get('/coupon', userAuthentication, couponUserController.getCoupon);
+
 // ********************* category routes ********************
 
 userRouter.get(
     '/categories',
     userAuthentication,
-    categorUserController.getAllCategories
+    categorAdminController.getAllCategories
 );
+
+// ******************** banner routers ********************
+
+userRouter.get('/banners', userAuthentication, bannerAdminController.getAllBanners);
 
 // ********************* article routes **********************
 
@@ -115,7 +133,7 @@ userRouter.delete(
     storyUserController.deleteStory
 );
 
-//  ******************* Article like/comment/share routes *********************
+//  ******************* Article like/comment routes *********************
 
 userRouter.post(
     '/article-like',
@@ -150,7 +168,7 @@ userRouter.delete(
     articleUserController.deleteComment
 );
 
-// ************************ video like/comment/share routes *************************
+// ************************ video like/comment routes *************************
 
 userRouter.post(
     '/video-like',

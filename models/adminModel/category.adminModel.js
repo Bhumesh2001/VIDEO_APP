@@ -29,6 +29,15 @@ const categorySchema = new mongoose.Schema({
             min: 0,
         }
     },
+    image: {
+        type: String,
+        validate: {
+            validator: function (v) {
+                return /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(v);
+            },
+            message: props => `${props.value} is not a valid image URL!`
+        }
+    },
     status: {
         type: String,
         enum: ['active', 'inactive'],

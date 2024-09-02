@@ -1,7 +1,8 @@
 const express = require('express');
 const adminRouter = express();
 
-// admin controllers
+// ***************** admin controllers ******************
+
 const adminController = require('../controllers/adminController/adminCtrl');
 const categoryController = require('../controllers/adminController/category.adminCtrl');
 const videoController = require('../controllers/adminController/video.adminCtrl');
@@ -12,15 +13,17 @@ const bannerController = require('../controllers/adminController/banner.adminCtr
 const subscriptionController = require('../controllers/adminController/subs.admin.Ctrl');
 const paymentGetwayController = require('../controllers/adminController/pGetway.adminCtrl');
 const dashboardController = require('../controllers/adminController/dashboard.adminCtrl');
+const couponController = require('../controllers/adminController/coupan.adminCtrl');
 
-// admin middlewares
+// ****************** admin middlewares ******************
+
 const { adminAuth } = require('../middlewares/adminMiddleware/auth.adminMdlwr');
 const {
     validateObjectIds,
     validateRequiredFields
 } = require('../middlewares/adminMiddleware/validate.adminMidlwr');
 
-// login/signup routes
+// ****************** login/signup routes ******************
 
 // adminRouter.get('/', adminController.adminLoginPage);
 // adminRouter.get('/dashboard', adminController.adminDashboard);
@@ -28,7 +31,13 @@ const {
 adminRouter.post('/create-admin', adminController.createAdmin);
 adminRouter.post('/login-admin', adminController.loginAdmin);
 
-// video routes
+// ******************* profile routes *****************
+
+adminRouter.put('/update-profile', adminAuth, adminController.updateProfile);
+adminRouter.post('/logout', adminAuth, adminController.LogoutAdmin);
+
+// ******************* video routes *******************
+
 adminRouter.post(
     '/upload-video',
     adminAuth,
@@ -37,7 +46,8 @@ adminRouter.post(
 adminRouter.get('/videos', videoController.getAllvideos);
 adminRouter.get('/videos-by-category', adminAuth, videoController.getAllvideosByCategory);
 
-// Category routes
+// ******************** Category routes *******************
+
 adminRouter.post(
     '/create-category',
     adminAuth,
@@ -45,11 +55,27 @@ adminRouter.post(
     categoryController.createCategory
 );
 adminRouter.get('/categories', categoryController.getAllCategories);
-adminRouter.get('/category', adminAuth, validateObjectIds(['categoryId']), categoryController.getCategory);
-adminRouter.put('/update-category', adminAuth, validateObjectIds(['categoryId']), categoryController.updateCategory);
-adminRouter.delete('/delete-category', adminAuth, validateObjectIds(['categoryId']), categoryController.deleteCategories);
+adminRouter.get(
+    '/category',
+    adminAuth,
+    validateObjectIds(['categoryId']),
+    categoryController.getCategory
+);
+adminRouter.put(
+    '/update-category',
+    adminAuth,
+    validateObjectIds(['categoryId']),
+    categoryController.updateCategory
+);
+adminRouter.delete(
+    '/delete-category',
+    adminAuth,
+    validateObjectIds(['categoryId']),
+    categoryController.deleteCategories
+);
 
-// create user by admin routes 
+// ***************** create user by admin routes *********************
+
 adminRouter.post(
     '/create-user',
     adminAuth,
@@ -57,11 +83,27 @@ adminRouter.post(
     userAdminController.createUserByAdmin
 );
 adminRouter.get('/users', userAdminController.getAllUsersByAdmin);
-adminRouter.get('/user', adminAuth, validateObjectIds(['userId']), userAdminController.getSingleUserByAdmin);
-adminRouter.put('/update-user', adminAuth, validateObjectIds(['userId']), userAdminController.updateUserByAdmin);
-adminRouter.delete('/delete-user', adminAuth, validateObjectIds(['userId']), userAdminController.deleteUserByAdmin);
+adminRouter.get(
+    '/user',
+    adminAuth,
+    validateObjectIds(['userId']),
+    userAdminController.getSingleUserByAdmin
+);
+adminRouter.put(
+    '/update-user',
+    adminAuth,
+    validateObjectIds(['userId']),
+    userAdminController.updateUserByAdmin
+);
+adminRouter.delete(
+    '/delete-user',
+    adminAuth,
+    validateObjectIds(['userId']),
+    userAdminController.deleteUserByAdmin
+);
 
-// Article routes
+// ******************** Article routes *******************
+
 adminRouter.post(
     '/create-article',
     adminAuth,
@@ -69,11 +111,27 @@ adminRouter.post(
     articleController.createArticle
 );
 adminRouter.get('/articls', articleController.getAllArticles);
-adminRouter.get('/article', adminAuth, validateObjectIds(['articleId']), articleController.getSingleArticle);
-adminRouter.put('/update-article', adminAuth, validateObjectIds(['articleId']), articleController.updateArticle);
-adminRouter.delete('/delete-article', adminAuth, validateObjectIds(['articleId']), articleController.deleteArticle);
+adminRouter.get(
+    '/article',
+    adminAuth,
+    validateObjectIds(['articleId']),
+    articleController.getSingleArticle
+);
+adminRouter.put(
+    '/update-article',
+    adminAuth,
+    validateObjectIds(['articleId']),
+    articleController.updateArticle
+);
+adminRouter.delete(
+    '/delete-article',
+    adminAuth,
+    validateObjectIds(['articleId']),
+    articleController.deleteArticle
+);
 
-// story routes
+// *************** story routes ****************
+
 adminRouter.post(
     '/create-story',
     adminAuth,
@@ -85,7 +143,7 @@ adminRouter.get('/story', adminAuth, validateObjectIds(['storyId']), storyContro
 adminRouter.put('/update-story', adminAuth, validateObjectIds(['storyId']), storyController.updateStory);
 adminRouter.delete('/delete-story', adminAuth, validateObjectIds(['storyId']), storyController.deleteStory);
 
-// Banner routes
+// ***************** Banner routes **************
 adminRouter.post(
     '/create-banner',
     adminAuth,
@@ -94,10 +152,21 @@ adminRouter.post(
 );
 adminRouter.get('/banners', adminAuth, bannerController.getAllBanners);
 adminRouter.get('/banner', adminAuth, validateObjectIds(['bannerId']), bannerController.getSingleBanner);
-adminRouter.put('/update-banner', adminAuth, validateObjectIds(['bannerId']), bannerController.updateBanner);
-adminRouter.delete('/delete-banner', adminAuth, validateObjectIds(['bannerId']), bannerController.deleteBanner);
+adminRouter.put(
+    '/update-banner',
+    adminAuth,
+    validateObjectIds(['bannerId']),
+    bannerController.updateBanner
+);
+adminRouter.delete(
+    '/delete-banner',
+    adminAuth,
+    validateObjectIds(['bannerId']),
+    bannerController.deleteBanner
+);
 
-// subscription routes
+// ****************** subscription routes *********************
+
 adminRouter.post(
     '/create-subscription',
     adminAuth,
@@ -105,14 +174,59 @@ adminRouter.post(
     subscriptionController.createSubscription
 );
 adminRouter.get('/subscriptions', adminAuth, subscriptionController.getSubscriptions);
-adminRouter.get('/subscription', adminAuth, validateObjectIds(['subscriptionId']), subscriptionController.getSubscription);
-adminRouter.put('/update-subscription', adminAuth, validateObjectIds(['subscriptionId']), subscriptionController.updateSubscription);
-adminRouter.delete('/delete-subscription', adminAuth, validateObjectIds(['subscriptionId']), subscriptionController.deleteSubscription);
+adminRouter.get(
+    '/subscription',
+    adminAuth,
+    validateObjectIds(['subscriptionId']),
+    subscriptionController.getSubscription
+);
+adminRouter.put(
+    '/update-subscription',
+    adminAuth,
+    validateObjectIds(['subscriptionId']),
+    subscriptionController.updateSubscription
+);
+adminRouter.delete(
+    '/delete-subscription',
+    adminAuth,
+    validateObjectIds(['subscriptionId']),
+    subscriptionController.deleteSubscription
+);
 
-// total likes and comment routes
+// ******************* total likes and comment routes ****************
+
 adminRouter.get('/dashboard-count', dashboardController.dashboardCount);
 
-// razorpay routes
+// ******************* coupan code routes *****************
+
+adminRouter.post(
+    '/create-coupon',
+    adminAuth,
+    validateRequiredFields(['discountPercentage', 'expirationDate',]),
+    couponController.createCoupon
+);
+adminRouter.get('/coupons', adminAuth, couponController.getCoupons);
+adminRouter.get(
+    '/coupon',
+    adminAuth,
+    validateObjectIds(['couponId']),
+    couponController.getCouponById
+);
+adminRouter.put(
+    '/update-coupon',
+    adminAuth,
+    validateObjectIds(['couponId']),
+    couponController.updateCoupon
+);
+adminRouter.delete(
+    '/delete-coupon',
+    validateObjectIds(['couponId']),
+    adminAuth,
+    couponController.deleteCoupon
+);
+
+// ******************* razorpay routes *********************
+
 adminRouter.post('/create-order', adminAuth, paymentGetwayController.createOrder);
 adminRouter.post('/verify-payment', adminAuth, paymentGetwayController.verifyPayment);
 
