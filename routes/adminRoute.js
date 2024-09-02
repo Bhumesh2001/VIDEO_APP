@@ -51,7 +51,7 @@ adminRouter.get('/videos-by-category', adminAuth, videoController.getAllvideosBy
 adminRouter.post(
     '/create-category',
     adminAuth,
-    validateRequiredFields(['name', 'description', 'prices', 'status']),
+    validateRequiredFields(['name', 'description', 'prices', 'status', 'image']),
     categoryController.createCategory
 );
 adminRouter.get('/categories', categoryController.getAllCategories);

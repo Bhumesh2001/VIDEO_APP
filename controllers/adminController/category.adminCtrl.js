@@ -2,10 +2,10 @@ const Category = require('../../models/adminModel/category.adminModel');
 
 exports.createCategory = async (req, res) => {
     try {
-        const { name, description, prices, status } = req.body;
+        const { name, description, prices, status, image } = req.body;
 
         const category = new Category({
-            name, description, prices, status,
+            name, description, prices, image, status,
         });
         await category.save();
 
