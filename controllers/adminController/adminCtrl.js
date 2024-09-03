@@ -5,7 +5,7 @@ const Admin = require('../../models/adminModel/adminModel');
 
 exports.adminLoginPage = (req, res) => {
     try {
-        res.redirect('https://digital-vle-admin-login.netlify.app');
+        res.redirect(302, 'https://digital-vle-admin-login.netlify.app');
     } catch (error) {
         console.log(error);
         res.status(500).json({
@@ -18,7 +18,7 @@ exports.adminLoginPage = (req, res) => {
 
 exports.adminDashboard = (req, res) => {
     try {
-        res.redirect('https://web-digital-vle.netlify.app');
+        res.redirect(301, 'https://web-digital-vle.netlify.app');
     } catch (error) {
         console.log(error);
         res.status(500).json({
@@ -46,7 +46,7 @@ exports.createAdmin = async (req, res) => {
                 message: 'Password must be strong (include upper, lower, number, and special character)',
             });
         };
-        
+
         const existsAdmin = await Admin.countDocuments();
 
         if (existsAdmin === 1) {
@@ -100,7 +100,7 @@ exports.loginAdmin = async (req, res) => {
         res.cookie('adminToken', token, {
             httpOnly: true,
             secure: true,
-            maxAge: 6 * 60 * 60 * 1000 
+            maxAge: 6 * 60 * 60 * 1000
         });
 
         res.status(200).json({
@@ -121,7 +121,7 @@ exports.loginAdmin = async (req, res) => {
 exports.updateProfile = async (req, res) => {
     try {
         const userId = req.admin._id;
-        if(!userId){
+        if (!userId) {
             return res.status(404).json({
                 success: false,
                 message: 'userId not found!',
