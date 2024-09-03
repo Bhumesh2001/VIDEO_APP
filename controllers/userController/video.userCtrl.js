@@ -83,7 +83,7 @@ exports.getAllVideosByCategory = async (req, res) => {
 // like a video
 exports.likeVideo = async (req, res) => {
     try {
-        const { videoId } = req.query || req.body;
+        const { videoId } = req.body;
         const userId = req.user._id;
 
         const video = await Video.findById(videoId);

@@ -38,6 +38,7 @@ userRouter.get('/resend-otp', userController.resendCodeOrOtp);
 
 // ******************** User profile routes *****************
 
+userRouter.get('/profile', userAuthentication, userController.userProfile);
 userRouter.put('/update-profile', userAuthentication, userController.updateUser);
 userRouter.delete('/delete-profile', userAuthentication, userController.deleteUser);
 

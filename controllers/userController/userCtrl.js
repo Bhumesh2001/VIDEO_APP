@@ -385,6 +385,29 @@ exports.getFacebookProfile = async (req, res) => {
 
 // -------------------- update user ---------------------
 
+exports.userProfile = async (req, res) => {
+    try {
+        const profile = await userModel.findById(req.user._id);
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'profile not found',
+            });
+        };
+        res.status(200).json({
+            success: true,
+            message: 'Profile fetched successfully...',
+            profile,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: 'error occured while fetching the user profile',
+        });
+    };
+};
+
 exports.updateUser = async (req, res) => {
     try {
         const userId = req.user ? req.user._id : req.query.userId;
