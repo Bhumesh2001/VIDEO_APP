@@ -99,13 +99,14 @@ exports.loginAdmin = async (req, res) => {
 
         res.cookie('adminToken', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production', // Only send cookie over HTTPS in production
-            maxAge: 6 * 60 * 60 * 1000 // 6 hours in milliseconds
+            secure: true,
+            maxAge: 6 * 60 * 60 * 1000 
         });
 
         res.status(200).json({
             success: true,
             message: 'Admin logged in successful...',
+            token,
         });
 
     } catch (error) {

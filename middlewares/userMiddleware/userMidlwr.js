@@ -3,20 +3,31 @@ const jwt = require('jsonwebtoken');
 exports.userAuthentication = async (req, res, next) => {
     try {
         const authHeader = req.headers['authorization'];
-        if (!authHeader) {
+        let token;
+
+        if (authHeader) {
+            const tokenParts = authHeader.split(' ');
+
+            if (tokenParts[0] === 'Bearer' && tokenParts[1]) {
+                token = tokenParts[1];
+            } else {
+                return res.status(401).json({ message: 'Malformed authorization header.' });
+            }
+        };
+
+        if (!token) {
+            token = req.cookies.userToken;
+        };
+
+        if (!token) {
             return res.status(401).json({ message: 'Unauthorized, please login.' });
         };
 
-        const tokenParts = authHeader.split(' ');
-        if (tokenParts[0] !== 'Bearer' || !tokenParts[1]) {
-            return res.status(401).json({ message: 'Malformed authorization header.' });
-        };
-
-        const token = tokenParts[1];
         const decoded = jwt.verify(token, process.env.USER_SECRET_KEY);
 
         req.user = decoded;
         next();
+
     } catch (error) {
         if (error.name === 'TokenExpiredError') {
             return res.status(401).json({ message: 'Token has expired, please login again.' });
