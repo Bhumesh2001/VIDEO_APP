@@ -38,7 +38,7 @@ exports.getAllVideos = async (req, res) => {
 
 exports.getAllVideosByCategory = async (req, res) => {
     try {
-        const { category } = req.body || req.query;
+        const { category } = req.query;
         if (!category) {
             return res.status(400).json({
                 success: false,
