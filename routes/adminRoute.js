@@ -138,7 +138,7 @@ adminRouter.post(
     validateRequiredFields(['title', 'authorName', 'publicationDate', 'genre', 'image']),
     storyController.createStory
 );
-adminRouter.get('/stories', adminAuth, storyController.getAllStories);
+adminRouter.get('/stories', storyController.getAllStories);
 adminRouter.get('/story', adminAuth, validateObjectIds(['storyId']), storyController.getSingleStory);
 adminRouter.put('/update-story', adminAuth, validateObjectIds(['storyId']), storyController.updateStory);
 adminRouter.delete('/delete-story', adminAuth, validateObjectIds(['storyId']), storyController.deleteStory);
