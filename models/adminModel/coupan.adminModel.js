@@ -48,7 +48,7 @@ const couponSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
-couponSchema.index({ code: 1 }, { unique: true });
+couponSchema.index({ couponCode: 1 }, { unique: true });
 
 couponSchema.pre('save', function (next) {
     if (this.isModified('usageCount') || this.isModified('maxUsage')) {

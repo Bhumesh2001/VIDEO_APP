@@ -6,6 +6,13 @@ const storySchema = new mongoose.Schema({
         required: true,
         index: true,
     },
+    title: {
+        type: String,
+        unique: true,
+        required: [true, 'title is required'],
+        minlength: [5, 'Title must be at least 5 characters long'],
+        maxlength: [100, 'Title cannot exceed 100 characters'],
+    },
     video: {
         type: String,
         required: true,
@@ -65,6 +72,7 @@ storySchema.methods.addLike = function () {
     return this.save();
 };
 
+storySchema.index({ title: 1 }, { unique: true })
 storySchema.index({ timestamps: 1 });
 
 const Story = mongoose.model('Story', storySchema);

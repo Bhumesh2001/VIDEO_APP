@@ -147,7 +147,7 @@ adminRouter.delete(
 adminRouter.post(
     '/create-story',
     adminAuth,
-    validateRequiredFields(['video', 'caption', 'duration']),
+    validateRequiredFields(['title', 'video', 'caption', 'duration']),
     storyController.createStory
 );
 adminRouter.get('/stories', storyController.getAllStories);
@@ -156,7 +156,7 @@ adminRouter.put(
     '/update-story',
     adminAuth,
     validateObjectIds(['storyId']),
-    validateRequiredFields(['video', 'caption', 'duration', 'status']),
+    validateRequiredFields(['title', 'video', 'caption', 'duration', 'status']),
     storyController.updateStory
 );
 adminRouter.delete('/delete-story', adminAuth, validateObjectIds(['storyId']), storyController.deleteStory);

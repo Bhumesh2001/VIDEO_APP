@@ -40,7 +40,7 @@ const bannerSchema = new mongoose.Schema({
 }, { timestamps: true }
 );
 
-bannerSchema.index({ title: 1 });
+bannerSchema.index({ title: 1 }, { unique: true });
 bannerSchema.index({ timestamps: 1 });
 
 const Banner = mongoose.model('Banner', bannerSchema);

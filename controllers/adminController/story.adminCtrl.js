@@ -2,7 +2,7 @@ const Story = require('../../models/adminModel/story.adminModel');
 const { checkUrl } = require('../../utils/uploadImage');
 
 exports.createStory = async (req, res) => {
-    const { video, caption, duration } = req.body;
+    const { title, video, caption, duration } = req.body;
 
     try {
         if(!checkUrl(video)){
@@ -14,6 +14,7 @@ exports.createStory = async (req, res) => {
         
         const storyData = {
             userId: req.admin._id,
+            title,
             video,
             caption,
             duration,
