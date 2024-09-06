@@ -19,12 +19,6 @@ exports.registerUser = async (req, res) => {
     try {
         const { name, email, password, mobileNumber } = req.body;
 
-        if (!name || !email || !password || !mobileNumber) {
-            return res.status(400).json({
-                success: false,
-                message: 'name, email, password and mobileNumber are required',
-            });
-        };
         const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
         if (!strongPasswordRegex.test(password)) {
             return res.status(400).json({
@@ -111,18 +105,16 @@ exports.registerUser = async (req, res) => {
 
 // -------------- Verify User -------------------
 exports.verifyUser = async (req, res) => {
-    const { email, code } = req.body || req.query;
+    const { email, code } = req.body;
     try {
-        if (!email || !code) {
-            return res.status(400).json({
-                success: false,
-                message: 'email and code are required',
-            });
-        };
-
         let user_data;
         if (temporaryStorage.has(email)) {
             user_data = temporaryStorage.get(email);
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Please register again...!'
+            });
         };
 
         if (!user_data) {
@@ -194,12 +186,6 @@ exports.loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        if (!email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Email and password are required.',
-            });
-        };
         const user = await userModel.findOne({ email });
 
         if (!user || !(await user.comparePassword(password))) {
@@ -216,9 +202,9 @@ exports.loginUser = async (req, res) => {
         );
 
         res.cookie('userToken', token, {
-            httpOnly: true, // Prevents JavaScript access
-            secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
-            maxAge: 6 * 60 * 60 * 1000 // 6 hours
+            httpOnly: true,
+            secure: true,
+            maxAge: 6 * 60 * 60 * 1000,
         });
 
         res.status(200).json({
@@ -238,7 +224,7 @@ exports.loginUser = async (req, res) => {
 // ------------- Logout User -----------------
 exports.logoutUser = async (req, res) => {
     try {
-        res.clearCookie('userToken');
+        res.clearCookie('userToken', { httpOnly: true, secure: true });
         const userToken = req.cookies.userToken;
         res.status(200).json({
             success: true,
@@ -301,7 +287,7 @@ exports.getGoogleProfile = async (req, res) => {
 
         res.cookie('userToken', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,
             maxAge: 6 * 60 * 60 * 1000
         });
 
@@ -367,7 +353,7 @@ exports.getFacebookProfile = async (req, res) => {
 
         res.cookie('userToken', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,
             maxAge: 6 * 60 * 60 * 1000
         });
 
@@ -414,7 +400,7 @@ exports.updateUser = async (req, res) => {
         if (!userId) {
             return res.status(400).json({
                 success: false,
-                message: "userId is not found",
+                message: "userId not found",
             });
         };
 
@@ -463,7 +449,7 @@ exports.deleteUser = async (req, res) => {
         if (!userId) {
             return res.status(404).json({
                 success: true,
-                message: "userId is not found",
+                message: "userId not found",
             });
         };
         const deleteUser = await userModel.findByIdAndDelete(userId);

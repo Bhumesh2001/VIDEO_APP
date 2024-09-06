@@ -1,23 +1,24 @@
 const Coupon = require('../../models/adminModel/coupan.adminModel');
 const { generateCouponCode } = require('../../utils/coupanCode');
+const { convertToMongooseDate } = require('../../utils/subs.userUtil');
 
 // Create a new coupon
 exports.createCoupon = async (req, res) => {
     try {
         const { discountPercentage, expirationDate, maxUsage } = req.body;
 
-        if (!discountPercentage || !expirationDate) {
+        if (!discountPercentage || !expirationDate || !maxUsage) {
             return res.status(400).json({
                 success: false,
-                message: 'Code, discountPercentage, and expirationDate are required.'
+                message: 'discountPercentage, and expirationDate are required.'
             });
         };
-        const code = generateCouponCode();
+        const couponCode = generateCouponCode();
 
         const coupon = new Coupon({
-            code,
+            couponCode,
             discountPercentage,
-            expirationDate,
+            expirationDate: convertToMongooseDate(expirationDate),
             maxUsage,
         });
 
@@ -53,7 +54,7 @@ exports.createCoupon = async (req, res) => {
 exports.getCoupons = async (req, res) => {
     try {
         const coupons = await Coupon.find({});
-        if(!coupons){
+        if (!coupons) {
             return res.status(404).json({
                 success: true,
                 message: 'Coupan not found!',
@@ -76,7 +77,7 @@ exports.getCoupons = async (req, res) => {
 // Get a single coupon by ID
 exports.getCouponById = async (req, res) => {
     try {
-        const couponId = req.query.couponId || req.body.couponId;
+        const { couponId } = req.query;
 
         const coupon = await Coupon.findById(couponId);
 
@@ -103,13 +104,19 @@ exports.getCouponById = async (req, res) => {
 // Update a coupon by ID
 exports.updateCoupon = async (req, res) => {
     try {
-        const { code, discountPercentage, expirationDate, maxUsage } = req.body;
-
-        const { couponId } = req.query? req.query : req.body;
+        const { couponId } = req.query;
+        const { couponCode, discountPercentage, expirationDate, maxUsage, status } = req.body;
 
         const coupon = await Coupon.findByIdAndUpdate(
             couponId,
-            { code, discountPercentage, expirationDate, maxUsage, updatedAt: Date.now() },
+            { 
+                couponCode, 
+                discountPercentage, 
+                expirationDate: convertToMongooseDate(expirationDate), 
+                maxUsage, 
+                status, 
+                updatedAt: Date.now() 
+            },
             { new: true, runValidators: true }
         );
 
@@ -137,7 +144,7 @@ exports.updateCoupon = async (req, res) => {
 // Delete a coupon by ID
 exports.deleteCoupon = async (req, res) => {
     try {
-        const couponId = req.query.couponId || req.body.couponId;
+        const { couponId } = req.query;
         const coupon = await Coupon.findByIdAndDelete(couponId);
 
         if (!coupon) {

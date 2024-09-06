@@ -1,11 +1,23 @@
 const Story = require('../../models/adminModel/story.adminModel');
+const { checkUrl } = require('../../utils/uploadImage');
 
 exports.createStory = async (req, res) => {
     try {
+        const { video, ...data} = req.body;
+
+        if(!checkUrl(video)){
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid URL format',
+            });
+        };
+
         const storyData = {
             userId: req.user._id,
-            ...req.body
-        }
+            video,
+            ...data,
+        };
+
         const story = new Story(storyData);
         await story.save();
 
@@ -64,7 +76,7 @@ exports.getAllStories = async (req, res) => {
 
 exports.getSingleStory = async (req, res) => {
     try {
-        const { storyId } = req.query || req.body;
+        const { storyId } = req.query;
 
         const story = await Story.findById(storyId);
         if (!story) {
@@ -91,7 +103,7 @@ exports.getSingleStory = async (req, res) => {
 
 exports.updateStory = async (req, res) => {
     try {
-        const { storyId } = req.query || req.body;
+        const { storyId } = req.query;
 
         const story = await Story.findOneAndUpdate(
             { _id: storyId, userId: req.user._id },

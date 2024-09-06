@@ -1,11 +1,23 @@
 const Story = require('../../models/adminModel/story.adminModel');
+const { checkUrl } = require('../../utils/uploadImage');
 
 exports.createStory = async (req, res) => {
+    const { video, caption, duration } = req.body;
+
     try {
+        if(!checkUrl(video)){
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid URL format',
+            });
+        };
+        
         const storyData = {
             userId: req.admin._id,
-            ...req.body
-        }
+            video,
+            caption,
+            duration,
+        };
         const story = new Story(storyData);
         await story.save();
 
@@ -28,7 +40,7 @@ exports.createStory = async (req, res) => {
         if (error.code === 11000) {
             return res.status(409).json({
                 success: false,
-                message: 'story already exists!',
+                message: 'Story already exists!',
             });
         };
         res.status(500).json({
@@ -64,7 +76,7 @@ exports.getAllStories = async (req, res) => {
 
 exports.getSingleStory = async (req, res) => {
     try {
-        const { storyId } = req.query || req.body;
+        const { storyId } = req.query;
 
         const story = await Story.findById(storyId);
         if (!story) {
@@ -91,7 +103,14 @@ exports.getSingleStory = async (req, res) => {
 
 exports.updateStory = async (req, res) => {
     try {
-        const { storyId } = req.query || req.body;
+        const { storyId } = req.query;
+
+        if(!checkUrl(req.body.video)){
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid URL format',
+            });
+        };
 
         const story = await Story.findByIdAndUpdate(storyId, req.body, { new: true, runValidators: true, });
         if (!story) {
@@ -118,7 +137,7 @@ exports.updateStory = async (req, res) => {
 
 exports.deleteStory = async (req, res) => {
     try {
-        const { storyId } = req.query || req.body;
+        const { storyId } = req.query;
 
         const story = await Story.findByIdAndDelete(storyId);
         if (!story) {

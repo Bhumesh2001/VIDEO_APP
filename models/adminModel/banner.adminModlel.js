@@ -16,7 +16,12 @@ const bannerSchema = new mongoose.Schema({
         minlength: [20, 'Description must be at least 20 characters long'],
         maxlength: [500, 'Description cannot exceed 500 characters'],
     },
-    imageUrl: {
+    public_id: {
+        type: String,
+        unique: true,
+        requird: [true, 'Public id is required'],
+    },
+    image: {
         type: String,
         required: [true, 'Image URL is required'],
         unique: true,
@@ -27,16 +32,16 @@ const bannerSchema = new mongoose.Schema({
             message: 'Image URL must be a valid format (jpg, jpeg, png, gif)',
         },
     },
-    active: {
-        type: Boolean,
-        default: true,
+    status: {
+        type: String,
+        enum: ['active', 'inactive'],
+        default: 'active',
     },
 }, { timestamps: true }
 );
 
 bannerSchema.index({ title: 1 });
 bannerSchema.index({ timestamps: 1 });
-
 
 const Banner = mongoose.model('Banner', bannerSchema);
 

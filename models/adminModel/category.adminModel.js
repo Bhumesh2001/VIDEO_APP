@@ -12,24 +12,12 @@ const categorySchema = new mongoose.Schema({
         trim: true,
         default: '',
     },
-    prices: {
-        monthly: {
-            type: Number,
-            required: true,
-            min: 0,
-        },
-        quarterly: {
-            type: Number,
-            required: true,
-            min: 0,
-        },
-        yearly: {
-            type: Number,
-            required: true,
-            min: 0,
-        }
+    public_id: {
+        type: String,
+        unique: true,
+        trim: true
     },
-    image: {
+    image_url: {
         type: String,
         validate: {
             validator: function (v) {

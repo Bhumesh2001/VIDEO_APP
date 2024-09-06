@@ -33,12 +33,6 @@ exports.createAdmin = async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
-        if (!username || !email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'username, email and passowrd are required',
-            });
-        };
         const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
         if (!strongPasswordRegex.test(password)) {
             return res.status(400).json({
@@ -48,21 +42,23 @@ exports.createAdmin = async (req, res) => {
         };
 
         const existsAdmin = await Admin.countDocuments();
-
+        let newAdmin;
         if (existsAdmin === 1) {
             return res.status(409).json({
                 success: false,
                 message: "Admin already created, you can't make admin.",
             });
         } else {
-            const newAdmin = new Admin(req.body);
+            newAdmin = new Admin({
+                username, email, password
+            });
             await newAdmin.save();
-            console.log('Admin user created successfully');
         };
 
         res.status(201).json({
             success: true,
             message: "Admin user created successfully...",
+            newAdmin,
         });
     } catch (error) {
         console.log(error);
@@ -77,12 +73,6 @@ exports.loginAdmin = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        if (!email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Email and password are required.',
-            });
-        };
         const admin = await Admin.findOne({ email });
 
         if (!admin || !(await admin.comparePassword(password))) {
@@ -91,11 +81,15 @@ exports.loginAdmin = async (req, res) => {
                 message: 'Invalid email and password',
             });
         };
-        const token = jwt.sign({
-            email: admin.email,
-            role: admin.role,
-            _id: admin._id,
-        }, process.env.ADMIN_SECRET_KEY, { expiresIn: '6h' });
+        const token = jwt.sign(
+            {
+                email: admin.email,
+                role: admin.role,
+                _id: admin._id,
+            },
+            process.env.ADMIN_SECRET_KEY,
+            { expiresIn: '6h' }
+        );
 
         res.cookie('adminToken', token, {
             httpOnly: true,
@@ -114,6 +108,36 @@ exports.loginAdmin = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error occured while login the admin',
+        });
+    };
+};
+
+exports.adminProfile = async (req, res) => {
+    try {
+        const adminId = req.admin._id;
+        if(!adminId){
+            return res.status(404).json({
+                success: false,
+                message: 'adminId not found!',
+            });
+        };
+        const adminProfile = await Admin.findById(adminId);
+        if(!adminProfile){
+            return res.status(404).json({
+                success: false,
+                message: 'Profile not found!',
+            });
+        };
+        res.status(200).json({
+            success: true,
+            message: 'Profile fetched successfully...',
+            adminProfile,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: 'error occured while fetching the adminProfile',
         });
     };
 };
@@ -142,7 +166,7 @@ exports.updateProfile = async (req, res) => {
             if (!isValidURL) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Invalid profile picture URL!',
+                    message: 'Invalid profile picture URL! Profile should be match jpg, jpeg, png, gif, webp, tiff',
                 });
             };
             await admin.updateProfilePicture(profilePicture);
@@ -168,7 +192,7 @@ exports.updateProfile = async (req, res) => {
 
 exports.LogoutAdmin = async (req, res) => {
     try {
-        res.clearCookie('adminToken');
+        res.clearCookie('adminToken', { httpOnly: true, secure: true });
         const adminToken = req.cookies.adminToken;
         res.status(200).json({
             success: true,

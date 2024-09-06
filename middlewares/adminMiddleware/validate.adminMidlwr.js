@@ -33,7 +33,7 @@ exports.validateRequiredFields = (requiredFields) => {
                 message: `The following fields are required: ${missingFields.join(', ')}`,
             });
         };
-
+        
         next();
     };
 };

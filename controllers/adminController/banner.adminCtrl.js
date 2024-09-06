@@ -1,15 +1,52 @@
 const Banner = require('../../models/adminModel/banner.adminModlel');
+const {
+    uploadImageToCloudinary,
+    deleteImageAndUploadToCloudinary,
+    deleteImageOnCloudinary,
+} = require('../../utils/uploadImage');
 
 exports.createBanner = async (req, res) => {
-    const { title, description, imageUrl, active } = req.body;
+    let { title, description, image } = req.body;
 
     try {
-        const newBanner = new Banner({
+        // Perform a case-insensitive search for the title
+        const existingBanner = await Banner.findOne({ title: { $regex: new RegExp(`^${title}$`, 'i') } });
+
+        if (existingBanner) {
+            return res.status(409).json({
+                success: false,
+                message: 'Banner already exists!',
+            });
+        };
+
+        if (!(req.files && req.files.image) && !req.body.image) {
+            return res.status(400).json({
+                success: false,
+                message: 'Image file or image URL is required!',
+            });
+        };
+
+        if (req.files && req.files.image) {
+            image = req.files.image.tempFilePath;
+        } else {
+            if (!/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid image URL!',
+                });
+            };
+        };
+
+        const imageData = await uploadImageToCloudinary(image);
+
+        const bannerObj = {
             title,
             description,
-            imageUrl,
-            active,
-        });
+            public_id: imageData.public_id,
+            image: imageData.url,
+        };
+
+        const newBanner = new Banner(bannerObj);
         await newBanner.save();
 
         res.status(201).json({
@@ -61,7 +98,7 @@ exports.getAllBanners = async (req, res) => {
 };
 
 exports.getSingleBanner = async (req, res) => {
-    const { bannerId } = req.query || req.body;
+    const { bannerId } = req.query;
 
     try {
         const banner = await Banner.findById(bannerId);
@@ -86,13 +123,51 @@ exports.getSingleBanner = async (req, res) => {
 };
 
 exports.updateBanner = async (req, res) => {
-    const { bannerId } = req.query || req.body;
-    const { title, description, imageUrl, active } = req.body;
+    const { bannerId } = req.query;
+    let { title, description, image, status } = req.body;
 
     try {
+        if (!(req.files && req.files.image) && !req.body.image) {
+            return res.status(400).json({
+                success: false,
+                message: 'Image file or image URL is required!',
+            });
+        };
+
+        if (req.files && req.files.image) {
+            image = req.files.image.tempFilePath;
+        } else {
+            if (!/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid image URL!',
+                });
+            };
+        };
+
+        const bannerData = await Banner.findById(bannerId);
+        if (!bannerData) {
+            return res.status(404).json({
+                success: false,
+                message: 'Banner not found!',
+            });
+        };
+
+        const public_id = bannerData.public_id;
+        const imageData = await deleteImageAndUploadToCloudinary(public_id, image);
+
+        const bannerUpdates = {
+            title,
+            description,
+            public_id: imageData.public_id,
+            image: imageData.url,
+            status,
+            updatedAt: Date.now(),
+        };
+
         const banner = await Banner.findByIdAndUpdate(
             bannerId,
-            { title, description, imageUrl, active, updatedAt: Date.now() },
+            bannerUpdates,
             { new: true, runValidators: true },
         );
 
@@ -109,6 +184,8 @@ exports.updateBanner = async (req, res) => {
             banner,
         });
     } catch (error) {
+        console.log(error);
+
         res.status(500).json({
             success: false,
             message: 'Server error',
@@ -118,7 +195,7 @@ exports.updateBanner = async (req, res) => {
 };
 
 exports.deleteBanner = async (req, res) => {
-    const { bannerId } = req.query || req.body;
+    const { bannerId } = req.query;
 
     try {
         const banner = await Banner.findByIdAndDelete(bannerId);
@@ -128,6 +205,9 @@ exports.deleteBanner = async (req, res) => {
                 message: 'Banner not found'
             });
         };
+
+        const public_id = banner.public_id;
+        deleteImageOnCloudinary(public_id);
 
         res.status(200).json({
             success: true,

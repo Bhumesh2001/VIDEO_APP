@@ -5,12 +5,13 @@ const userRouter = express.Router();
 
 const userController = require('../controllers/userController/userCtrl');
 const videoUserController = require('../controllers/userController/video.userCtrl');
-const paymentUserController = require('../controllers/userController/payment.userCtrl');
+const subscriptionUserController = require('../controllers/userController/subs.userCtrl');
 const articleUserController = require('../controllers/userController/article.userCtrl');
 const storyUserController = require('../controllers/userController/story.userCtrl');
 const categorAdminController = require('../controllers/adminController/category.adminCtrl');
 const couponUserController = require('../controllers/userController/coupon.userCtrl');
 const bannerAdminController = require('../controllers/adminController/banner.adminCtrl');
+const subscriptionPlanAdminController = require('../controllers/adminController/subs.admin.Ctrl');
 
 // ****************** middlewares *******************
 
@@ -22,9 +23,21 @@ const {
 
 // ********************* login/signup routes **********************
 
-userRouter.post('/register', userController.registerUser);
-userRouter.post('/verify-user', userController.verifyUser);
-userRouter.post('/login', userController.loginUser);
+userRouter.post(
+    '/register',
+    validateRequiredFields(['name', 'email', 'password', 'mobileNumber']),
+    userController.registerUser
+);
+userRouter.post(
+    '/verify',
+    validateRequiredFields(['email', 'code']),
+    userController.verifyUser
+);
+userRouter.post(
+    '/login',
+    validateRequiredFields(['email', 'password']),
+    userController.loginUser
+);
 userRouter.post('/logout', userController.logoutUser);
 
 userRouter.get('/auth/google', userController.redirectToGoogleProfile);
@@ -47,16 +60,22 @@ userRouter.delete('/delete-profile', userAuthentication, userController.deleteUs
 userRouter.get('/videos', userAuthentication, videoUserController.getAllVideos);
 userRouter.get('/videos/by-category', userAuthentication, videoUserController.getAllVideosByCategory);
 
-// ******************** Payments routes **********************
+// ******************** subscription routes **********************
 
-userRouter.post('/create-payment', userAuthentication, paymentUserController.CreatePayment);
-userRouter.get('/payments', userAuthentication, paymentUserController.getAllPayments);
-userRouter.get(
-    '/payment',
+userRouter.post(
+    '/subscribe',
     userAuthentication,
-    validateObjectIds(['paymentId']),
-    paymentUserController.getSinglePayment
+    validateRequiredFields(['categoryId','plan', 'price']),
+    subscriptionUserController.subscribeToCategory
 );
+userRouter.post(
+    '/subscribe/all',
+    userAuthentication,
+    validateRequiredFields(['plan', 'discountPercentage']),
+    subscriptionUserController.subscribeToCategories
+);
+userRouter.get('/subscription/plan', userAuthentication, subscriptionPlanAdminController.getSubscriptions)
+userRouter.get('/history', userAuthentication, subscriptionUserController.getHistory);
 
 // ****************** coupans routes *****************
 
@@ -79,7 +98,7 @@ userRouter.get('/banners', userAuthentication, bannerAdminController.getAllBanne
 userRouter.post(
     '/create-article',
     userAuthentication,
-    validateRequiredFields(['title', 'content', 'authorName', 'publicationDate', 'image', 'topic']),
+    validateRequiredFields(['title', 'content', 'authorName', 'publicationDate', 'topic']),
     articleUserController.createArticle
 );
 userRouter.get('/articles', userAuthentication, articleUserController.getAllArticles);
@@ -93,6 +112,7 @@ userRouter.put(
     '/update-article',
     userAuthentication,
     validateObjectIds(['articleId']),
+    validateRequiredFields(['title', 'content', 'authorName', 'publicationDate', 'topic']),
     articleUserController.updateArticle
 );
 userRouter.delete(
@@ -107,7 +127,7 @@ userRouter.delete(
 userRouter.post(
     '/create-story',
     userAuthentication,
-    validateRequiredFields(['title', 'authorName', 'publicationDate', 'genre', 'image']),
+    validateRequiredFields(['video', 'caption', 'duration']),
     storyUserController.createStory
 );
 userRouter.get(
@@ -125,6 +145,7 @@ userRouter.put(
     '/update-story',
     userAuthentication,
     validateObjectIds(['storyId']),
+    validateRequiredFields(['video', 'caption', 'duration']),
     storyUserController.updateStory
 );
 userRouter.delete(

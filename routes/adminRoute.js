@@ -28,15 +28,24 @@ const {
 adminRouter.get('/', adminController.adminLoginPage);
 adminRouter.get('/dashboard', adminController.adminDashboard);
 
-adminRouter.post('/create-admin', adminController.createAdmin);
-adminRouter.post('/login-admin', adminController.loginAdmin);
+adminRouter.post(
+    '/create-admin',
+    validateRequiredFields(['username', 'email', 'password']),
+    adminController.createAdmin
+);
+adminRouter.post(
+    '/login-admin',
+    validateRequiredFields(['email', 'password']),
+    adminController.loginAdmin
+);
 
 // ******************* profile routes *****************
 
+adminRouter.get('/profile', adminAuth, adminController.adminProfile);
 adminRouter.put('/update-profile', adminAuth, adminController.updateProfile);
 adminRouter.post('/logout', adminAuth, adminController.LogoutAdmin);
 
-// ******************* video routes *******************
+// ******************* video routes ********************
 
 adminRouter.post(
     '/upload-video',
@@ -51,7 +60,7 @@ adminRouter.get('/videos-by-category', adminAuth, videoController.getAllvideosBy
 adminRouter.post(
     '/create-category',
     adminAuth,
-    validateRequiredFields(['name', 'description', 'prices', 'status', 'image']),
+    validateRequiredFields(['name', 'description', 'status']),
     categoryController.createCategory
 );
 adminRouter.get('/categories', categoryController.getAllCategories);
@@ -65,6 +74,7 @@ adminRouter.put(
     '/update-category',
     adminAuth,
     validateObjectIds(['categoryId']),
+    validateRequiredFields(['name', 'description', 'status']),
     categoryController.updateCategory
 );
 adminRouter.delete(
@@ -93,6 +103,7 @@ adminRouter.put(
     '/update-user',
     adminAuth,
     validateObjectIds(['userId']),
+    validateRequiredFields(['name', 'email', 'password', 'mobileNumber', 'status']),
     userAdminController.updateUserByAdmin
 );
 adminRouter.delete(
@@ -107,7 +118,7 @@ adminRouter.delete(
 adminRouter.post(
     '/create-article',
     adminAuth,
-    validateRequiredFields(['title', 'content', 'authorName', 'publicationDate', 'image', 'topic']),
+    validateRequiredFields(['title', 'content', 'authorName', 'publicationDate', 'topic']),
     articleController.createArticle
 );
 adminRouter.get('/articls', articleController.getAllArticles);
@@ -121,6 +132,7 @@ adminRouter.put(
     '/update-article',
     adminAuth,
     validateObjectIds(['articleId']),
+    validateRequiredFields(['title', 'content', 'authorName', 'publicationDate', 'topic']),
     articleController.updateArticle
 );
 adminRouter.delete(
@@ -135,19 +147,25 @@ adminRouter.delete(
 adminRouter.post(
     '/create-story',
     adminAuth,
-    validateRequiredFields(['title', 'authorName', 'publicationDate', 'genre', 'image']),
+    validateRequiredFields(['video', 'caption', 'duration']),
     storyController.createStory
 );
 adminRouter.get('/stories', storyController.getAllStories);
 adminRouter.get('/story', adminAuth, validateObjectIds(['storyId']), storyController.getSingleStory);
-adminRouter.put('/update-story', adminAuth, validateObjectIds(['storyId']), storyController.updateStory);
+adminRouter.put(
+    '/update-story',
+    adminAuth,
+    validateObjectIds(['storyId']),
+    validateRequiredFields(['video', 'caption', 'duration', 'status']),
+    storyController.updateStory
+);
 adminRouter.delete('/delete-story', adminAuth, validateObjectIds(['storyId']), storyController.deleteStory);
 
 // ***************** Banner routes **************
 adminRouter.post(
     '/create-banner',
     adminAuth,
-    validateRequiredFields(['title', 'description', 'imageUrl']),
+    validateRequiredFields(['title', 'description']),
     bannerController.createBanner
 );
 adminRouter.get('/banners', adminAuth, bannerController.getAllBanners);
@@ -156,6 +174,7 @@ adminRouter.put(
     '/update-banner',
     adminAuth,
     validateObjectIds(['bannerId']),
+    validateRequiredFields(['title', 'description', 'status']),
     bannerController.updateBanner
 );
 adminRouter.delete(
@@ -170,7 +189,7 @@ adminRouter.delete(
 adminRouter.post(
     '/create-subscription',
     adminAuth,
-    validateRequiredFields(['name', 'price', 'duration', 'features']),
+    validateRequiredFields(['plan', 'price', 'features', 'status']),
     subscriptionController.createSubscription
 );
 adminRouter.get('/subscriptions', adminAuth, subscriptionController.getSubscriptions);
@@ -178,12 +197,13 @@ adminRouter.get(
     '/subscription',
     adminAuth,
     validateObjectIds(['subscriptionId']),
-    subscriptionController.getSubscription
+    subscriptionController.getSubscriptionById
 );
 adminRouter.put(
     '/update-subscription',
     adminAuth,
     validateObjectIds(['subscriptionId']),
+    validateRequiredFields(['plan', 'price', 'features', 'status']),
     subscriptionController.updateSubscription
 );
 adminRouter.delete(
@@ -202,7 +222,7 @@ adminRouter.get('/dashboard-count', dashboardController.dashboardCount);
 adminRouter.post(
     '/create-coupon',
     adminAuth,
-    validateRequiredFields(['discountPercentage', 'expirationDate',]),
+    validateRequiredFields(['discountPercentage', 'expirationDate', 'maxUsage']),
     couponController.createCoupon
 );
 adminRouter.get('/coupons', adminAuth, couponController.getCoupons);

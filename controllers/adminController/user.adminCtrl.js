@@ -11,8 +11,13 @@ exports.createUserByAdmin = async (req, res) => {
                 message: 'Password must be strong (include upper, lower, number, and special character)',
             });
         };
-        
-        const user = new userModel({ name, email, password, mobileNumber });
+
+        const user = new userModel({
+            name,
+            email,
+            password,
+            mobileNumber,
+        });
         await user.save();
 
         res.status(200).json({
@@ -32,9 +37,9 @@ exports.createUserByAdmin = async (req, res) => {
             });
         };
         if (error.code === 11000) {
-            return res.status(409).json({ 
-                success: false, 
-                message: 'User already exists', 
+            return res.status(409).json({
+                success: false,
+                message: 'User already exists',
             });
         };
         res.status(500).json({
@@ -47,9 +52,9 @@ exports.createUserByAdmin = async (req, res) => {
 
 exports.getAllUsersByAdmin = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;  
-        const limit = parseInt(req.query.limit) || 10; 
-        
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+
         const skip = (page - 1) * limit;
 
         const users = await userModel.find({})
@@ -63,7 +68,7 @@ exports.getAllUsersByAdmin = async (req, res) => {
                 success: false,
                 message: "No users found!",
             });
-        }
+        };
 
         res.status(200).json({
             success: true,
@@ -86,7 +91,7 @@ exports.getAllUsersByAdmin = async (req, res) => {
 
 exports.getSingleUserByAdmin = async (req, res) => {
     try {
-        const { userId } = req.query || req.body;
+        const { userId } = req.query;
 
         const user = await userModel.findById(userId);
         if (!user) {
@@ -112,12 +117,12 @@ exports.getSingleUserByAdmin = async (req, res) => {
 
 exports.updateUserByAdmin = async (req, res) => {
     try {
-        const { userId } = req.query || req.body;
-
-        const updaets = req.body;
+        const { userId } = req.query;
+        const updates = req.body;
+        
         const user = await userModel.findByIdAndUpdate(
             userId,
-            updaets,
+            { ...updates, updatedAt: Date.now() },
             { new: true, runValidators: true },
         );
         if (!user) {
@@ -143,7 +148,7 @@ exports.updateUserByAdmin = async (req, res) => {
 
 exports.deleteUserByAdmin = async (req, res) => {
     try {
-        const { userId } = req.query || req.body;
+        const { userId } = req.query;
 
         const user = await userModel.findByIdAndDelete(userId);
         if (!user) {

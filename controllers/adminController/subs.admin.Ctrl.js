@@ -2,21 +2,25 @@ const Subscription = require('../../models/adminModel/subs.adminModel');
 
 exports.createSubscription = async (req, res) => {
     try {
-        const { name, price, duration, features, isActive } = req.body;
+        const { plan, price, features, status } = req.body;
+
+        if (!features || !Array.isArray(features) || features.length === 0) {
+            return res.status(400).json({ error: 'At least one feature is required' });
+        };
 
         const newSubscription = new Subscription({
-            name,
+            plan,
             price,
-            duration,
             features,
-            isActive,
+            status,
         });
 
-        await newSubscription.save();
+        const savedSubscription = await newSubscription.save();
+
         res.status(201).json({
             success: true,
             message: 'Subscription created successfully',
-            data: newSubscription,
+            data: savedSubscription,
         });
     } catch (error) {
         console.log(error);
@@ -29,11 +33,9 @@ exports.createSubscription = async (req, res) => {
             });
         };
         if (error.code === 11000) {
-            const field = Object.keys(error.keyValue);
             return res.status(409).json({
                 success: false,
-                message: `Duplicate field value entered for ${field}: ${error.keyValue[field]}. 
-                Please use another value!`,
+                message: `Subscripition plan already exists!`,
             });
         };
         res.status(500).json({
@@ -41,20 +43,18 @@ exports.createSubscription = async (req, res) => {
             message: 'Server Error',
             error: error.message,
         });
-    }
+    };
 };
 
 exports.getSubscriptions = async (req, res) => {
     try {
-        const subscriptions = await Subscription.find();
+        const subscriptions = await Subscription.find({});
         const totalSubscription = await Subscription.countDocuments();
-        const response = {
-            totalSubscription,
-            subscriptions
-        };
+
         res.status(200).json({
             success: true,
-            subscriptions: response,
+            totalSubscription,
+            subscriptions,
         });
     } catch (error) {
         res.status(500).json({
@@ -65,9 +65,9 @@ exports.getSubscriptions = async (req, res) => {
     };
 };
 
-exports.getSubscription = async (req, res) => {
+exports.getSubscriptionById = async (req, res) => {
     try {
-        const { subscriptionId } = req.query || req.body;
+        const { subscriptionId } = req.query;
 
         const subscription = await Subscription.findById(subscriptionId);
         if (!subscription) {
@@ -93,35 +93,26 @@ exports.getSubscription = async (req, res) => {
 
 exports.updateSubscription = async (req, res) => {
     try {
-        const { subscriptionId } = req.query || req.body;
-        const { name, price, duration, features, isActive } = req.body;
+        const { subscriptionId } = req.query;
+        const updates = req.body;
 
-        if (!name && !price && !duration && !features && isActive === undefined) {
-            return res.status(400).json({
-                success: false,
-                message: 'At least one field is required to update',
-            });
-        }
+        if (updates.features && (!Array.isArray(updates.features) || updates.features.length === 0)) {
+            return res.status(400).json({ error: 'At least one feature is required' });
+        };
 
-        const subscription = await Subscription.findById(subscriptionId);
-        if (!subscription) {
-            return res.status(404).json({
-                success: false,
-                message: 'Subscription not found',
-            });
-        }
+        const updatedSubscription = await Subscription.findByIdAndUpdate(subscriptionId, updates, {
+            new: true,
+            runValidators: true,
+        });
 
-        if (name) subscription.name = name;
-        if (price) subscription.price = price;
-        if (duration) subscription.duration = duration;
-        if (features) subscription.features = features;
-        if (isActive !== undefined) subscription.isActive = isActive;
+        if (!updatedSubscription) {
+            return res.status(404).json({ error: 'Subscription not found' });
+        };
 
-        await subscription.save();
         res.status(200).json({
             success: true,
             message: 'Subscription updated successfully',
-            data: subscription,
+            data: updatedSubscription,
         });
     } catch (error) {
         res.status(500).json({
@@ -134,7 +125,7 @@ exports.updateSubscription = async (req, res) => {
 
 exports.deleteSubscription = async (req, res) => {
     try {
-        const { subscriptionId } = req.query || req.body;
+        const { subscriptionId } = req.query;
         const subscription = await Subscription.findByIdAndDelete(subscriptionId);
 
         if (!subscription) {

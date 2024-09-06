@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const couponSchema = new mongoose.Schema({
-    code: {
+    couponCode: {
         type: String,
         required: [true, 'Coupon code is required.'],
         unique: true,
@@ -26,10 +26,6 @@ const couponSchema = new mongoose.Schema({
             message: 'Expiration date must be in the future.'
         }
     },
-    isActive: {
-        type: Boolean,
-        default: true
-    },
     maxUsage: {
         type: Number,
         required: [true, 'Maximum usage is required.'],
@@ -44,6 +40,11 @@ const couponSchema = new mongoose.Schema({
             },
             message: 'Usage count cannot exceed the maximum usage limit.'
         }
+    },
+    status: {
+        type: String,
+        enum: ['active', 'inactive'],
+        default: 'active',
     },
 }, { timestamps: true });
 

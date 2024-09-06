@@ -44,17 +44,19 @@ const userSchema = new Schema({
         type: Boolean,
         default: false
     },
-    isActive: {
-        type: Boolean,
-        default: true,
-    },
-    profilePicture: {
+    profile_Picture: {
         type: String,
         default: '',
     },
+    status: {
+        type: String,
+        enum: ['active', 'inactive'],
+        default: 'active',
+    },
 }, { timestamps: true });
 
-userSchema.index({ email: 1, mobileNumber: 1 });
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ mobileNumber: 1 }, { unique: true });
 userSchema.index({ timestamps: 1 });
 
 userSchema.pre('save', async function (next) {

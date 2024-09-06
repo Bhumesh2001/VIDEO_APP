@@ -8,7 +8,7 @@ const cloudinary = require('cloudinary').v2;
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const { connectToDB } = require('./db/connect');
+const { connectToDB } = require('./db/connect');    
 
 const adminRouter = require('./routes/adminRoute');
 const userRouter = require('./routes/userRoute');
@@ -28,7 +28,10 @@ app.use(cookiParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(fileUpload());
+app.use(fileUpload({
+    useTempFiles: true,
+    tempFileDir: '/tmp/',
+}));
 
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,

@@ -108,8 +108,7 @@ exports.likeVideo = async (req, res) => {
 // comment a video
 exports.addComment = async (req, res) => {
     try {
-        const { videoId } = req.query || req.body;
-        const { content } = req.body;
+        const { videoId, content } = req.body;
         const userId = req.user._id;
 
         const video = await Video.findById(videoId);

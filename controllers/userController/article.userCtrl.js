@@ -1,22 +1,67 @@
 const Article = require('../../models/adminModel/article.adminModel');
+const {
+    uploadImageToCloudinary,
+    deleteImageAndUploadToCloudinary,
+} = require('../../utils/uploadImage');
+const { convertToMongooseDate } = require('../../utils/subs.userUtil');
 
 exports.createArticle = async (req, res) => {
     try {
+        const { publicationDate, image: imageUrl, ...data } = req.body;
+
+        const existingArticle = await Article.findOne({
+            title: { $regex: new RegExp(`^${req.body.title.trim()}$`, 'i') }
+        });
+
+        if (existingArticle) {
+            return res.status(409).json({
+                success: false,
+                message: 'Article with this title already exists!',
+            });
+        };
+
+        let imagePath = imageUrl;
+
+        if (req.files && req.files.image) {
+            imagePath = req.files.image.tempFilePath;
+        } else if (!imageUrl || !/^(https?:\/\/.*\.(?:jpg|jpeg|png|gif|webp|bmp|tiff))$/i.test(imageUrl)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Valid image file or URL is required!',
+            });
+        };
+
+        let imageData;
+        try {
+            imageData = await uploadImageToCloudinary(imagePath);
+        } catch (err) {
+            return res.status(500).json({
+                success: false,
+                message: 'Image upload failed!',
+                error: err.message,
+            });
+        };
+
         const articleData = {
             userId: req.user._id,
-            ...req.body,
+            publicationDate: convertToMongooseDate(publicationDate),
+            public_id: imageData.public_id,
+            image: imageData.url,
+            ...data,
         };
+
         const article = new Article(articleData);
         await article.save();
 
         res.status(200).json({
             success: true,
-            message: "Article created successfully...",
+            message: "Article created successfully!",
             article,
         });
 
     } catch (error) {
-        console.log(error);
+        console.error(error);
+
         if (error.name === 'ValidationError') {
             const validationErrors = Object.values(error.errors).map(err => err.message);
             return res.status(400).json({
@@ -25,15 +70,17 @@ exports.createArticle = async (req, res) => {
                 errors: validationErrors,
             });
         };
+
         if (error.code === 11000) {
             return res.status(409).json({
                 success: false,
-                message: `Article already exists!`,
+                message: 'Article with this title already exists!',
             });
         };
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
-            message: 'Server Error',
+            message: 'Server error occurred while creating the article.',
             error: error.message,
         });
     };
@@ -49,15 +96,12 @@ exports.getAllArticles = async (req, res) => {
                 message: 'Article not found!',
             });
         };
-        const response = {
-            totalArticles,
-            articls
-        };
 
         res.status(200).json({
             success: true,
             message: 'Article fetched successfully...',
-            articls: response,
+            totalArticles,
+            articls
         });
 
     } catch (error) {
@@ -99,19 +143,50 @@ exports.getSingleArticle = async (req, res) => {
 
 exports.updateArticle = async (req, res) => {
     try {
-        const { articleId } = req.query || req.body;
+        const { articleId } = req.query;
+        let { image, publicationDate, ...data } = req.body;
 
-        const article = await Article.findOneAndUpdate(
-            { userId: req.user._id, _id: articleId }, 
-            req.body, 
-            { new: true, runValidators: true }
-        );
-        if (!article) {
+        const article_ = await Article.findById(articleId);
+        if (!article_) {
             return res.status(404).json({
-                success: true,
-                message: 'Article not found!',
+                success: false,
+                message: 'Article not found',
             });
         };
+
+        if (!(req.files && req.files.image) && !req.body.image) {
+            return res.status(400).json({
+                success: false,
+                message: 'Image file or image URL is required!',
+            });
+        };
+
+        if (req.files && req.files.image) {
+            image = req.files.image.tempFilePath;
+        } else {
+            if (!/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid image URL!',
+                });
+            };
+        };
+
+        const public_id = article_.public_id;
+        const imageData = await deleteImageAndUploadToCloudinary(public_id, image);
+
+        const updates = {
+            public_id: imageData.public_id,
+            image: imageData.url,
+            publicationDate: convertToMongooseDate(publicationDate),
+            ...data,
+        };
+
+        const article = await Article.findOneAndUpdate(
+            { userId: req.user._id, _id: articleId },
+            updates,
+            { new: true, runValidators: true }
+        );
 
         res.status(200).json({
             success: true,
@@ -131,7 +206,7 @@ exports.updateArticle = async (req, res) => {
 
 exports.deleteArticle = async (req, res) => {
     try {
-        const { articleId } = req.query || req.body;
+        const { articleId } = req.query;
 
         const article = await Article.findOneAndDelete({ userId: req.user._id, _id: articleId });
         if (!article) {
@@ -140,6 +215,10 @@ exports.deleteArticle = async (req, res) => {
                 message: 'Article not found!',
             });
         };
+
+        const public_id = article.public_id;
+        deleteImageOnCloudinary(public_id);
+
         res.status(200).json({
             success: true,
             message: 'Article delete successfully...',
@@ -197,7 +276,7 @@ exports.likeArticle = async (req, res) => {
 exports.addComment = async (req, res) => {
     const { articleId } = req.query || req.body;
     const { content } = req.body;
-    const userId = req.user._id; 
+    const userId = req.user._id;
 
     try {
         const article = await Article.findById(articleId);

@@ -36,11 +36,9 @@ const videoSchema = new mongoose.Schema({
             publicId: {
                 type: String,
                 unique: true,
-                required: [true, 'Public ID is required'],
             },
             url: {
                 type: String,
-                required: true,
                 trim: true,
                 validate: {
                     validator: function (v) {
@@ -51,19 +49,16 @@ const videoSchema = new mongoose.Schema({
             }
         },
         unique: true,
-        required: [true, "Thumbnail is required!"],
     },
     video: {
         type: {
             publicId: {
                 type: String,
                 unique: true,
-                required: [true, 'Public ID is required'],
             },
             url: {
                 type: String,
                 unique: true,
-                required: [true, 'Video URL is required'],
                 validate: {
                     validator: function (v) {
                         return /^(ftp|http|https):\/\/[^ "]+$/.test(v);
@@ -73,7 +68,6 @@ const videoSchema = new mongoose.Schema({
             }
         },
         unique: true,
-        required: [true, "Video is required!"],
     },
     likes: {
         type: [mongoose.Schema.Types.ObjectId],

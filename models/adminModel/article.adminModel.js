@@ -57,14 +57,6 @@ const articleSchema = new mongoose.Schema({
         minlength: [3, 'Topic must be at least 3 characters long'],
         maxlength: [100, 'Topic cannot exceed 100 characters'],
     },
-    tags: {
-        type: [String],
-        default: [],
-    },
-    sources: {
-        type: [String],
-        default: [],
-    },
     image: {
         type: String,
         validate: {
@@ -75,9 +67,10 @@ const articleSchema = new mongoose.Schema({
         },
         required: [true, 'Image is required'],
     },
-    featured: {
-        type: Boolean,
-        default: false,
+    public_id: {
+        type: String,
+        required: true,
+        unique: true,
     },
     likes: {
         type: [mongoose.Schema.Types.ObjectId],
@@ -91,7 +84,6 @@ const articleSchema = new mongoose.Schema({
 articleSchema.index({ userId: 1 }, { unique: true, });
 articleSchema.index({ title: 1 }, { unique: true });
 articleSchema.index({ authorName: 1 });
-articleSchema.index({ createdAt: 1 });
 articleSchema.index({ likes: 1 }, { sparse: true });
 articleSchema.index({ 'comments.userId': 1 });
 articleSchema.index({ timestamps: 1 });

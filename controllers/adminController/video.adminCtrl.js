@@ -1,5 +1,6 @@
 const cloudinary = require('cloudinary').v2;
 const Video = require('../../models/adminModel/video.adminModel');
+const fs = require('fs');
 
 // ------------- upload video -----------------
 
@@ -10,7 +11,9 @@ exports.uploadVideoToCloudinary = async (req, res) => {
         const videoFile = req.files?.video;
         const thumbnailFile = req.files?.thumbnail;
 
-        if (!title || !description || !category || (!video && !videoFile) || (!thumbnail && !thumbnailFile)) {
+        if (!title || !description || !category || (!video && !videoFile) ||
+            (!thumbnail && !thumbnailFile)
+        ) {
             return res.status(400).json({
                 success: false,
                 message: 'Title, description, category, video, and thumbnail are required.',
@@ -21,72 +24,101 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             title,
             description,
             category,
-            thumbnail: {
-                publicId: '',
-                url: ''
-            },
+        };
+
+        let videoData = {
             video: {
                 publicId: '',
-                url: ''
+                url: '',
             },
+            thumbnail: {
+                publicId: '',
+                url: '',
+            },
+        };
+
+        const existingVideo = await Video.findOne({ title: { $regex: new RegExp(title, 'i') } });
+        if(existingVideo){
+            return res.status(409).json({
+                success: false,
+                message: 'Video already eixists!',
+            });
+        };
+
+        const tempVideo = new Video(videoObj);
+
+        const validationError = tempVideo.validateSync();
+        if (validationError) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation Error',
+                errors: Object.values(validationError.errors).map(err => err.message),
+            });
         };
 
         if (videoFile) {
-            const videoBuffer = videoFile.data; 
+            try {
+                const videoResult = await cloudinary.uploader.upload(videoFile.tempFilePath, {
+                    resource_type: 'video',
+                    chunk_size: 6000000,
+                });
 
-            const videoResult = await new Promise((resolve, reject) => {
-                cloudinary.uploader.upload_stream(
-                    {
-                        resource_type: 'video',
-                        chunk_size: 6000000,
-                    },
-                    (error, result) => {
-                        if (error) reject(error);
-                        else resolve(result);
-                    }
-                ).end(videoBuffer); 
-            });
+                videoData.video.publicId = videoResult.public_id;
+                videoData.video.url = videoResult.secure_url;
 
-            videoObj.video.publicId = videoResult.public_id;
-            videoObj.video.url = videoResult.secure_url;
+                fs.unlinkSync(videoFile.tempFilePath);
 
-        } 
+            } catch (error) {
+                console.error('Error uploading video file:', error);
+            };
+        }
         else if (video) {
-            const videoResult = await cloudinary.uploader.upload(video, {
-                resource_type: 'video'
-            });
-            videoObj.video.publicId = videoResult.public_id;
-            videoObj.video.url = videoResult.secure_url;
+            try {
+                const videoResult = await cloudinary.uploader.upload(video, {
+                    resource_type: 'video',
+                });
+
+                videoData.video.publicId = videoResult.public_id;
+                videoData.video.url = videoResult.secure_url;
+
+            } catch (error) {
+                console.error('Error uploading video URL:', error);
+            };
         };
 
         if (thumbnailFile) {
-            const thumbnailBuffer = thumbnailFile.data;  
+            try {
+                const thumbnailResult = await cloudinary.uploader.upload(thumbnailFile.tempFilePath, {
+                    resource_type: 'image',
+                });
 
-            const thumbnailResult = await new Promise((resolve, reject) => {
-                cloudinary.uploader.upload_stream(
-                    {
-                        resource_type: 'image',
-                    },
-                    (error, result) => {
-                        if (error) reject(error);
-                        else resolve(result);
-                    }
-                ).end(thumbnailBuffer);
-            });
+                videoData.thumbnail.publicId = thumbnailResult.public_id;
+                videoData.thumbnail.url = thumbnailResult.secure_url;
 
-            videoObj.thumbnail.publicId = thumbnailResult.public_id;
-            videoObj.thumbnail.url = thumbnailResult.secure_url;
+                fs.unlinkSync(thumbnailFile.tempFilePath);
 
-        } 
+            } catch (error) {
+                console.error('Error uploading thumbnail file:', error);
+            };
+        }
         else if (thumbnail) {
-            const thumbnailResult = await cloudinary.uploader.upload(thumbnail, {
-                resource_type: 'image'
-            });
-            videoObj.thumbnail.publicId = thumbnailResult.public_id;
-            videoObj.thumbnail.url = thumbnailResult.secure_url;
+            try {
+                const thumbnailResult = await cloudinary.uploader.upload(thumbnail, {
+                    resource_type: 'image',
+                });
+
+                videoData.thumbnail.publicId = thumbnailResult.public_id;
+                videoData.thumbnail.url = thumbnailResult.secure_url;
+
+            } catch (error) {
+                console.error('Error uploading thumbnail URL:', error);
+            };
         };
 
-        const newVideo = new Video(videoObj);
+        const newVideo = new Video({
+            ...videoObj,
+            ...videoData,
+        });
         await newVideo.save();
 
         res.status(200).json({
@@ -110,7 +142,7 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             const field = Object.keys(error.keyValue);
             return res.status(409).json({
                 success: false,
-                message: `Duplicate field value entered for ${field}: ${error.keyValue[field]}. Please use another value!`,
+                message: `Duplicate field value entered for ${field}: ${error.keyValue[field]}.`,
             });
         };
 
@@ -158,7 +190,7 @@ exports.getAllvideos = async (req, res) => {
 exports.getAllvideosByCategory = async (req, res) => {
     try {
         const { category } = req.query;
-        
+
         if (!category) {
             return res.status(400).json({
                 success: false,

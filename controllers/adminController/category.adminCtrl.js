@@ -1,36 +1,83 @@
 const Category = require('../../models/adminModel/category.adminModel');
+const {
+    deleteImageOnCloudinary,
+    uploadImageToCloudinary,
+    deleteImageAndUploadToCloudinary
+} = require('../../utils/uploadImage');
 
 exports.createCategory = async (req, res) => {
     try {
-        const { name, description, prices, status, image } = req.body;
+        let { name, description, status, image } = req.body;
+
+        if (req.files && req.files.image) {
+            image = req.files.image.tempFilePath;
+        } else if (!(image && /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image))) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid image URL!',
+            });
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'error occured while validating the image or image_url',
+            });
+        };
+
+        const existingCategory = await Category.findOne({ name: { $regex: new RegExp(name, 'i') } });
+        if (existingCategory) {
+            return res.status(409).json({
+                success: false,
+                message: 'Category already exists.',
+            });
+        };
+
+        const tempCategory = new Category({
+            name,
+            description,
+            status,
+        });
+
+        const validationError = tempCategory.validateSync();
+        if (validationError) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation Error',
+                errors: Object.values(validationError.errors).map(err => err.message),
+            });
+        };
+
+        let public_id = '';
+        let image_url = '';
+        if (req.files && req.files.image) {
+            const imageData = await uploadImageToCloudinary(image);
+            public_id = imageData.public_id;
+            image_url = imageData.url;
+        } else if (image) {
+            const imageData = await uploadImageToCloudinary(image);
+            public_id = imageData.public_id;
+            image_url = imageData.url;
+        };
 
         const category = new Category({
-            name, description, prices, image, status,
+            name,
+            description,
+            public_id,
+            image_url,
+            status,
         });
+
         await category.save();
 
         res.status(201).json({
             success: true,
-            message: 'Category created successfully...',
+            message: 'Category created successfully.',
             category,
         });
     } catch (error) {
-        if (error.name === 'ValidationError') {
-            const messages = Object.values(error.errors).map(val => val.message);
-            return res.status(400).json({
-                success: false,
-                errors: messages,
-            });
-        } else if (error.code === 11000) {
-            return res.status(409).json({
-                success: false,
-                message: 'Category already exists!',
-            });
-        };
-        console.log(error);
+        console.error('Error creating category:', error);
         res.status(500).json({
-            success: true,
-            message: "error occured during creating the category",
+            success: false,
+            message: 'An error occurred while creating the category.',
         });
     };
 };
@@ -64,7 +111,7 @@ exports.getAllCategories = async (req, res) => {
 
 exports.getCategory = async (req, res) => {
     try {
-        const { categoryId } = req.query || req.body;
+        const { categoryId } = req.query;
         const category = await Category.findById(categoryId);
         if (!category) {
             return res.status(404).json({
@@ -88,8 +135,45 @@ exports.getCategory = async (req, res) => {
 
 exports.updateCategory = async (req, res) => {
     try {
-        const { categoryId } = req.query || req.body;
-        const updates = req.body;
+        const { categoryId } = req.query;
+        let { name, description, status, image } = req.body;
+
+        if (!(req.files && req.files.image) && !req.body.image) {
+            return res.status(400).json({
+                success: false,
+                message: 'Image file or image URL is required!',
+            });
+        };
+
+        if (req.files && req.files.image) {
+            image = req.files.image.tempFilePath;
+        } else {
+            if (!/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid image URL!',
+                });
+            };
+        };
+
+        const categoryData = await Category.findById(categoryId);
+        if (!categoryData) {
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found!',
+            });
+        };
+
+        const public_id = categoryData.public_id;
+        const imageData = await deleteImageAndUploadToCloudinary(public_id, image);
+
+        const updates = {
+            name,
+            description,
+            public_id: imageData.public_id,
+            image_url: imageData.url,
+            status,
+        };
 
         const category = await Category.findByIdAndUpdate(
             categoryId,
@@ -122,7 +206,7 @@ exports.updateCategory = async (req, res) => {
 
 exports.deleteCategories = async (req, res) => {
     try {
-        const { categoryId } = req.query || req.body;
+        const { categoryId } = req.query;
 
         const category = await Category.findByIdAndDelete(categoryId);
         if (!category) {
@@ -131,6 +215,9 @@ exports.deleteCategories = async (req, res) => {
                 message: "category not found",
             });
         };
+
+        const public_id = category.public_id;
+        deleteImageOnCloudinary(public_id);
 
         res.status(200).json({
             success: true,

@@ -1,23 +1,15 @@
 const mongoose = require('mongoose');
 
-const subscriptionSchema = new mongoose.Schema({
-    name: {
+const SubscriptionPlanSchema = new mongoose.Schema({
+    plan: {
         type: String,
-        required: [true, 'Name is required'],
-        trim: true,
-        unique: true,
-        minlength: [3, 'Name must be at least 3 characters long'],
-        maxlength: [100, 'Name cannot exceed 100 characters'],
+        enum: ['monthly', 'quarterly', 'yearly'],
+        required: [true, 'Plan is required'],
     },
     price: {
         type: Number,
         required: [true, 'Price is required'],
         min: [0, 'Price cannot be less than 0'],
-    },
-    duration: {
-        type: Number,
-        required: [true, 'Duration is required'],
-        min: [1, 'Duration must be at least 1 day'],
     },
     features: {
         type: [String],
@@ -28,20 +20,21 @@ const subscriptionSchema = new mongoose.Schema({
             message: 'At least one feature is required',
         },
     },
-    isActive: {
-        type: Boolean,
-        default: true,
+    status: {
+        type: String,
+        enum: ['active', 'inactive'],
+        default: 'active',
     },
 }, { timestamps: true });
 
-subscriptionSchema.index({ name: 1 }, { unique: true });
-subscriptionSchema.index({ timestamps: 1 });
+SubscriptionPlanSchema.index({ plan: 1 });
+SubscriptionPlanSchema.index({ timestamps: 1 });
 
-subscriptionSchema.pre('save', function (next) {
+SubscriptionPlanSchema.pre('save', function (next) {
     this.updatedAt = Date.now();
     next();
 });
 
-const Subscription = mongoose.model('Subscription', subscriptionSchema);
+const SubscriptionPlan = mongoose.model('SubscriptionPlan', SubscriptionPlanSchema);
 
-module.exports = Subscription;
+module.exports = SubscriptionPlan;
