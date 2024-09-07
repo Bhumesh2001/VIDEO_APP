@@ -25,9 +25,6 @@ const {
 
 // ****************** login/signup routes ******************
 
-adminRouter.get('/', adminController.adminLoginPage);
-adminRouter.get('/dashboard', adminController.adminDashboard);
-
 adminRouter.post(
     '/create-admin',
     validateRequiredFields(['username', 'email', 'password']),
@@ -118,7 +115,7 @@ adminRouter.delete(
 adminRouter.post(
     '/create-article',
     adminAuth,
-    validateRequiredFields(['title', 'content', 'authorName', 'publicationDate', 'topic']),
+    validateRequiredFields(['title_', 'content_', 'authorName_', 'publicationDate_', 'topic_']),
     articleController.createArticle
 );
 adminRouter.get('/articls', articleController.getAllArticles);

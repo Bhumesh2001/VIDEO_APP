@@ -205,12 +205,15 @@ exports.loginUser = async (req, res) => {
             httpOnly: true,
             secure: true,
             maxAge: 6 * 60 * 60 * 1000,
+            path: '/',
         });
 
         res.status(200).json({
             success: true,
             message: 'User logged in successful...',
+            userId: user._id,
             token,
+
         });
     } catch (error) {
         console.log(error);
@@ -224,7 +227,7 @@ exports.loginUser = async (req, res) => {
 // ------------- Logout User -----------------
 exports.logoutUser = async (req, res) => {
     try {
-        res.clearCookie('userToken', { httpOnly: true, secure: true });
+        res.clearCookie('userToken', { httpOnly: true, secure: true, path: '/' });
         const userToken = req.cookies.userToken;
         res.status(200).json({
             success: true,
@@ -288,7 +291,8 @@ exports.getGoogleProfile = async (req, res) => {
         res.cookie('userToken', token, {
             httpOnly: true,
             secure: true,
-            maxAge: 6 * 60 * 60 * 1000
+            maxAge: 6 * 60 * 60 * 1000,
+            path: '/',
         });
 
         res.status(200).json({
@@ -354,7 +358,8 @@ exports.getFacebookProfile = async (req, res) => {
         res.cookie('userToken', token, {
             httpOnly: true,
             secure: true,
-            maxAge: 6 * 60 * 60 * 1000
+            maxAge: 6 * 60 * 60 * 1000,
+            path: '/',
         });
 
         res.status(200).json({

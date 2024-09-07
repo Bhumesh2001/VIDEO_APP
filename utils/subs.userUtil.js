@@ -48,6 +48,8 @@ cron.schedule('0 0 * * *', async () => {
 });
 
 exports.convertToMongooseDate = (dateString) => {
+    console.log(typeof dateString);
+    
     const separator = dateString.includes('/') ? '/' : '-';
 
     const parts = dateString.split(separator);

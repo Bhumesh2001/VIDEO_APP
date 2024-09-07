@@ -21,12 +21,13 @@ exports.adminAuth = async (req, res, next) => {
         if (!token) {
             token = req.cookies.adminToken;
         };
-
+        
         if (!token) {
-            return res.status(401).json({
-                success: false,
-                message: 'Unauthorized. Please log in.'
-            });
+            // return res.status(401).json({
+            //     success: false,
+            //     message: 'Unauthorized. Please log in.'
+            // });
+            return res.redirect('/login');
         };
 
         const decoded = jwt.verify(token, process.env.ADMIN_SECRET_KEY);

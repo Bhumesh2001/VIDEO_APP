@@ -45,7 +45,10 @@ exports.getAllVideosByCategory = async (req, res) => {
                 messagge: 'category is required',
             });
         };
-        let videosByCategory = await Video.find({ category }, { __v: 0 }).lean();        
+        let videosByCategory = await Video.find(
+            { category: { $regex: new RegExp(`^${category}$`, 'i') } },
+            { __v: 0 }
+        ).lean();
 
         const Categories = await userPaymentModel.find(
             { userId: req.user._id, category },
@@ -152,7 +155,7 @@ exports.getAllComments = async (req, res) => {
 exports.editComment = async (req, res) => {
     try {
         const { videoId, commentId } = req.body || req.query;
-        
+
         const { content } = req.body;
 
         if (!content || content.trim().length === 0) {
@@ -163,7 +166,7 @@ exports.editComment = async (req, res) => {
         };
 
         const video = await Video.findById(videoId);
-        
+
         if (!video) {
             return res.status(404).json({
                 success: false,

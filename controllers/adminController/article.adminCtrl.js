@@ -9,9 +9,9 @@ const { convertToMongooseDate } = require('../../utils/subs.userUtil');
 
 exports.createArticle = async (req, res) => {
     try {
-        let { image, title, publicationDate, ...data } = req.body;
+        let { title_, authorName_, publicationDate_, topic_, content_, image_, } = req.body;
 
-        const existingArticle = await Article.findOne({ title: { $regex: new RegExp(`^${title}$`, 'i') } });
+        const existingArticle = await Article.findOne({ title: title_ });
         if (existingArticle) {
             return res.status(409).json({
                 success: false,
@@ -19,17 +19,17 @@ exports.createArticle = async (req, res) => {
             });
         };
 
-        if (!(req.files && req.files.image) && !req.body.image) {
+        if (!(req.files && req.files.image_) && !req.body.image_) {
             return res.status(400).json({
                 success: false,
                 message: 'Image file or image URL is required!',
             });
         };
 
-        if (req.files && req.files.image) {
-            image = req.files.image.tempFilePath;
+        if (req.files && req.files.image_) {
+            image_ = req.files.image_.tempFilePath;
         } else {
-            if (!/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
+            if (!/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image_)) {
                 return res.status(400).json({
                     success: false,
                     message: 'Invalid image URL!',
@@ -37,21 +37,23 @@ exports.createArticle = async (req, res) => {
             };
         };
 
-        const imageData = await uploadImageToCloudinary(image);
+        const imageData = await uploadImageToCloudinary(image_);
 
         const articleData = {
             userId: req.admin._id,
-            title,
+            title: title_,
             public_id: imageData.public_id,
             image: imageData.url,
-            publicationDate: convertToMongooseDate(publicationDate),
-            ...data,
+            publicationDate: convertToMongooseDate(publicationDate_),
+            authorName: authorName_,
+            topic: topic_,
+            content: content_,
         };
 
         const article = new Article(articleData);
         await article.save();
 
-        res.status(200).json({
+        res.status(201).json({
             success: true,
             message: "Article created successfully...",
             article,

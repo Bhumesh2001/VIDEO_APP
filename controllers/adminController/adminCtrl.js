@@ -1,29 +1,14 @@
 const jwt = require('jsonwebtoken');
 const Admin = require('../../models/adminModel/adminModel');
 
-// -------------- signup/login -----------------
-
-exports.adminLoginPage = (req, res) => {
+exports.renderLoginpage = (req, res) => {
     try {
-        res.redirect(302, 'https://digital-vle-admin-login.netlify.app');
+        res.render('login');
     } catch (error) {
         console.log(error);
         res.status(500).json({
             success: false,
-            message: 'Server error!',
-            error,
-        });
-    };
-};
-
-exports.adminDashboard = (req, res) => {
-    try {
-        res.redirect(301, 'https://web-digital-vle.netlify.app');
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error!',
+            message: 'Internal Server error!',
             error,
         });
     };
@@ -94,7 +79,8 @@ exports.loginAdmin = async (req, res) => {
         res.cookie('adminToken', token, {
             httpOnly: true,
             secure: true,
-            maxAge: 6 * 60 * 60 * 1000
+            maxAge: 6 * 60 * 60 * 1000,
+            path: '/',
         });
 
         res.status(200).json({
@@ -115,14 +101,14 @@ exports.loginAdmin = async (req, res) => {
 exports.adminProfile = async (req, res) => {
     try {
         const adminId = req.admin._id;
-        if(!adminId){
+        if (!adminId) {
             return res.status(404).json({
                 success: false,
                 message: 'adminId not found!',
             });
         };
         const adminProfile = await Admin.findById(adminId);
-        if(!adminProfile){
+        if (!adminProfile) {
             return res.status(404).json({
                 success: false,
                 message: 'Profile not found!',
@@ -192,7 +178,7 @@ exports.updateProfile = async (req, res) => {
 
 exports.LogoutAdmin = async (req, res) => {
     try {
-        res.clearCookie('adminToken', { httpOnly: true, secure: true });
+        res.clearCookie('adminToken', { httpOnly: true, secure: true, path: '/' });
         const adminToken = req.cookies.adminToken;
         res.status(200).json({
             success: true,
