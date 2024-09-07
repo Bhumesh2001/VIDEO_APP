@@ -20,7 +20,7 @@ app.use(cors({
     origin: [
         'https://web-digital-vle.netlify.app',
         'https://digital-vle-admin-login.netlify.app',
-        'http://127.0.0.1:5500',
+        'http://localhost:3001',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -53,6 +53,9 @@ app.get('/', adminAuth, (req, res) => {
 });
 
 app.get('/login', (req, res) => {
+    if(req.cookies.adminToken){
+        return res.redirect('/');
+    };
     res.render('login');
 });
 
