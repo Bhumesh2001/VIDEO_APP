@@ -71,7 +71,7 @@ userRouter.post(
 userRouter.post(
     '/subscribe/all',
     userAuthentication,
-    validateRequiredFields(['plan', 'discountPercentage']),
+    validateRequiredFields(['plan']),
     subscriptionUserController.subscribeToCategories
 );
 userRouter.get('/subscription/plan', userAuthentication, subscriptionPlanAdminController.getSubscriptions)

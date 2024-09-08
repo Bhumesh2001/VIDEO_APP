@@ -6,7 +6,7 @@ const SubscriptionPlan = require('../../models/adminModel/subs.adminModel');
 
 exports.subscribeToCategory = async (req, res) => {
     try {
-        const { categoryId, plan, discountPercentage = 0, couponCode } = req.body;
+        const { categoryId, plan, discountPercentage = 5, couponCode } = req.body;
 
         const userId = req.user._id;
         if (!userId) {
@@ -115,7 +115,7 @@ exports.subscribeToCategory = async (req, res) => {
 
 exports.subscribeToCategories = async (req, res) => {
     try {
-        const { plan, discountPercentage = 0, couponCode } = req.body;
+        const { plan, discountPercentage = 5, couponCode } = req.body;
         const userId = req.user._id;
 
         if (!userId) {
