@@ -89,7 +89,9 @@ exports.getAllCategories = async (req, res) => {
 
         const skip = (page - 1) * limit;
 
-        const categories = await Category.find({}).skip(skip).limit(limit);
+        const categories = await Category.find({}, {
+            __v: 0, createdAt: 0, updatedAt: 0,
+        }).skip(skip).limit(limit);
         const totalCategory = await Category.countDocuments();
 
         res.status(200).json({

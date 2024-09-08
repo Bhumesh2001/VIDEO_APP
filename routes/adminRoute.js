@@ -103,7 +103,7 @@ adminRouter.put(
     validateRequiredFields(['name', 'email', 'password', 'mobileNumber', 'status']),
     userAdminController.updateUserByAdmin
 );
-adminRouter.delete(
+adminRouter.delete( 
     '/delete-user',
     adminAuth,
     validateObjectIds(['userId']),

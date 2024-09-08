@@ -2,7 +2,9 @@ const Coupon = require('../../models/adminModel/coupan.adminModel');
 
 exports.getCoupon = async (req, res) => {
     try {
-        const coupon = await Coupon.findOne({});
+        const coupon = await Coupon.findOne({}, {
+            couponCode: 1, discountPercentage: 1, expirationDate: 1, status: 1,
+        });
         if(!coupon){
             return res.status(404).json({
                 success: false,

@@ -11,6 +11,8 @@ exports.getAllVideos = async (req, res) => {
         videos = videos.map(video => ({
             ...video,
             thumbnail: video.thumbnail.url,
+            likes: video.likes.length,
+            comments: video.comments.length,
             video: video.video.url,
             paid: paidCategories.includes(video.category) ? true : false,
         }));
@@ -46,7 +48,7 @@ exports.getAllVideosByCategory = async (req, res) => {
             });
         };
         let videosByCategory = await Video.find(
-            { category: { $regex: new RegExp(`^${category}$`, 'i') } },
+            { category },
             { __v: 0 }
         ).lean();
 
@@ -54,7 +56,7 @@ exports.getAllVideosByCategory = async (req, res) => {
             { userId: req.user._id, category },
             { category: 1, _id: 0 },
         );
-        const paidCategories = Categories.map(doc => doc.category);
+        const paidCategories = Categories.map(doc => doc.category);        
 
         videosByCategory = videosByCategory.map(video => ({
             ...video,

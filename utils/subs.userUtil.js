@@ -47,9 +47,7 @@ cron.schedule('0 0 * * *', async () => {
     await checkSubscriptionsAndNotify();
 });
 
-exports.convertToMongooseDate = (dateString) => {
-    console.log(typeof dateString);
-    
+exports.convertToMongooseDate = (dateString) => {    
     const separator = dateString.includes('/') ? '/' : '-';
 
     const parts = dateString.split(separator);

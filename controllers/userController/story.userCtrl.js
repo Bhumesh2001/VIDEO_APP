@@ -53,7 +53,10 @@ exports.createStory = async (req, res) => {
 
 exports.getAllStories = async (req, res) => {
     try {
-        const stories = await Story.find({ userId: req.user._id });
+        const stories = await Story.find({}, {
+            __v: 0, createdAt: 0, updatedAt: 0,
+        });
+        const totalStories = await Story.countDocuments();
         if (!stories) {
             return res.status(404).json({
                 success: false,
@@ -63,6 +66,7 @@ exports.getAllStories = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Stories fetched successfully...',
+            totalStories,
             stories,
         });
     } catch (error) {

@@ -80,7 +80,9 @@ exports.createBanner = async (req, res) => {
 
 exports.getAllBanners = async (req, res) => {
     try {
-        const banners = await Banner.find({});
+        const banners = await Banner.find({} ,{
+            __v: 0, createdAt: 0, updatedAt: 0,
+        });
         const totalBanners = await Banner.countDocuments();
         res.status(200).json({
             success: true,

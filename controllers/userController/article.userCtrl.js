@@ -88,7 +88,9 @@ exports.createArticle = async (req, res) => {
 
 exports.getAllArticles = async (req, res) => {
     try {
-        const articls = await Article.find({ userId: req.user._id });
+        const articls = await Article.find({}, {
+            __v: 0, createdAt: 0, updatedAt: 0, public_id: 0,
+        });
         const totalArticles = await Article.countDocuments();
         if (!articls) {
             return res.status(404).json({
@@ -116,7 +118,7 @@ exports.getAllArticles = async (req, res) => {
 
 exports.getSingleArticle = async (req, res) => {
     try {
-        const { articleId } = req.query || req.body;
+        const { articleId } = req.query;
 
         const article = await Article.findById(articleId);
         if (!article) {

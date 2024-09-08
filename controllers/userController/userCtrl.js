@@ -113,7 +113,7 @@ exports.verifyUser = async (req, res) => {
         } else {
             return res.status(400).json({
                 success: false,
-                message: 'Please register again...!'
+                message: 'Invalid or expired code!'
             });
         };
 
@@ -143,10 +143,24 @@ exports.verifyUser = async (req, res) => {
 
         temporaryStorage.delete(email);
 
+        const token = jwt.sign(
+            { email: user.email, role: user.role, _id: user._id },
+            process.env.USER_SECRET_KEY,
+            { expiresIn: '6h' },
+        );
+
+        res.cookie('userToken', token, {
+            httpOnly: true,
+            secure: true,
+            maxAge: 6 * 60 * 60 * 1000,
+            path: '/',
+        });
+
         res.status(200).json({
             success: true,
-            message: 'Email verified successfully. You can now log in.',
-            verified: user.isVerified,
+            message: 'Logged in successful...',
+            userId: user._id,
+            token,
         });
     } catch (error) {
         console.log(error);
@@ -378,7 +392,9 @@ exports.getFacebookProfile = async (req, res) => {
 
 exports.userProfile = async (req, res) => {
     try {
-        const profile = await userModel.findById(req.user._id);
+        const profile = await userModel.findById(req.user._id, {
+            __v: 0, createdAt: 0, updatedAt: 0, isVerified: 0, role: 0, password: 0,
+        });
         if (!profile) {
             return res.status(404).json({
                 success: false,

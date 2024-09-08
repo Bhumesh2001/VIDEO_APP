@@ -81,7 +81,6 @@ const articleSchema = new mongoose.Schema({
 }, { timestamps: true }
 );
 
-articleSchema.index({ userId: 1 }, { unique: true, });
 articleSchema.index({ title: 1 }, { unique: true });
 articleSchema.index({ authorName: 1 });
 articleSchema.index({ likes: 1 }, { sparse: true });

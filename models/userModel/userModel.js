@@ -81,16 +81,6 @@ userSchema.methods.updateProfilePicture = async function (url) {
     await this.save();
 };
 
-userSchema.methods.deactivate = async function () {
-    this.isActive = false;
-    await this.save();
-};
-
-userSchema.methods.activate = async function () {
-    this.isActive = true;
-    await this.save();
-};
-
 const userModel = mongoose.model('User', userSchema);
 
 module.exports = userModel;

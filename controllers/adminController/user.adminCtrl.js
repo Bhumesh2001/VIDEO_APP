@@ -2,7 +2,7 @@ const userModel = require('../../models/userModel/userModel');
 
 exports.createUserByAdmin = async (req, res) => {
     try {
-        const { name, email, password, mobileNumber } = req.body;
+        const { name, email, password, mobileNumber, status } = req.body;
 
         const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
         if (!strongPasswordRegex.test(password)) {
@@ -17,6 +17,7 @@ exports.createUserByAdmin = async (req, res) => {
             email,
             password,
             mobileNumber,
+            status: status.toLowerCase(),
         });
         await user.save();
 
