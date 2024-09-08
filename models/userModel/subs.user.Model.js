@@ -12,10 +12,13 @@ const UserSubscriptionSchema = new Schema({
         ref: 'Category',
         required: true,
     },
-    plan: {
+    planName: {
         type: String,
-        enum: ['monthly', 'quarterly', 'yearly'],
         required: [true, 'Plan is required'],
+    },
+    planType: {
+        type: String,
+        required: true,
     },
     totalPrice: {
         type: Number,

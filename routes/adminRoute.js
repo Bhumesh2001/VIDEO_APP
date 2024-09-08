@@ -191,28 +191,28 @@ adminRouter.delete(
 adminRouter.post(
     '/create-subscription',
     adminAuth,
-    validateRequiredFields(['plan', 'price', 'features', 'status']),
-    subscriptionController.createSubscription
+    validateRequiredFields(['planName','planType', 'price', 'features', 'status']),
+    subscriptionController.createSubscriptionPlan
 );
-adminRouter.get('/subscriptions', adminAuth, subscriptionController.getSubscriptions);
+adminRouter.get('/subscriptions', adminAuth, subscriptionController.getSubscriptionsPlan);
 adminRouter.get(
     '/subscription',
     adminAuth,
     validateObjectIds(['subscriptionId']),
-    subscriptionController.getSubscriptionById
+    subscriptionController.getSubscriptionPlanById
 );
 adminRouter.put(
     '/update-subscription',
     adminAuth,
     validateObjectIds(['subscriptionId']),
-    validateRequiredFields(['plan', 'price', 'features', 'status']),
-    subscriptionController.updateSubscription
+    validateRequiredFields(['planName','planType', 'price', 'features', 'status']),
+    subscriptionController.updateSubscriptionPlan
 );
 adminRouter.delete(
     '/delete-subscription',
     adminAuth,
     validateObjectIds(['subscriptionId']),
-    subscriptionController.deleteSubscription
+    subscriptionController.deleteSubscriptionPlan
 );
 
 // ******************* total likes and comment routes ****************

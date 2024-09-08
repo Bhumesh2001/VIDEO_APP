@@ -65,16 +65,20 @@ userRouter.get('/videos/by-category', userAuthentication, videoUserController.ge
 userRouter.post(
     '/subscribe',
     userAuthentication,
-    validateRequiredFields(['categoryId','plan', 'price']),
+    validateRequiredFields(['categoryId','planName', 'planType', 'price']),
     subscriptionUserController.subscribeToCategory
 );
 userRouter.post(
     '/subscribe/all',
     userAuthentication,
-    validateRequiredFields(['plan']),
+    validateRequiredFields(['planName', 'planType', 'price']),
     subscriptionUserController.subscribeToCategories
 );
-userRouter.get('/subscription/plan', userAuthentication, subscriptionPlanAdminController.getSubscriptions)
+userRouter.get(
+    '/subscription/plan', 
+    userAuthentication, 
+    subscriptionPlanAdminController.getSubscriptionsPlan
+);
 userRouter.get('/history', userAuthentication, subscriptionUserController.getHistory);
 
 // ****************** coupans routes *****************

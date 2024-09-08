@@ -1,15 +1,16 @@
 const Subscription = require('../../models/adminModel/subs.adminModel');
 
-exports.createSubscription = async (req, res) => {
+exports.createSubscriptionPlan = async (req, res) => {
     try {
-        const { plan, price, features, status } = req.body;
+        const { planName, planType, price, features, status } = req.body;
 
         if (!features || !Array.isArray(features) || features.length === 0) {
             return res.status(400).json({ error: 'At least one feature is required' });
         };
 
         const newSubscription = new Subscription({
-            plan,
+            planName,
+            planType,
             price,
             features,
             status,
@@ -46,7 +47,7 @@ exports.createSubscription = async (req, res) => {
     };
 };
 
-exports.getSubscriptions = async (req, res) => {
+exports.getSubscriptionsPlan = async (req, res) => {
     try {
         const subscriptions = await Subscription.find({});
         const totalSubscription = await Subscription.countDocuments();
@@ -65,7 +66,7 @@ exports.getSubscriptions = async (req, res) => {
     };
 };
 
-exports.getSubscriptionById = async (req, res) => {
+exports.getSubscriptionPlanById = async (req, res) => {
     try {
         const { subscriptionId } = req.query;
 
@@ -91,7 +92,7 @@ exports.getSubscriptionById = async (req, res) => {
     };
 };
 
-exports.updateSubscription = async (req, res) => {
+exports.updateSubscriptionPlan = async (req, res) => {
     try {
         const { subscriptionId } = req.query;
         const updates = req.body;
@@ -123,7 +124,7 @@ exports.updateSubscription = async (req, res) => {
     };
 };
 
-exports.deleteSubscription = async (req, res) => {
+exports.deleteSubscriptionPlan = async (req, res) => {
     try {
         const { subscriptionId } = req.query;
         const subscription = await Subscription.findByIdAndDelete(subscriptionId);

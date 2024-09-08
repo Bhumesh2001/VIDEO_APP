@@ -6,7 +6,7 @@ const SubscriptionPlan = require('../../models/adminModel/subs.adminModel');
 
 exports.subscribeToCategory = async (req, res) => {
     try {
-        const { categoryId, plan, discountPercentage = 5, couponCode } = req.body;
+        const { categoryId, planName, planType, discountPercentage = 5, couponCode } = req.body;
 
         const userId = req.user._id;
         if (!userId) {
@@ -32,7 +32,7 @@ exports.subscribeToCategory = async (req, res) => {
             });
         };
 
-        const subscriptionPlan = await SubscriptionPlan.findOne({ plan });
+        const subscriptionPlan = await SubscriptionPlan.findOne({ planName });
         if (!subscriptionPlan) {
             return res.status(404).json({
                 success: false,
@@ -79,7 +79,8 @@ exports.subscribeToCategory = async (req, res) => {
         const newSubscription = new UserSubscriptionModel({
             userId,
             categoryId,
-            plan,
+            planName,
+            planType,
             totalPrice: originalPrice,
             discountedPrice: finalPrice,
         });
@@ -115,7 +116,7 @@ exports.subscribeToCategory = async (req, res) => {
 
 exports.subscribeToCategories = async (req, res) => {
     try {
-        const { plan, discountPercentage = 5, couponCode } = req.body;
+        const { planName, planType, price, discountPercentage = 5, couponCode } = req.body;
         const userId = req.user._id;
 
         if (!userId) {
@@ -134,18 +135,18 @@ exports.subscribeToCategories = async (req, res) => {
         };
 
         const subscriptionPlans = await SubscriptionPlan.find(
-            { plan: { $in: ['monthly', 'quarterly', 'yearly'] } },
-            { plan: 1, price: 1 }
+            { planName, planType },
+            { planName: 1, price: 1 }
         );
         const priceMap = subscriptionPlans.reduce((acc, plan) => {
-            acc[plan.plan] = plan.price;
+            acc[plan.planName] = plan.price;
             return acc;
         }, {});
 
         if (!priceMap[plan]) {
             return res.status(400).json({
                 success: false,
-                message: `Invalid plan: ${plan}`,
+                message: `Invalid plan: ${planName}`,
             });
         };
 
@@ -192,7 +193,8 @@ exports.subscribeToCategories = async (req, res) => {
                 subscriptions.push({
                     userId,
                     categoryId: category._id,
-                    plan,
+                    planName,
+                    planType,
                     discountedPrice: price
                 });
             };
@@ -261,4 +263,3 @@ exports.getHistory = async (req, res) => {
         });
     };
 };
-
