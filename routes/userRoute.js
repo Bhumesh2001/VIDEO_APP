@@ -127,7 +127,7 @@ userRouter.delete(
 userRouter.post(
     '/create-story',
     userAuthentication,
-    validateRequiredFields(['title', 'video', 'caption', 'duration']),
+    validateRequiredFields(['title', 'caption', 'duration']),
     storyUserController.createStory
 );
 userRouter.get(
@@ -145,7 +145,7 @@ userRouter.put(
     '/update-story',
     userAuthentication,
     validateObjectIds(['storyId']),
-    validateRequiredFields(['title', 'video', 'caption', 'duration']),
+    validateRequiredFields(['title', 'caption', 'duration']),
     storyUserController.updateStory
 );
 userRouter.delete(

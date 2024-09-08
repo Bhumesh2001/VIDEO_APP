@@ -4,14 +4,14 @@ const {
     deleteImageAndUploadToCloudinary,
 } = require('../../utils/uploadImage');
 const { convertToMongooseDate } = require('../../utils/subs.userUtil');
+const cloudinary = require('cloudinary').v2;
+
 
 exports.createArticle = async (req, res) => {
     try {
         const { publicationDate, image: imageUrl, ...data } = req.body;
 
-        const existingArticle = await Article.findOne({
-            title: { $regex: new RegExp(`^${req.body.title.trim()}$`, 'i') }
-        });
+        const existingArticle = await Article.findOne({ title });
 
         if (existingArticle) {
             return res.status(409).json({
@@ -62,6 +62,16 @@ exports.createArticle = async (req, res) => {
     } catch (error) {
         console.error(error);
 
+        if (imageData.public_id) {
+            try {
+                await cloudinary.uploader.destroy(imageData.public_id, {
+                    resource_type: 'image',
+                });
+            } catch (cleanupError) {
+                console.error('Error deleting video from Cloudinary:', cleanupError);
+            };
+        };
+
         if (error.name === 'ValidationError') {
             const validationErrors = Object.values(error.errors).map(err => err.message);
             return res.status(400).json({
@@ -88,11 +98,26 @@ exports.createArticle = async (req, res) => {
 
 exports.getAllArticles = async (req, res) => {
     try {
-        const articls = await Article.find({}, {
-            __v: 0, createdAt: 0, updatedAt: 0, public_id: 0,
-        });
+        const articles = await Article.aggregate([
+            {
+                $project: {
+                    userId: 1,
+                    title: 1,           
+                    authorName: 1,            
+                    publicationDate: 1,
+                    content: 1,
+                    topic: 1,
+                    image: 1,
+                    TotalLikes: { $size: "$likes" }, 
+                    TotalComments: { $size: "$comments" }, 
+                    likes: 1,
+                    comments: 1,
+                }
+            }
+        ]);
+        
         const totalArticles = await Article.countDocuments();
-        if (!articls) {
+        if (articles.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Article not found!',
@@ -103,7 +128,7 @@ exports.getAllArticles = async (req, res) => {
             success: true,
             message: 'Article fetched successfully...',
             totalArticles,
-            articls
+            articles
         });
 
     } catch (error) {

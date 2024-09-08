@@ -23,7 +23,7 @@ exports.createCategory = async (req, res) => {
             });
         };
 
-        const existingCategory = await Category.findOne({ name: { $regex: new RegExp(name, 'i') } });
+        const existingCategory = await Category.findOne({ name });
         if (existingCategory) {
             return res.status(409).json({
                 success: false,

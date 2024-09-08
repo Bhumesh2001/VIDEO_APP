@@ -37,7 +37,7 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             },
         };
 
-        const existingVideo = await Video.findOne({ title: { $regex: new RegExp(title, 'i') } });
+        const existingVideo = await Video.findOne({ title });
         if(existingVideo){
             return res.status(409).json({
                 success: false,

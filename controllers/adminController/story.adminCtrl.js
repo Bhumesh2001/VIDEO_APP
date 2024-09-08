@@ -1,35 +1,100 @@
 const Story = require('../../models/adminModel/story.adminModel');
 const { checkUrl } = require('../../utils/uploadImage');
+const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
 
-exports.createStory = async (req, res) => {
-    const { title, video, caption, duration } = req.body;
+exports.createStoryByAdmin = async (req, res) => {
+    
+    const { video, ...data } = req.body;
+    const videoFile = req.files?.video;
+
+    let storyData = {
+        userId: req.admin._id,
+        public_id: '',
+        video: '',
+        ...data,
+    };
 
     try {
-        if(!checkUrl(video)){
+
+        // Validate video URL if no video file is provided
+        if (!videoFile && !checkUrl(video)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid URL format',
             });
         };
-        
-        const storyData = {
-            userId: req.admin._id,
-            title,
-            video,
-            caption,
-            duration,
+
+        // Check if a story with the same title exists
+        const existingStory = await Story.findOne({ title: data.title });
+        if (existingStory) {
+            return res.status(409).json({
+                success: false,
+                message: 'Story already exists!',
+            });
         };
+
+        // Handle video upload
+        if (videoFile) {
+            try {
+                // Upload large video files efficiently
+                let videoResult = await cloudinary.uploader.upload_large(videoFile.tempFilePath, {
+                    resource_type: 'video',
+                    chunk_size: 6000000,
+                });
+
+                console.log('Cloudinary Upload Response:', videoResult);
+
+                if (videoResult && videoResult.public_id && videoResult.secure_url) {
+                    console.log(videoResult.secure_url, videoResult.public_id, '==============');
+
+                    storyData.public_id = videoResult.public_id;
+                    storyData.video = videoResult.secure_url;
+
+                    // Remove temp file after uploading
+                    fs.unlinkSync(videoFile.tempFilePath);
+                } else {
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Failed to get public_id or secure_url from Cloudinary response',
+                    });
+                }
+
+            } catch (error) {
+                console.error('Error uploading video file:', error);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Error uploading video file',
+                    error: error.message,
+                });
+            }
+        } else {
+            storyData.video = video;
+        };
+
+        // Create and save the story
         const story = new Story(storyData);
         await story.save();
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: 'Story created successfully...',
             story,
         });
 
     } catch (error) {
-        console.log(error);
+        console.error('Server error:', error);
+
+        // Cleanup if the video has been uploaded but story creation fails
+        if (storyData.public_id) {
+            try {
+                await cloudinary.uploader.destroy(storyData.public_id, { resource_type: 'video' });
+            } catch (cleanupError) {
+                console.error('Error deleting video from Cloudinary:', cleanupError);
+            }
+        }
+
+        // Handle validation errors
         if (error.name === 'ValidationError') {
             const validationErrors = Object.values(error.errors).map(err => err.message);
             return res.status(400).json({
@@ -37,22 +102,18 @@ exports.createStory = async (req, res) => {
                 message: 'Validation Error',
                 errors: validationErrors,
             });
-        };
-        if (error.code === 11000) {
-            return res.status(409).json({
-                success: false,
-                message: 'Story already exists!',
-            });
-        };
-        res.status(500).json({
+        }
+
+        // General server error
+        return res.status(500).json({
             success: false,
             message: 'Server Error',
             error: error.message,
         });
-    };
+    }
 };
 
-exports.getAllStories = async (req, res) => {
+exports.getAllStoriesByAdmin = async (req, res) => {
     try {
         const stories = await Story.find({});
         if (!stories) {
@@ -75,7 +136,7 @@ exports.getAllStories = async (req, res) => {
     };
 };
 
-exports.getSingleStory = async (req, res) => {
+exports.getSingleStoryByAdmin = async (req, res) => {
     try {
         const { storyId } = req.query;
 
@@ -102,18 +163,82 @@ exports.getSingleStory = async (req, res) => {
     };
 };
 
-exports.updateStory = async (req, res) => {
-    try {
-        const { storyId } = req.query;
+exports.updateStoryByAdmin = async (req, res) => {
+    const { storyId } = req.query;
+    const { video, ...data } = req.body;
 
-        if(!checkUrl(req.body.video)){
-            return res.status(400).json({
+    const videoFile = req.files.video;
+
+    let storyData = {
+        public_id: '',
+        video: '',
+        ...data
+    };
+    try {
+
+        const story_ = await Story.findOne({ _id: storyId, userId: req.admin._id });
+        if (!story_) {
+            return res.status(404).json({
                 success: false,
-                message: 'Invalid URL format',
+                message: "Story not found!",
             });
         };
 
-        const story = await Story.findByIdAndUpdate(storyId, req.body, { new: true, runValidators: true, });
+        if (videoFile || video) {
+            try {
+                await cloudinary.uploader.destroy(story_.public_id, {
+                    resource_type: 'video',
+                });
+            } catch (cleanupError) {
+                console.error('Error deleting video from Cloudinary:', cleanupError);
+            };
+
+            if (videoFile) {
+                try {
+                    const videoResult = await cloudinary.uploader.upload(videoFile.tempFilePath, {
+                        resource_type: 'video',
+                        chunk_size: 6000000,
+                    });
+
+                    storyData.public_id = videoResult.public_id;
+                    storyData.video = videoResult.secure_url;
+
+                    fs.unlinkSync(videoFile.tempFilePath);
+
+                } catch (error) {
+                    console.error('Error uploading video file:', error);
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Error uploading video file',
+                        error: error.message,
+                    });
+                }
+            }
+            else if (video) {
+                try {
+                    const videoResult = await cloudinary.uploader.upload(video, {
+                        resource_type: 'video',
+                    });
+
+                    storyData.public_id = videoResult.public_id;
+                    storyData.video = videoResult.secure_url;
+
+                } catch (error) {
+                    console.error('Error uploading video URL:', error);
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Error uploading video URL',
+                        error: error.message,
+                    });
+                };
+            };
+        };
+
+        const story = await Story.findOneAndUpdate(
+            { _id: storyId, userId: req.admin._id },
+            storyData,
+            { new: true, runValidators: true, }
+        );
         if (!story) {
             return res.status(404).json({
                 success: true,
@@ -128,6 +253,15 @@ exports.updateStory = async (req, res) => {
         });
 
     } catch (error) {
+        console.log(error);
+        try {
+            await cloudinary.uploader.destroy(storyData.public_id, {
+                resource_type: 'video',
+            });
+        } catch (cleanupError) {
+            console.error('Error deleting video from Cloudinary:', cleanupError);
+        };
+
         res.status(500).json({
             success: false,
             message: 'Error occured during updating the story',
@@ -136,7 +270,7 @@ exports.updateStory = async (req, res) => {
     };
 };
 
-exports.deleteStory = async (req, res) => {
+exports.deleteStoryByAdmin = async (req, res) => {
     try {
         const { storyId } = req.query;
 

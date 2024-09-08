@@ -115,7 +115,7 @@ adminRouter.delete(
 adminRouter.post(
     '/create-article',
     adminAuth,
-    validateRequiredFields(['title_', 'content_', 'authorName_', 'publicationDate_', 'topic_']),
+    validateRequiredFields(['title', 'content', 'authorName', 'publicationDate', 'topic']),
     articleController.createArticle
 );
 adminRouter.get('/articls', articleController.getAllArticles);
@@ -144,19 +144,24 @@ adminRouter.delete(
 adminRouter.post(
     '/create-story',
     adminAuth,
-    validateRequiredFields(['title', 'video', 'caption', 'duration']),
-    storyController.createStory
+    validateRequiredFields(['title', 'caption', 'duration']),
+    storyController.createStoryByAdmin
 );
-adminRouter.get('/stories', storyController.getAllStories);
-adminRouter.get('/story', adminAuth, validateObjectIds(['storyId']), storyController.getSingleStory);
+adminRouter.get('/stories', storyController.getAllStoriesByAdmin);
+adminRouter.get('/story', adminAuth, validateObjectIds(['storyId']), storyController.getSingleStoryByAdmin);
 adminRouter.put(
     '/update-story',
     adminAuth,
     validateObjectIds(['storyId']),
-    validateRequiredFields(['title', 'video', 'caption', 'duration', 'status']),
-    storyController.updateStory
+    validateRequiredFields(['title', 'caption', 'duration', 'status']),
+    storyController.updateStoryByAdmin
 );
-adminRouter.delete('/delete-story', adminAuth, validateObjectIds(['storyId']), storyController.deleteStory);
+adminRouter.delete(
+    '/delete-story', 
+    adminAuth, 
+    validateObjectIds(['storyId']), 
+    storyController.deleteStoryByAdmin
+);
 
 // ***************** Banner routes **************
 adminRouter.post(

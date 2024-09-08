@@ -13,6 +13,11 @@ const storySchema = new mongoose.Schema({
         minlength: [5, 'Title must be at least 5 characters long'],
         maxlength: [100, 'Title cannot exceed 100 characters'],
     },
+    public_id: {
+        type: String,
+        unique: true,
+        required: true,
+    },
     video: {
         type: String,
         required: true,
@@ -29,16 +34,14 @@ const storySchema = new mongoose.Schema({
         unique: true,
         maxlength: 300,
     },
-    views: {
-        type: Number,
-        default: 0,
-        min: 0,
-    },
-    likes: {
-        type: Number,
-        default: 0,
-        min: 0,
-    },
+    views: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    likes: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
     duration: {
         type: Number,
         required: true,

@@ -9,9 +9,9 @@ const { convertToMongooseDate } = require('../../utils/subs.userUtil');
 
 exports.createArticle = async (req, res) => {
     try {
-        let { title_, authorName_, publicationDate_, topic_, content_, image_, } = req.body;
+        let { title, authorName, publicationDate, topic, content, image, } = req.body;
 
-        const existingArticle = await Article.findOne({ title: title_ });
+        const existingArticle = await Article.findOne({ title });
         if (existingArticle) {
             return res.status(409).json({
                 success: false,
@@ -19,17 +19,17 @@ exports.createArticle = async (req, res) => {
             });
         };
 
-        if (!(req.files && req.files.image_) && !req.body.image_) {
+        if (!(req.files && req.files.image) && !req.body.image) {
             return res.status(400).json({
                 success: false,
                 message: 'Image file or image URL is required!',
             });
         };
 
-        if (req.files && req.files.image_) {
-            image_ = req.files.image_.tempFilePath;
+        if (req.files && req.files.image) {
+            image = req.files.image.tempFilePath;
         } else {
-            if (!/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image_)) {
+            if (!/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
                 return res.status(400).json({
                     success: false,
                     message: 'Invalid image URL!',
@@ -37,17 +37,17 @@ exports.createArticle = async (req, res) => {
             };
         };
 
-        const imageData = await uploadImageToCloudinary(image_);
+        const imageData = await uploadImageToCloudinary(image);
 
         const articleData = {
-            userId: req.admin._id,
-            title: title_,
-            public_id: imageData.public_id,
+            userId: req.admin.id,
+            title: title,
+            publicid: imageData.public_id,
             image: imageData.url,
-            publicationDate: convertToMongooseDate(publicationDate_),
-            authorName: authorName_,
-            topic: topic_,
-            content: content_,
+            publicationDate: convertToMongooseDate(publicationDate),
+            authorName: authorName,
+            topic: topic,
+            content: content,
         };
 
         const article = new Article(articleData);
@@ -61,6 +61,17 @@ exports.createArticle = async (req, res) => {
 
     } catch (error) {
         console.log(error);
+
+        if (imageData.public_id) {
+            try {
+                await cloudinary.uploader.destroy(imageData.public_id, {
+                    resource_type: 'image',
+                });
+            } catch (cleanupError) {
+                console.error('Error deleting image from Cloudinary:', cleanupError);
+            };
+        };
+
         if (error.name === 'ValidationError') {
             const validationErrors = Object.values(error.errors).map(err => err.message);
             return res.status(400).json({

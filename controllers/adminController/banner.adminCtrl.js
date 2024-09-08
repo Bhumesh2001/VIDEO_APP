@@ -5,12 +5,14 @@ const {
     deleteImageOnCloudinary,
 } = require('../../utils/uploadImage');
 
+const cloudinary = require('cloudinary').v2
+
 exports.createBanner = async (req, res) => {
     let { title, description, image } = req.body;
 
     try {
         // Perform a case-insensitive search for the title
-        const existingBanner = await Banner.findOne({ title: { $regex: new RegExp(`^${title}$`, 'i') } });
+        const existingBanner = await Banner.findOne({ title });
 
         if (existingBanner) {
             return res.status(409).json({
@@ -56,6 +58,17 @@ exports.createBanner = async (req, res) => {
         });
     } catch (error) {
         console.log(error);
+
+        if (imageData.public_id) {
+            try {
+                await cloudinary.uploader.destroy(imageData.public_id, {
+                    resource_type: 'image',
+                });
+            } catch (cleanupError) {
+                console.error('Error deleting image from Cloudinary:', cleanupError);
+            };
+        };
+
         if (error.name === 'ValidationError') {
             const validationErrors = Object.values(error.errors).map(err => err.message);
             return res.status(400).json({
