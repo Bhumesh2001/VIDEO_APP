@@ -28,8 +28,8 @@ app.use(cors({
 }));
 
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, '../frontend/views'));
-app.use(express.static(path.join(__dirname, '../frontend/public')));
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(cookiParser());
 app.use(express.urlencoded({ extended: true }));

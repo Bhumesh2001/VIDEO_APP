@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Digital-vle</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="../icon/favicon_logo.jpg" type="image/x-icon" />
+    <link rel="stylesheet" href="../css/index.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="container-fluid fixed-top topbar">
+        <div class="row d-flex justify-content-center align-items-center">
+          <div class="col-2 col-md-2 col-lg-2 logo-col p-1">
+            <img src="../icon/new_logo.png" class="img-fluid" alt="logo" />
+          </div>
+
+          <div class="col-10 col-md-10 col-lg-10 nav-col p-0">
+            <nav class="navbar navbar-expand-lg justify-content-between p-1">
+              <div class="toggle-btn m-1">
+                <i class="fas fa-bars"></i>
+              </div>
+              <a class="navbar-brand text-white p-1 m-1" href="#">Navbar</a>
+              <div class="dropdown p-1 m-1">
+                <button
+                  class="profile-button dropdown-toggle bg-light"
+                  type="button"
+                  id="profileDropdown"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <img src="../icon/default_icon.png" alt="Profile" />
+                </button>
+                <ul
+                  class="dropdown-menu dropdown-menu-end"
+                  aria-labelledby="profileDropdown"
+                >
+                  <li><a class="dropdown-item" href="#">Profile</a></li>
+                  <li><hr class="dropdown-divider" /></li>
+                  <li><a class="dropdown-item" href="#">Logout</a></li>
+                </ul>
+              </div>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="container-fluid main-div-content">
+        <div class="row d-flex">
+          <div
+            class="col d-none d-lg-block d-md-none col-lg-2 col-6 sidebar px-0 py-3"
+          >
+            <a
+              draggable="false"
+              data-target="#dashboard"
+              href="#"
+              class="nav-link sidebar-link active"
+              ><i class="fas fa-tachometer-alt"></i> Dashboard</a
+            >
+            <a
+              draggable="false"
+              id="videos"
+              data-target="#video"
+              class="nav-link sidebar-link"
+              href="#"
+              ><i class="fas fa-video"></i> Videos</a
+            >
+            <a
+              draggable="false"
+              data-target="#article"
+              id="Article"
+              class="nav-link sidebar-link"
+              href="#"
+              ><i class="fas fa-newspaper"></i> Articles</a
+            >
+            <a
+              draggable="false"
+              id="user"
+              data-target="#users"
+              class="nav-link sidebar-link"
+              href="#"
+              ><i class="fas fa-users"></i> Users</a
+            >
+            <a
+              draggable="false"
+              id="category"
+              data-target="#categories"
+              class="nav-link sidebar-link"
+              href="#"
+              ><i class="fas fa-list"></i> Categories</a
+            >
+            <a
+              draggable="false"
+              id="story"
+              data-target="#stories"
+              class="nav-link sidebar-link"
+              href="#"
+              ><i class="fas fa-newspaper"></i> Stories</a
+            >
+            <a
+              draggable="false"
+              id="subscription-plan"
+              data-target="#subscriptions"
+              class="nav-link sidebar-link"
+              href="#"
+              ><i class="fas fa-calendar-alt"></i> Subscription Plan</a
+            >
+            <a
+              draggable="false"
+              id="coupon"
+              data-target="#coupons"
+              class="nav-link sidebar-link"
+              href="#"
+              ><i class="fas fa-ticket-alt"></i> Coupons</a
+            >
+            <a
+              draggable="false"
+              data-target="#settings"
+              class="nav-link sidebar-link"
+              href="#"
+              ><i class="fas fa-cogs"></i> Settings</a
+            >
+            <a
+              draggable="false"
+              data-target="#terms-condition"
+              class="nav-link sidebar-link"
+              href="#"
+              ><i class="fas fa-file-contract"></i> T&C</a
+            >
+            <a
+              draggable="false"
+              data-target="#logout"
+              class="nav-link sidebar-link"
+              href="#"
+              ><i class="fas fa-sign-out-alt"></i> Logout</a
+            >
+          </div>
+
+          <div class="col-lg-10 offset-lg-2 px-3 content">
+            <section id="dashboard" class="dashboard">
+              <div class="main-content p-2 w-100">
+                <h3 class="mt-1 mb-3">Dashboard</h3>
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div class="card-body" data-target="#user" id="user-card">
+                        <h5 class="card-title">
+                          <i class="fas fa-users"></i> Total Users
+                        </h5>
+                        <h4 class="card-text card_text users" id="total_user">
+                          0
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div
+                        class="card-body"
+                        data-target="#videos"
+                        id="video-card"
+                      >
+                        <h5 class="card-title">
+                          <i class="fas fa-video"></i> Total Videos
+                        </h5>
+                        <h4 class="card-text card_text videos" id="total_video">
+                          0
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div
+                        class="card-body"
+                        data-target="#category"
+                        id="category-card"
+                      >
+                        <h5 class="card-title">
+                          <i class="fas fa-th-list"></i> Total Categories
+                        </h5>
+                        <h4
+                          class="card-text card_text categories"
+                          id="total_category"
+                        >
+                          0
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div class="card-body" id="like-card">
+                        <h5 class="card-title">
+                          <i class="fas fa-thumbs-up"></i> Total Likes
+                        </h5>
+                        <h4 class="card-text card_text likes" id="total_like">
+                          0
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div class="card-body" id="comment-card">
+                        <h5 class="card-title">
+                          <i class="fas fa-comments"></i> Total Comments
+                        </h5>
+                        <h4
+                          class="card-text card_text comments"
+                          id="total_comment"
+                        >
+                          0
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div
+                        class="card-body"
+                        data-target="#Article"
+                        id="article-card"
+                      >
+                        <h5 class="card-title">
+                          <i class="fas fa-share-alt"></i> Total Articles
+                        </h5>
+                        <h4
+                          class="card-text card_text articles"
+                          id="total_articles"
+                        >
+                          0
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div class="card-body" id="other-card">
+                        <h5 class="card-title">
+                          <i class="fas fa-ellipsis-h"></i> Total Others
+                        </h5>
+                        <h4 class="card-text card_text others">300</h4>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div class="card-body" id="subscriber-card">
+                        <h5 class="card-title">
+                          <i class="fas fa-user-plus"></i> Total Subscribers
+                        </h5>
+                        <h4 class="card-text card_text subscribers">500</h4>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div class="card-body" id="amount-card">
+                        <h5 class="card-title">
+                          <i class="fas fa-dollar-sign"></i> Total Amount
+                        </h5>
+                        <h4 class="card-text card_text amount">$1000</h4>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="video" class="video d-none">
+              <div class="main-content">
+                <div class="container-fluid main_div p-3 my-3">
+                  <div class="text-end mb-3">
+                    <button id="add-new-video" class="btn btn-danger">
+                      Add New
+                    </button>
+                  </div>
+                  <div class="row" id="video-row"></div>
+                  <nav aria-label="Page navigation example">
+                    <ul class="pagination m-0">
+                      <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Previous">
+                          <span aria-hidden="true">&laquo;</span>
+                        </a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">1</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">2</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">3</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Next">
+                          <span aria-hidden="true">&raquo;</span>
+                        </a>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            </section>
+
+            <!-- add new video -->
+            <section class="add_new_videoPage d-none" id="new_video">
+              <div class="main-content">
+                <div class="form-container my-4" id="upload-video">
+                  <h2 class="text-center heading">Add New Video</h2>
+
+                  <form id="video-form">
+                    <div class="form-group mb-3">
+                      <label for="title">Title</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="title"
+                        name="title"
+                        placeholder="Enter video title"
+                        required
+                        autocomplete="off"
+                      />
+                    </div>
+
+                    <div class="form-group mb-3">
+                      <label for="description_">Description</label>
+                      <textarea
+                        class="form-control"
+                        id="description_"
+                        name="description"
+                        placeholder="Enter video description"
+                        rows="3"
+                        required
+                        autocomplete="off"
+                      ></textarea>
+                    </div>
+
+                    <div class="form-group mb-3">
+                      <label for="category">Category</label>
+                      <select
+                        class="form-control"
+                        id="category"
+                        name="category"
+                        required
+                      >
+                        <option value="">Select category</option>
+                        <option data-icon="fas fa-id-card">
+                          Aadhaar Service
+                        </option>
+                        <option data-icon="fas fa-id-card-alt">
+                          PAN Card Service
+                        </option>
+                        <option data-icon="fas fa-voter-id">
+                          Voter Card Service
+                        </option>
+                        <option data-icon="fas fa-user-graduate">
+                          UP Pension
+                        </option>
+                        <option data-icon="fas fa-building">PF (EPFO)</option>
+                        <option data-icon="fas fa-file-invoice">
+                          ITR Filing
+                        </option>
+                        <option data-icon="fas fa-industry">
+                          Udyog Adhar (MSME)
+                        </option>
+                        <option data-icon="fas fa-hand-holding-usd">
+                          PM Kisan Samman Nidhi
+                        </option>
+                        <option data-icon="fas fa-car">DL Service</option>
+                        <option data-icon="fas fa-road">Parivahan Seva</option>
+                        <option data-icon="fas fa-shield-alt">
+                          UP Police Service
+                        </option>
+                        <option data-icon="fas fa-passport">
+                          Passport Service
+                        </option>
+                        <option data-icon="fas fa-desktop">
+                          E District UP
+                        </option>
+                        <option data-icon="fas fa-laptop">CSC Service</option>
+                        <option data-icon="fas fa-file-upload">
+                          File Converter
+                        </option>
+                        <option data-icon="fas fa-user-tie">
+                          UP Labour Card Service
+                        </option>
+                        <option data-icon="fas fa-id-badge">
+                          E Shram Card Service
+                        </option>
+                        <option data-icon="fas fa-image">Photoshop</option>
+                        <option data-icon="fas fa-file-word">MS Word</option>
+                        <option data-icon="fas fa-file-excel">Excel</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group mb-3">
+                      <label for="thumbnail">Thumbnail</label>
+                      <div class="custom-file">
+                        <input
+                          type="file"
+                          class="custom-file-input"
+                          id="thumbnail"
+                          name="thumbnail"
+                          accept="image/*"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                      <label class="upload-label">Upload Method</label>
+                      <div class="form-check form-check-inline">
+                        <input
+                          class="form-check-input"
+                          type="radio"
+                          name="uploadMethod"
+                          id="uploadVideo"
+                          value="upload"
+                          checked
+                        />
+                        <label
+                          class="form-check-label radio-label"
+                          for="uploadVideo"
+                          >Upload Video</label
+                        >
+                      </div>
+                      <div class="form-check form-check-inline">
+                        <input
+                          class="form-check-input"
+                          type="radio"
+                          name="uploadMethod"
+                          id="videoUrl"
+                          value="url"
+                        />
+                        <label
+                          class="form-check-label radio-label"
+                          for="videoUrl"
+                          >Video URL</label
+                        >
+                      </div>
+                    </div>
+
+                    <div class="form-group mb-3" id="videoUploadField">
+                      <label for="video">Video File</label>
+                      <div class="custom-file">
+                        <input
+                          type="file"
+                          class="custom-file-input"
+                          id="video"
+                          name="video"
+                          accept="video/*"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="form-group mb-3" id="videoUrlField">
+                      <label for="video-url">Video URL</label>
+                      <input
+                        type="url"
+                        class="form-control"
+                        id="video-url"
+                        name="video-url"
+                        placeholder="Enter video URL"
+                        autocomplete="off"
+                      />
+                    </div>
+
+                    <div
+                      class="form-group text-center d-flex justify-content-between"
+                    >
+                      <button
+                        type="button"
+                        id="back-btn"
+                        class="btn btn-danger"
+                      >
+                        Back
+                      </button>
+                      <button type="submit" id="add-video-btn" class="btn btn-success">
+                        Add Video
+                      </button>
+
+                      <button
+                        class="btn btn-success custom-btn d-none"
+                        type="button"
+                        id="video-process-btn"
+                      >
+                        <span
+                          class="spinner-border spinner-border-sm"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="visually-hidden" role="status"
+                          >Loading...</span
+                        >
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </section>
+
+            <section id="article" class="article d-none">
+              <div class="main-content">
+                <div class="container-fluid main_div p-3 my-3">
+                  <div class="text-end mb-3">
+                    <button id="add-new-article" class="btn btn-danger">
+                      Add New
+                    </button>
+                  </div>
+                  <div class="row" id="article-row"></div>
+                  <nav aria-label="Page navigation example">
+                    <ul class="pagination m-0">
+                      <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Previous">
+                          <span aria-hidden="true">&laquo;</span>
+                        </a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">1</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">2</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">3</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Next">
+                          <span aria-hidden="true">&raquo;</span>
+                        </a>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            </section>
+
+            <!-- add new article -->
+            <section class="add_new_article d-none" id="new_article">
+              <div class="main-content">
+                <div id="others-story" class="text-dark article my-4">
+                  <div class="card story-card">
+                    <h2 class="heading" id="new-article">Add New Article</h2>
+                    <form id="article-form">
+                      <div class="mb-3">
+                        <label for="title_" class="form-label">Title</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="title_"
+                          name="title"
+                          placeholder="Enter article title"
+                          required
+                          autocomplete="off"
+                        />
+                      </div>
+                      <div class="mb-3">
+                        <label for="authorName_" class="form-label"
+                          >Author Name</label
+                        >
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="authorName_"
+                          name="authorName"
+                          placeholder="Enter author's name"
+                          required
+                          autocomplete="off"
+                        />
+                      </div>
+                      <div class="mb-3">
+                        <label for="publicationDate_" class="form-label"
+                          >Publication Date</label
+                        >
+                        <input
+                          type="date"
+                          class="form-control"
+                          id="publicationDate_"
+                          name="publicationDate"
+                          required
+                          autocomplete="off"
+                        />
+                      </div>
+                      <div class="mb-3">
+                        <label for="topic_" class="form-label">Topic</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="topic_"
+                          name="topic"
+                          placeholder="Enter topic"
+                          required
+                          autocomplete="off"
+                        />
+                      </div>
+                      <div class="mb-3">
+                        <label for="content_" class="form-label">Content</label>
+                        <textarea
+                          class="form-control"
+                          id="content_"
+                          name="content"
+                          rows="5"
+                          placeholder="Write your article content here..."
+                          required
+                          autocomplete="off"
+                        ></textarea>
+                      </div>
+                      <div class="mb-3">
+                        <label for="image_" class="form-label"
+                          >Upload Image</label
+                        >
+                        <input
+                          type="file"
+                          class="form-control"
+                          id="image_"
+                          name="image"
+                          accept="image/*"
+                          required
+                        />
+                        <small class="form-text"
+                          >Upload an image related to the article.</small
+                        >
+                      </div>
+                      <div class="text-center d-flex justify-content-between">
+                        <button
+                          type="button"
+                          id="back-article_btn"
+                          class="btn btn-danger"
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="submit"
+                          class="btn btn-success text-center"
+                          id="article__btn"
+                        >
+                          Add Article
+                        </button>
+
+                        <button
+                          class="btn btn-success custom-btn d-none"
+                          type="button"
+                          id="process-btn"
+                        >
+                          <span
+                            class="spinner-border spinner-border-sm"
+                            aria-hidden="true"
+                          ></span>
+                          <span class="visually-hidden" role="status"
+                            >Loading...</span
+                          >
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="users" class="users d-none">
+              <div class="main-content">
+                <div class="main_div p-3 my-3">
+                  <div class="text-end mb-3">
+                    <button id="add-new-user" class="btn btn-danger">
+                      Add New
+                    </button>
+                  </div>
+
+                  <div class="table-div overflow-x-auto">
+                    <table class="table table-striped table-bordered">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Phone</th>
+                          <th>Status</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="t-body"></tbody>
+                    </table>
+                  </div>
+
+                  <nav aria-label="Page navigation example">
+                    <ul class="pagination m-0">
+                      <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Previous">
+                          <span aria-hidden="true">&laquo;</span>
+                        </a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">1</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">2</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">3</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Next">
+                          <span aria-hidden="true">&raquo;</span>
+                        </a>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            </section>
+
+            <!-- add new user -->
+            <section class="add_new_user d-none" id="new_user">
+              <div class="main-content">
+                <div class="container-fluid new__user my-4">
+                  <h2 class="text-center heading">Add New User</h2>
+                  <form id="adduser__">
+                    <div class="mb-3">
+                      <label for="name_" class="form-label">Name</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="name_"
+                        placeholder="Enter your name"
+                        required
+                        name="name"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="email" class="form-label">Email</label>
+                      <input
+                        type="email"
+                        class="form-control"
+                        id="email_"
+                        placeholder="Enter your email"
+                        required
+                        name="email"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="password" class="form-label">Password</label>
+                      <input
+                        type="password"
+                        class="form-control"
+                        id="password_"
+                        placeholder="Enter your password"
+                        required
+                        name="password"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="mobileNumber" class="form-label"
+                        >Mobile Number</label
+                      >
+                      <input
+                        type="tel"
+                        class="form-control"
+                        id="mobileNumber_"
+                        placeholder="Enter your mobile number"
+                        required
+                        name="mobileNumber"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="_status" class="form-label">Status</label>
+                      <select
+                        class="form-select"
+                        id="status_"
+                        name="status"
+                        required
+                      >
+                        <option value="" disabled selected>
+                          Select status
+                        </option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                      <button
+                        type="button"
+                        id="back-btn-user"
+                        class="btn btn-danger"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="submit"
+                        id="add_user_btn"
+                        class="btn btn-success"
+                      >
+                        Add User
+                      </button>
+                      <button
+                        class="btn btn-success custom-btn d-none"
+                        type="button"
+                        id="user-process-btn"
+                      >
+                        <span
+                          class="spinner-border spinner-border-sm"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="visually-hidden" role="status"
+                          >Loading...</span
+                        >
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </section>
+
+            <section class="category d-none" id="categories">
+              <div class="main-content">
+                <div class="container-fluid main_div p-3 my-3">
+                  <div class="text-end mb-3">
+                    <button id="category-btn" class="btn btn-danger">
+                      Add New
+                    </button>
+                  </div>
+                  <div class="row" id="category-row"></div>
+                  <nav aria-label="Page navigation example">
+                    <ul class="pagination m-0">
+                      <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Previous">
+                          <span aria-hidden="true">&laquo;</span>
+                        </a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">1</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">2</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">3</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Next">
+                          <span aria-hidden="true">&raquo;</span>
+                        </a>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            </section>
+
+            <!-- add new category -->
+            <section class="add_new_category" id="new_category">
+              <div class="main-content">
+                <div class="container-fluid my-4 new-category">
+                  <h2 class="text-center heading">Add New Category</h2>
+                  <form>
+                    <div class="mb-3">
+                      <label for="_name" class="form-label">Name</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="_name"
+                        placeholder="Enter category name"
+                        required
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="description" class="form-label"
+                        >Description</label
+                      >
+                      <textarea
+                        class="form-control"
+                        id="description"
+                        rows="4"
+                        placeholder="Enter category description"
+                        required
+                        autocomplete="off"
+                      ></textarea>
+                    </div>
+                    <div class="mb-3">
+                      <label for="status" class="form-label">Status</label>
+                      <select class="form-select" id="status" required>
+                        <option value="active" selected>Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </div>
+                    <div class="mb-3">
+                      <label for="image" class="form-label">Upload Image</label>
+                      <input
+                        type="file"
+                        class="form-control"
+                        id="image"
+                        accept="image/*"
+                        required
+                      />
+                    </div>
+                    <div class="d-flex justify-content-between">
+                      <a href="#" id="category-back-btn" class="btn btn-danger"
+                        >Back</a
+                      >
+                      <button type="submit" class="btn btn-success">
+                        Add Category
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </section>
+
+            <section class="story d-none" id="stories">
+              <div class="main-content">
+                <div class="container-fluid main_div p-3 my-3">
+                  <div class="text-end mb-3">
+                    <button id="story-btn" class="btn btn-danger">
+                      Add New
+                    </button>
+                  </div>
+
+                  <div class="row" id="story-row"></div>
+
+                  <nav aria-label="Page navigation example">
+                    <ul class="pagination m-0">
+                      <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Previous">
+                          <span aria-hidden="true">&laquo;</span>
+                        </a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">1</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">2</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#">3</a>
+                      </li>
+                      <li class="page-item">
+                        <a class="page-link" href="#" aria-label="Next">
+                          <span aria-hidden="true">&raquo;</span>
+                        </a>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            </section>
+
+            <!-- add new story -->
+            <section class="add_new_story d-none" id="new_story">
+              <div class="main-content">
+                <div class="container-fluid story-container my-4 px-1">
+                  <h2 class="text-center heading pt-4">Add New Story</h2>
+                  <form class="px-4 pb-4" id="addNew_story">
+                    <div class="mb-3">
+                      <label for="story-title" class="form-label">Title</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="story-title"
+                        placeholder="Enter story title"
+                        required
+                        name="title"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="caption" class="form-label">Caption</label>
+                      <textarea
+                        class="form-control"
+                        id="caption"
+                        rows="3"
+                        placeholder="Enter caption"
+                        required
+                        name="caption"
+                        autocomplete="off"
+                      ></textarea>
+                    </div>
+                    <div class="mb-3">
+                      <label for="video" class="form-label">Video URL</label>
+                      <input
+                        type="url"
+                        class="form-control"
+                        id="video_"
+                        placeholder="Enter video URL"
+                        required
+                        name="video"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="duration" class="form-label">Duration</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="duration"
+                        placeholder="Enter video duration in sec (e.g., 30,60)"
+                        required
+                        name="duration"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="d-flex justify-content-between">
+                      <a href="#" id="back-story-btn" class="btn btn-danger"
+                        >Back</a
+                      >
+                      <button
+                        type="submit"
+                        id="addNew_story-btn"
+                        class="btn btn-success"
+                      >
+                        Add Story
+                      </button>
+
+                      <button
+                        class="btn btn-success custom-btn d-none"
+                        type="button"
+                        id="story-process-btn"
+                      >
+                        <span
+                          class="spinner-border spinner-border-sm"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="visually-hidden" role="status"
+                          >Loading...</span
+                        >
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </section>
+
+            <section class="subscription d-none" id="subscriptions">
+              <div class="main-content">
+                <div class="container-fluid main_div p-3 my-3">
+                  <div class="text-end mb-3">
+                    <button id="subscription-btn" class="btn btn-danger">
+                      Add New
+                    </button>
+                  </div>
+                  <div class="table-responsive">
+                    <table
+                      class="table table-striped table-bordered"
+                      draggable="false"
+                    >
+                      <thead id="tableHeading">
+                        <tr>
+                          <th>Plan Name</th>
+                          <th>Plan Type</th>
+                          <th>Price</th>
+                          <th>Features</th>
+                          <th>Status</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+
+                      <tbody id="planTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- add new subscription -->
+            <section class="add_new_subscription d-none" id="new_subscription">
+              <div class="main-content">
+                <div class="container-fluid my-4 new-subscription">
+                  <form id="add-new_subscription">
+                    <div class="mb-3">
+                      <label for="planName" class="form-label">Plan Name</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="planName"
+                        placeholder="Enter plan name"
+                        required
+                        name="planName"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="planName" class="form-label">Plan Type</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="planType"
+                        placeholder="Enter plan type"
+                        required
+                        name="planType"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="planPrice" class="form-label">Price</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="planPrice"
+                        placeholder="Enter price"
+                        required
+                        name="price"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="planFeatures" class="form-label"
+                        >Features</label
+                      >
+                      <textarea
+                        class="form-control"
+                        id="planFeatures"
+                        rows="3"
+                        placeholder="Enter features (separate by commas)"
+                        required
+                        name="features"
+                        autocomplete="off"
+                      ></textarea>
+                    </div>
+                    <div class="mb-3">
+                      <label for="planStatus" class="form-label">Status</label>
+                      <select
+                        class="form-select"
+                        name="status"
+                        id="planStatus"
+                        required
+                      >
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                      <button
+                        type="button"
+                        id="back-subscription-btn"
+                        class="btn btn-danger"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="submit"
+                        id="addNew_subscription-btn"
+                        class="btn btn-success"
+                      >
+                        Add Subscription
+                      </button>
+
+                      <button
+                        class="btn btn-success custom-btn d-none"
+                        type="button"
+                        id="subscription-process-btn"
+                      >
+                        <span
+                          class="spinner-border spinner-border-sm"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="visually-hidden" role="status"
+                          >Loading...</span
+                        >
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </section>
+
+            <section class="coupon d-none" id="coupons">
+              <div class="main-content">
+                <div class="container-fluid main_div p-3 my-3">
+                  <div class="text-end mb-3">
+                    <button id="coupon-btn" class="btn btn-danger">
+                      Add New
+                    </button>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-striped table-bordered">
+                      <thead>
+                        <tr>
+                          <th>Coupon Code</th>
+                          <th>Discount Percentage</th>
+                          <th>Expiration Date</th>
+                          <th>Max Usage</th>
+                          <th>Status</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>MONTHLY10</td>
+                          <td>10%</td>
+                          <td>2024-12-31</td>
+                          <td>100</td>
+                          <td><span class="badge bg-success">Active</span></td>
+                          <td>
+                            <div class="d-flex justify-content-end">
+                              <button class="btn btn-secondary btn-sm me-2">
+                                Edit
+                              </button>
+                              <button class="btn btn-danger btn-sm">
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>QUARTERLY15</td>
+                          <td>15%</td>
+                          <td>2025-03-31</td>
+                          <td>50</td>
+                          <td><span class="badge bg-success">Active</span></td>
+                          <td>
+                            <div class="d-flex justify-content-end">
+                              <button class="btn btn-secondary btn-sm me-2">
+                                Edit
+                              </button>
+                              <button class="btn btn-danger btn-sm">
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>YEARLY20</td>
+                          <td>20%</td>
+                          <td>2025-12-31</td>
+                          <td>30</td>
+                          <td><span class="badge bg-success">Active</span></td>
+                          <td>
+                            <div class="d-flex justify-content-end">
+                              <button class="btn btn-secondary btn-sm me-2">
+                                Edit
+                              </button>
+                              <button class="btn btn-danger btn-sm">
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="settings" class="settings d-none">
+              <div class="main-content">
+                <div class="page-title">Settings</div>
+                <div class="content-box">
+                  <h2>Account Settings</h2>
+                  <p>
+                    Update your account settings, configure preferences, and
+                    manage your privacy.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section id="terms-condition" class="terms-condition d-none">
+              <div class="main-content">
+                <div class="container-fluid main_div p-4 my-3">
+                  <h1 class="display-5 text-center mb-5">
+                    Independent Digital VLE Terms and Conditions
+                  </h1>
+
+                  <h2 class="h2">1. Introduction</h2>
+                  <p class="lead">
+                    Welcome to [Your Company Name], an independent digital
+                    platform that empowers Village Level Entrepreneurs (VLEs) to
+                    offer various digital services. By accessing or using our
+                    platform, you agree to comply with and be bound by the
+                    following terms and conditions.
+                  </p>
+
+                  <h2 class="h2">2. Eligibility</h2>
+                  <p class="lead">
+                    To use this platform, you must be at least 18 years old and
+                    meet all the requirements specified by the government for
+                    VLEs. By registering as a VLE, you confirm that you meet
+                    these eligibility criteria.
+                  </p>
+
+                  <h2 class="h2">3. Account Registration</h2>
+                  <ul class="list-unstyled">
+                    <li class="lead">
+                      You must create an account to access certain features of
+                      our platform.
+                    </li>
+                    <li class="lead">
+                      You agree to provide accurate and complete information
+                      during the registration process and to update such
+                      information as necessary.
+                    </li>
+                    <li class="lead">
+                      You are responsible for safeguarding your password and any
+                      activities or actions under your account.
+                    </li>
+                  </ul>
+
+                  <h2 class="h2">4. Use of Platform</h2>
+                  <ol class="lead">
+                    <li>
+                      As a VLE, you agree to use the platform only for lawful
+                      purposes and in accordance with these terms.
+                    </li>
+                    <li>
+                      You are prohibited from using the platform to engage in
+                      any activity that is illegal, harmful, or otherwise
+                      violates any applicable law.
+                    </li>
+                  </ol>
+
+                  <h2 class="h2">5. Content Policy</h2>
+                  <ul class="list-unstyled lead">
+                    <li>
+                      VLEs are responsible for the content they upload, share,
+                      or distribute through our platform.
+                    </li>
+                    <li>
+                      All content must comply with our community standards and
+                      policies.
+                    </li>
+                    <li>
+                      Prohibited content includes, but is not limited to,
+                      anything that is illegal, harmful, fraudulent, infringing,
+                      or promotes discrimination, violence, or hatred.
+                    </li>
+                    <li>
+                      We reserve the right to remove any content that violates
+                      our policies or these terms without prior notice.
+                    </li>
+                  </ul>
+
+                  <h2 class="h2">6. Return and Refund Policy</h2>
+                  <ol class="lead">
+                    <li>
+                      All digital services and products provided through our
+                      platform are non-refundable unless explicitly stated
+                      otherwise in specific service terms.
+                    </li>
+                    <li>
+                      In case of a technical error or service failure, the VLE
+                      must report the issue within 24 hours to be eligible for a
+                      possible refund or credit.
+                    </li>
+                    <li>
+                      Refunds are processed at our discretion after reviewing
+                      the issue reported and are subject to our approval.
+                    </li>
+                    <li>
+                      Physical products or services that are delivered through
+                      the platform are subject to the return policies of the
+                      respective service providers or vendors.
+                    </li>
+                  </ol>
+
+                  <h2 class="h2">7. Intellectual Property</h2>
+                  <p class="lead">
+                    All content, trademarks, and data on this platform,
+                    including software, databases, text, graphics, icons, and
+                    hyperlinks, are the property of [Your Company Name] or
+                    third-party licensors. You may not duplicate, distribute,
+                    sell, or exploit any part of our platform or its content
+                    without our explicit written permission.
+                  </p>
+
+                  <h2 class="h2">8. Privacy Policy</h2>
+                  <p class="lead">
+                    Your privacy is important to us. Please review our Privacy
+                    Policy to understand how we collect, use, and protect your
+                    information.
+                  </p>
+
+                  <h2 class="h2">9. Limitation of Liability</h2>
+                  <ul class="list-unstyled lead">
+                    <li>
+                      [Your Company Name] is not liable for any indirect,
+                      incidental, special, consequential, or punitive damages
+                      arising from or related to your use of the platform.
+                    </li>
+                    <li>
+                      Our liability is limited to the extent permitted by law.
+                    </li>
+                  </ul>
+
+                  <h2 class="h2">10. Termination</h2>
+                  <p class="lead">
+                    We reserve the right to suspend or terminate your account
+                    and access to the platform at our discretion, without
+                    notice, if you violate these terms or engage in conduct that
+                    we determine to be inappropriate or harmful.
+                  </p>
+
+                  <h2 class="h2">11. Governing Law</h2>
+                  <p class="lead">
+                    These terms shall be governed by and construed in accordance
+                    with the laws of [Your Country/State]. Any disputes arising
+                    from these terms or your use of the platform shall be
+                    resolved exclusively in the courts of [Your Country/State].
+                  </p>
+
+                  <h2 class="h2">12. Modifications to Terms</h2>
+                  <p class="lead">
+                    We may modify these terms at any time. Any changes will be
+                    effective immediately upon posting on our platform. Your
+                    continued use of the platform after any changes are posted
+                    constitutes your acceptance of the new terms.
+                  </p>
+
+                  <h2 class="h2">13. Contact Information</h2>
+                  <p class="lead">
+                    For any questions or concerns about these terms, please
+                    contact us at [Your Contact Information]
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section id="logout" class="logout d-none">
+              <div class="main-content">
+                <div class="card-container my-3">
+                  <div class="card logout-card">
+                    <div class="card-header">
+                      <h4 class="mb-0 text-white">Logout Confirmation</h4>
+                    </div>
+                    <div class="card-body text-white">
+                      <p>Are you sure you want to log out?</p>
+                      <div class="d-flex justify-content-center mt-4">
+                        <a href="#" class="btn btn-danger me-2"
+                          >Yes, Logout</a
+                        >
+                        <a href="#" class="btn btn-secondary"
+                          >Cancel</a
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <!-- Success model -->
+      <div
+        class="modal fade"
+        id="successModal"
+        tabindex="-1"
+        aria-labelledby="successModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content text-white bg-dark">
+            <div class="modal-header">
+              <h5 class="modal-title" id="successModalLabel">Success</h5>
+              <button
+                type="button"
+                class="btn-close text-white"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <span id="modalMessage"
+                >Your article has been submitted successfully!</span
+              >
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-success"
+                data-bs-dismiss="modal"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer"></footer>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+
+    <script src="../js/index.js"></script>
+
+    <script>
+      document
+        .querySelector(".custom-file-input")
+        .addEventListener("change", function () {
+          const fileName = this.value.split("\\").pop();
+          this.nextElementSibling.classList.add("selected");
+          this.nextElementSibling.innerHTML = fileName;
+        });
+
+      const uploadMethodRadios = document.querySelectorAll(
+        'input[name="uploadMethod"]'
+      );
+      const videoUploadField = document.getElementById("videoUploadField");
+      const videoUrlField = document.getElementById("videoUrlField");
+
+      uploadMethodRadios.forEach((radio) => {
+        radio.addEventListener("change", function () {
+          if (document.getElementById("uploadVideo").checked) {
+            videoUploadField.style.display = "block";
+            videoUrlField.style.display = "none";
+          } else {
+            videoUploadField.style.display = "none";
+            videoUrlField.style.display = "block";
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
