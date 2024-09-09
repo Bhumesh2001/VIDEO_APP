@@ -5,7 +5,7 @@ document.getElementById('loginForm').addEventListener('submit', async function (
     const password = document.getElementById('password').value;
 
     try {
-        const response = await fetch('http://localhost:3001/admin/login-admin', {
+        const response = await fetch('https://video-app-0i3v.onrender.com/admin/login-admin', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
