@@ -1,7 +1,5 @@
 /node_modules
 .env
 /config
-articleData.json
-categoryData.json
-videoData.json
+data
 demo
