@@ -517,7 +517,7 @@ document.querySelector("#video-form").addEventListener("submit", function (e) {
     e.preventDefault();
     handleFormSubmission(
         e.target,
-        "http://localhost:3001/admin/upload-video",
+        "https://video-app-0i3v.onrender.com/admin/upload-video",
         (data) => console.log("Video uploaded successfully:", data),
         'video-process-btn',
         'add-video-btn'
@@ -528,7 +528,7 @@ document.querySelector("#article-form").addEventListener("submit", function (e) 
     e.preventDefault();
     handleFormSubmission(
         e.target,
-        "http://localhost:3001/admin/create-article",
+        "https://video-app-0i3v.onrender.com/admin/create-article",
         (data) => console.log("Article created successfully:", data),
         'process-btn',
         'article__btn'
@@ -539,7 +539,7 @@ document.querySelector("#adduser__").addEventListener("submit", function (e) {
     e.preventDefault();
     handleFormSubmission(
         e.target,
-        "http://localhost:3001/admin/create-user",
+        "https://video-app-0i3v.onrender.com/admin/create-user",
         (data) => console.log("User added successfully:", data),
         'user-process-btn',
         'add_user_btn'
@@ -550,7 +550,7 @@ document.querySelector("#addNew_story").addEventListener("submit", function (e) 
     e.preventDefault();
     handleFormSubmission(
         e.target,
-        "http://localhost:3001/admin/create-story",
+        "https://video-app-0i3v.onrender.com/admin/create-story",
         (data) => console.log("Story created successfully:", data),
         'story-process-btn',
         'addNew_story-btn'
@@ -561,7 +561,7 @@ document.querySelector("#add-new_subscription").addEventListener("submit", funct
     e.preventDefault();
     handleFormSubmission(
         e.target,
-        "http://localhost:3001/admin/create-subscription",
+        "https://video-app-0i3v.onrender.com/admin/create-subscription",
         (data) => console.log("Subscription plan created successfully:", data),
         'subscription-process-btn',
         'addNew_subscription-btn'
