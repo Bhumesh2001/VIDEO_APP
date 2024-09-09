@@ -56,7 +56,7 @@ exports.getAllVideosByCategory = async (req, res) => {
             { userId: req.user._id, category },
             { category: 1, _id: 0 },
         );
-        const paidCategories = Categories.map(doc => doc.category);        
+        const paidCategories = Categories.map(doc => doc.category);
 
         videosByCategory = videosByCategory.map(video => ({
             ...video,

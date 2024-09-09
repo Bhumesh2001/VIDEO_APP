@@ -173,10 +173,10 @@ exports.getAllvideos = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Video fetched successfully...',
-            videos,
             totalVideos,
             page,
             totalPages: Math.ceil(totalVideos / limit),
+            videos,
         });
     } catch (error) {
         console.log(error);

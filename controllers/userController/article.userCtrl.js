@@ -8,15 +8,16 @@ const cloudinary = require('cloudinary').v2;
 
 
 exports.createArticle = async (req, res) => {
+    const { publicationDate, title, image: imageUrl, ...data } = req.body;
+    let imageData;
     try {
-        const { publicationDate, image: imageUrl, ...data } = req.body;
 
         const existingArticle = await Article.findOne({ title });
 
         if (existingArticle) {
             return res.status(409).json({
                 success: false,
-                message: 'Article with this title already exists!',
+                message: 'Article already exists!',
             });
         };
 
@@ -31,7 +32,6 @@ exports.createArticle = async (req, res) => {
             });
         };
 
-        let imageData;
         try {
             imageData = await uploadImageToCloudinary(imagePath);
         } catch (err) {
@@ -44,6 +44,7 @@ exports.createArticle = async (req, res) => {
 
         const articleData = {
             userId: req.user._id,
+            title,
             publicationDate: convertToMongooseDate(publicationDate),
             public_id: imageData.public_id,
             image: imageData.url,
