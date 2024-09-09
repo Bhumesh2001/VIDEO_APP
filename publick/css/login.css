@@ -1,0 +1,83 @@
+body {
+  background-color: #343a40; /* Dark body background */
+  color: #ffffff; /* Light text color */
+  font-family: "Montserrat", sans-serif;
+}
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Full height */
+}
+
+.login-form {
+  background-color: #212529; /* Dark form background */
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.7); /* Strong shadow */
+  width: 100%;
+  max-width: 400px; /* Max width for the form */
+}
+
+.login-form h3 {
+  margin-bottom: 20px;
+  font-weight: bold;
+  color: #ffffff; /* White text for the heading */
+}
+
+.form-control {
+  background-color: #495057; /* Darker input background */
+  border: 1px solid #6c757d; 
+  color: #ffffff; /* Input text color */
+}
+
+.form-control:focus {
+  background-color: #495057; 
+  box-shadow: none; 
+  color: white;
+}
+
+input[type="text"]::placeholder,
+input[type="password"]::placeholder {
+  color: rgba(236, 227, 227, 0.678);
+}
+
+.btn-danger {
+  background-color: #ff0000; /* Red button background color */
+  border-color: #ff0000; /* Red button border color */
+}
+
+.btn-danger:hover {
+  background-color: #cc0000; /* Darker red on hover */
+  border-color: #b30000; /* Darker red border on hover */
+}
+
+.form-text {
+  color: #adb5bd; /* Light gray for helper text */
+}
+
+img {
+  width: 20rem;
+}
+
+.password-container {
+  position: relative;
+}
+.password-container .form-control {
+  padding-right: 2.5rem;
+}
+.password-container .toggle-password {
+  position: absolute;
+  top: 71%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  cursor: pointer;
+  z-index: 2;
+  font-size: 1.1rem;
+}
+@media (max-width: 576px) {
+  .password-container .toggle-password {
+    right: 0.5rem;
+  }
+}
