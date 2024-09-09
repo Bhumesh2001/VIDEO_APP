@@ -2,7 +2,11 @@ const Subscription = require('../../models/adminModel/subs.adminModel');
 
 exports.createSubscriptionPlan = async (req, res) => {
     try {
-        const { planName, planType, price, features, status } = req.body;
+        let { planName, planType, price, features, status } = req.body;
+
+        if(!Array.isArray(features)){
+            features = features.split(',').map(feature => feature.trim());
+        };
 
         if (!features || !Array.isArray(features) || features.length === 0) {
             return res.status(400).json({ error: 'At least one feature is required' });
@@ -13,7 +17,7 @@ exports.createSubscriptionPlan = async (req, res) => {
             planType,
             price,
             features,
-            status,
+            status: status.toLowerCase(),
         });
 
         const savedSubscription = await newSubscription.save();

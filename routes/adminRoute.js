@@ -194,7 +194,7 @@ adminRouter.post(
     validateRequiredFields(['planName','planType', 'price', 'features', 'status']),
     subscriptionController.createSubscriptionPlan
 );
-adminRouter.get('/subscriptions', adminAuth, subscriptionController.getSubscriptionsPlan);
+adminRouter.get('/subscriptions', subscriptionController.getSubscriptionsPlan);
 adminRouter.get(
     '/subscription',
     adminAuth,
