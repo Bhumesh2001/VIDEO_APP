@@ -37,7 +37,7 @@
                 autocomplete="off"
               />
             </div>
-            <div class="mb-3 password-container">
+            <div class="mb-4 password-container">
               <label for="password" class="form-label">Password</label>
               <input
                 type="password"
@@ -49,8 +49,14 @@
               />
               <i id="togglePassword" class="fas fa-eye toggle-password"></i>
             </div>
-            <button type="submit" class="btn btn-danger w-100 my-2">
-              Login
+            <button type="submit" class="btn btn-danger w-100" id="loginBtn">
+              <span id="loginText">Login</span>
+              <span
+                class="spinner-border spinner-border-sm d-none p-2"
+                id="loginSpinner"
+                role="status"
+                aria-hidden="true"
+              ></span>
             </button>
           </form>
         </div>

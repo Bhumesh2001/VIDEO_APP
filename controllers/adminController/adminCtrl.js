@@ -79,8 +79,6 @@ exports.loginAdmin = async (req, res) => {
             path: '/',
         });
 
-        console.log(token);
-
         res.status(200).json({
             success: true,
             message: 'Admin logged in successfully',

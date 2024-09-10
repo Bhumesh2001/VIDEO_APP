@@ -28,13 +28,13 @@ body {
 
 .form-control {
   background-color: #495057; /* Darker input background */
-  border: 1px solid #6c757d; 
+  border: 1px solid #6c757d;
   color: #ffffff; /* Input text color */
 }
 
 .form-control:focus {
-  background-color: #495057; 
-  box-shadow: none; 
+  background-color: #495057;
+  box-shadow: none;
   color: white;
 }
 
@@ -81,3 +81,11 @@ img {
     right: 0.5rem;
   }
 }
+
+#loginBtn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
