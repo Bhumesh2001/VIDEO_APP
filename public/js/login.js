@@ -28,13 +28,13 @@ document.getElementById('loginForm').addEventListener('submit', async function (
         if (response.ok) {
             console.log('logged in successful');
 
-            // window.location.href = '/';
-            // document.getElementById('loginForm').reset();
+            window.location.href = '/';
+            document.getElementById('loginForm').reset();
 
-            // loginText.classList.remove('d-none'); 
-            // loginSpinner.classList.add('d-none');
-            // loginBtn.disabled = false;
-            // loginBtn.style.backgroundColor = ''; 
+            loginText.classList.remove('d-none'); 
+            loginSpinner.classList.add('d-none');
+            loginBtn.disabled = false;
+            loginBtn.style.backgroundColor = ''; 
 
         } else {
             const inputs = document.querySelectorAll('input[type="password"], input[type="text"].form-control');
