@@ -18,8 +18,8 @@ document.getElementById('loginForm').addEventListener('submit', async function (
 
         if (response.ok) {
             console.log('logged in successful');
-            document.getElementById('loginForm').reset();
             window.location.href = '/';
+            document.getElementById('loginForm').reset();
         } else {
             const inputs = document.querySelectorAll('input[type="password"], input[type="text"].form-control');
             inputs.forEach(input => {

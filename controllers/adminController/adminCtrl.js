@@ -1,19 +1,6 @@
 const jwt = require('jsonwebtoken');
 const Admin = require('../../models/adminModel/adminModel');
 
-exports.renderLoginpage = (req, res) => {
-    try {
-        res.render('login');
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'Internal Server error!',
-            error,
-        });
-    };
-};
-
 exports.createAdmin = async (req, res) => {
     try {
         const { username, email, password } = req.body;
@@ -60,40 +47,51 @@ exports.loginAdmin = async (req, res) => {
 
         const admin = await Admin.findOne({ email });
 
-        if (!admin || !(await admin.comparePassword(password))) {
+        if (!admin) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid email and password',
+                message: 'Invalid email or password',
             });
         };
+
+        const isPasswordValid = await admin.comparePassword(password);
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid email or password',
+            });
+        };
+
         const token = jwt.sign(
             {
-                email: admin.email,
-                role: admin.role,
                 _id: admin._id,
+                role: admin.role,
+                email: admin.email, 
             },
             process.env.ADMIN_SECRET_KEY,
-            { expiresIn: '6h' }
+            { expiresIn: '2d' }
         );
 
         res.cookie('adminToken', token, {
             httpOnly: true,
             secure: true,
-            maxAge: 6 * 60 * 60 * 1000,
+            maxAge: 2 * 24 * 60 * 60 * 1000,
             path: '/',
         });
 
+        console.log(token);
+
         res.status(200).json({
             success: true,
-            message: 'Admin logged in successful...',
+            message: 'Admin logged in successfully',
             token,
         });
 
     } catch (error) {
-        console.log(error);
+        console.error('Error during admin login:', error.message);
         res.status(500).json({
             success: false,
-            message: 'Error occured while login the admin',
+            message: 'An error occurred during login. Please try again later.',
         });
     };
 };

@@ -462,3 +462,12 @@ body {
 .form-label {
   color: #e0e0e0;
 }
+
+/* ***************** add new new-subscription css ***************** */
+
+.new-subscription {
+  padding: 30px;
+  background-color: #2c2c2c;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
