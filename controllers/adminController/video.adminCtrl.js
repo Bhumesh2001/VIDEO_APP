@@ -1,6 +1,7 @@
 const cloudinary = require('cloudinary').v2;
 const Video = require('../../models/adminModel/video.adminModel');
 const fs = require('fs');
+const Mega = require('megajs');
 
 // ------------- upload video -----------------
 
@@ -150,6 +151,91 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             success: false,
             message: 'Error occurred while uploading the video',
             error,
+        });
+    };
+};
+
+exports.uploadVideoToMega = async (req, res) => {
+    try {
+        const videoFile = req.files.video;
+
+        if (!videoFile) {
+            return res.status(400).json({
+                success: false,
+                message: 'No video file uploaded!',
+            });
+        };
+
+        // Mega.nz credentials
+        const email = process.env.MEGA_EMAIL;
+        const password = process.env.MEGA_PASSWORD;
+
+        // Log in to Mega.nz
+        const storage = new Mega({
+            email: email,
+            password: password
+        });
+
+        // Wait for the storage to be ready
+        await new Promise((resolve, reject) => {
+            storage.on('ready', resolve);
+            storage.on('error', reject);
+        });
+
+        console.log('Storage is ready, starting the upload...');
+
+        // Create an upload stream
+        const uploadStream = storage.upload({
+            name: videoFile.name,
+            size: videoFile.size,
+            allowUploadBuffering: true
+        });
+
+        // Use fs.createReadStream to stream the file directly
+        const fileStream = fs.createReadStream(videoFile.tempFilePath, {
+            highWaterMark: 1024 * 1024 * 10 // Adjust chunk size as needed (e.g., 10MB)
+        });
+        fileStream.pipe(uploadStream);
+
+        // Handle upload complete event
+        uploadStream.on('complete', async (file) => {
+            try {
+                // Generate the public link
+                const publicLink = await file.link();
+                console.log('Public link:', publicLink);
+
+                // Send success response with the public link
+                return res.status(200).json({
+                    success: true,
+                    message: 'Video uploaded successfully!',
+                    publicLink: publicLink,
+                });
+            } catch (linkError) {
+                console.error('Error generating public link:', linkError);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Error occurred while generating the public link.',
+                    error: linkError.message,
+                });
+            };
+        });
+
+        // Handle errors during upload
+        uploadStream.on('error', (uploadError) => {
+            console.error('Error uploading the video:', uploadError);
+            return res.status(500).json({
+                success: false,
+                message: 'Error occurred during the video upload.',
+                error: uploadError.message,
+            });
+        });
+
+    } catch (error) {
+        console.error('Error in uploadVideoToMega function:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error while uploading the video.',
+            error: error.message,
         });
     };
 };

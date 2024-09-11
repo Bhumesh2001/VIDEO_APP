@@ -49,6 +49,7 @@ adminRouter.post(
     adminAuth,
     videoController.uploadVideoToCloudinary
 );
+adminRouter.post('/mega/upload-video', adminAuth, videoController.uploadVideoToMega);
 adminRouter.get('/videos', videoController.getAllvideos);
 adminRouter.get('/videos-by-category', adminAuth, videoController.getAllvideosByCategory);
 
@@ -227,7 +228,7 @@ adminRouter.post(
     validateRequiredFields(['discountPercentage', 'expirationDate', 'maxUsage']),
     couponController.createCoupon
 );
-adminRouter.get('/coupons', adminAuth, couponController.getCoupons);
+adminRouter.get('/coupons', couponController.getCoupons);
 adminRouter.get(
     '/coupon',
     adminAuth,

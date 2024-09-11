@@ -138,14 +138,14 @@ async function loadVideoData() {
         // Set classes and attributes
         colDiv.classList.add('col-12', 'col-sm-4', 'col-md-4', 'col-lg-3', 'mb-4');
         cardDiv.classList.add('card');
-        img.classList.add('img-fluid');
+        img.classList.add('img-fluid', 'rounded-top');
         img.setAttribute('alt', 'Video Thumbnail');
         img.src = video.thumbnail.url;
         cardBody.classList.add('card-body');
         h5.classList.add('card-title', 'mb-3');
         h5.innerText = video.title;
         btnDiv.classList.add('btn-group');
-        editBtn.classList.add('btn', 'btn-sm', 'btn-primary');
+        editBtn.classList.add('btn', 'btn-sm', 'btn-success');
         deleteBtn.classList.add('btn', 'btn-sm', 'btn-danger');
         editBtn.innerText = 'Edit';
         deleteBtn.innerText = 'Delete';
@@ -374,6 +374,35 @@ async function loadSubscriptionData() {
     });
 };
 
+// functionn to load coupon data and display it on coupon section
+async function laodCouponData() {
+    const data = await fetchData('https://video-app-0i3v.onrender.com/admin/coupons');
+
+    if (!data) return;
+
+    const tableBody = document.getElementById('couponTableBody');
+    tableBody.innerHTML = '';
+
+    data.coupons.forEach(coupon => {
+        const row = `
+          <tr>
+            <td>${coupon.couponCode}</td>
+            <td>${coupon.discountPercentage}</td>
+            <td>${coupon.expirationDate}</td>
+            <td>${coupon.maxUsage}</td>
+            <td><span class="badge bg-${coupon.status === 'active' ? 'success' : 'danger'}">${coupon.status}</span></td>
+            <td>
+              <div class="d-flex justify-content-end">
+                <button class="btn btn-secondary btn-sm me-2">Edit</button>
+                <button class="btn btn-danger btn-sm">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', row);
+    });
+};
+
 // Function to update DOM elements with fetched data
 async function updateDashboardElement(url, Data) {
     const data = await fetchData(url);
@@ -393,6 +422,7 @@ loadArticleData();
 loadStoryData();
 loadCategoryData();
 loadSubscriptionData();
+laodCouponData();
 
 const url = "https://video-app-0i3v.onrender.com/admin/dashboard-count";
 const Data = {
@@ -460,6 +490,19 @@ const newSubscription = document.getElementById('new_subscription');
 document.getElementById('subscription-btn').addEventListener('click', () => toggleVisibility(subscription, newSubscription));
 document.getElementById('back-subscription-btn').addEventListener('click', () => goBack(subscription, newSubscription));
 
+// coupon plan section 
+const coupon = document.getElementById('coupons');
+const newCoupon = document.getElementById('new-coupon');
+document.getElementById('coupon-btn').addEventListener('click', () => toggleVisibility(coupon, newCoupon));
+document.getElementById('back-coupon-btn').addEventListener('click', () => goBack(coupon, newCoupon));
+
+// banner section 
+const banner = document.getElementById('banners');
+const newBanner = document.getElementById('add-new_banner');
+document.getElementById('banner-btn').addEventListener('click', () => toggleVisibility(banner, newBanner));
+document.getElementById('back-bnner-btn').addEventListener('click', () => goBack(banner, newBanner));
+
+
 const successModal = new bootstrap.Modal(document.getElementById('successModal'));
 
 function showModalWithMessage(message) {
@@ -472,7 +515,7 @@ function showModalWithMessage(message) {
 // Function to handle form submission
 async function handleFormSubmission(form, url, successCallback, processBtnId, submitBtnId) {
     try {
-        toggleProcessBtn(submitBtnId, processBtnId, true); // Show loading button
+        toggleProcessBtn(submitBtnId, processBtnId, true);
 
         const formData = new FormData(form);
         const response = await fetch(url, {
@@ -566,4 +609,35 @@ document.querySelector("#add-new_subscription").addEventListener("submit", funct
         'subscription-process-btn',
         'addNew_subscription-btn'
     );
+});
+
+document.querySelector("#couponForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    handleFormSubmission(
+        e.target,
+        "https://video-app-0i3v.onrender.com/admin/create-coupon",
+        (data) => console.log("Coupon created successfully:", data),
+        'coupon-process-btn',
+        'add-new-coupon-btn'
+    );
+});
+
+// banner priview
+document.getElementById('bannerImage').addEventListener('change', function () {
+    const file = this.files[0];
+    const bannerPreview = document.getElementById('bannerPreview');
+
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            bannerPreview.style.backgroundImage = `url(${e.target.result})`;
+            bannerPreview.style.backgroundSize = 'cover';
+            bannerPreview.style.backgroundPosition = 'center';
+            bannerPreview.textContent = '';
+        }
+        reader.readAsDataURL(file);
+    } else {
+        bannerPreview.style.backgroundImage = 'none';
+        bannerPreview.textContent = 'Banner Preview';
+    };
 });

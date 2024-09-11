@@ -23,7 +23,6 @@ document.getElementById('loginForm').addEventListener('submit', async function (
         });
 
         await response.json();
-        console.log(response);
 
         if (response.ok) {
             console.log('logged in successful');
