@@ -21,6 +21,7 @@ app.use(cors({
         'https://web-digital-vle.netlify.app',
         'https://digital-vle-admin-login.netlify.app',
         'http://localhost:3001',
+        'https://video-app-0i3v.onrender.com',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -48,7 +49,7 @@ cloudinary.config({
 
 connectToDB();
 
-app.get('/', adminAuth,(req, res) => {
+app.get('/', adminAuth, (req, res) => {
     res.render('index');
 });
 

@@ -74,10 +74,10 @@ exports.getAllUsersByAdmin = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Users fetched successfully...",
-            users,
             totalUsers,
             page,
             totalPages: Math.ceil(totalUsers / limit),
+            users,
         });
 
     } catch (error) {

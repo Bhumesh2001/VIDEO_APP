@@ -5,7 +5,7 @@ const { convertToMongooseDate } = require('../../utils/subs.userUtil');
 // Create a new coupon
 exports.createCoupon = async (req, res) => {
     try {
-        const { discountPercentage, expirationDate, maxUsage } = req.body;
+        const { coupon_Code, discountPercentage, expirationDate, maxUsage, status } = req.body;
 
         if (!discountPercentage || !expirationDate || !maxUsage) {
             return res.status(400).json({
@@ -13,13 +13,14 @@ exports.createCoupon = async (req, res) => {
                 message: 'discountPercentage, and expirationDate are required.'
             });
         };
-        const couponCode = generateCouponCode();
+        const couponCode = coupon_Code ? coupon_Code : generateCouponCode();
 
         const coupon = new Coupon({
             couponCode,
             discountPercentage,
             expirationDate: convertToMongooseDate(expirationDate),
             maxUsage,
+            status
         });
 
         await coupon.save();

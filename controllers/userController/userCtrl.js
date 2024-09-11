@@ -146,13 +146,13 @@ exports.verifyUser = async (req, res) => {
         const token = jwt.sign(
             { email: user.email, role: user.role, _id: user._id },
             process.env.USER_SECRET_KEY,
-            { expiresIn: '6h' },
+            { expiresIn: '2d' },
         );
 
         res.cookie('userToken', token, {
             httpOnly: true,
             secure: true,
-            maxAge: 6 * 60 * 60 * 1000,
+            maxAge: 2 * 24 * 60 * 60 * 1000,
             path: '/',
         });
 
@@ -212,13 +212,13 @@ exports.loginUser = async (req, res) => {
         const token = jwt.sign(
             { email: user.email, role: user.role, _id: user._id },
             process.env.USER_SECRET_KEY,
-            { expiresIn: '6h' },
+            { expiresIn: '2d' },
         );
 
         res.cookie('userToken', token, {
             httpOnly: true,
             secure: true,
-            maxAge: 6 * 60 * 60 * 1000,
+            maxAge: 2 * 24 * 60 * 60 * 1000,
             path: '/',
         });
 
@@ -299,13 +299,13 @@ exports.getGoogleProfile = async (req, res) => {
         const token = jwt.sign(
             { email, role: 'user', _id: userId },
             process.env.USER_SECRET_KEY,
-            { expiresIn: '6h' }
+            { expiresIn: '2d' }
         );
 
         res.cookie('userToken', token, {
             httpOnly: true,
             secure: true,
-            maxAge: 6 * 60 * 60 * 1000,
+            maxAge: 2 * 24 * 60 * 60 * 1000,
             path: '/',
         });
 
@@ -366,13 +366,13 @@ exports.getFacebookProfile = async (req, res) => {
         const token = jwt.sign(
             { email, role: 'user', _id: id },
             process.env.USER_SECRET_KEY,
-            { expiresIn: '6h' }
+            { expiresIn: '2d' }
         );
 
         res.cookie('userToken', token, {
             httpOnly: true,
             secure: true,
-            maxAge: 6 * 60 * 60 * 1000,
+            maxAge: 2 * 24 * 60 * 60 * 1000,
             path: '/',
         });
 

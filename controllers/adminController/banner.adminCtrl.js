@@ -8,19 +8,20 @@ const {
 const cloudinary = require('cloudinary').v2
 
 exports.createBanner = async (req, res) => {
-    let { title, description, image } = req.body;
+    let { title, description, image, status } = req.body;
+    let imageData = null;  // Initialize imageData here to use later for cleanup
 
     try {
-        // Perform a case-insensitive search for the title
         const existingBanner = await Banner.findOne({ title });
 
         if (existingBanner) {
             return res.status(409).json({
                 success: false,
-                message: 'Banner already exists!',
+                message: 'Banner with this title already exists!',
             });
         };
 
+        // Check if image file or URL is provided
         if (!(req.files && req.files.image) && !req.body.image) {
             return res.status(400).json({
                 success: false,
@@ -28,10 +29,13 @@ exports.createBanner = async (req, res) => {
             });
         };
 
+        // Handle image file upload or URL validation
         if (req.files && req.files.image) {
-            image = req.files.image.tempFilePath;
+            image = req.files.image.data; // Use the image file's data for Cloudinary upload
         } else {
-            if (!/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
+            // Validate image URL format
+            const isValidImageUrl = /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image);
+            if (!isValidImageUrl) {
                 return res.status(400).json({
                     success: false,
                     message: 'Invalid image URL!',
@@ -39,36 +43,41 @@ exports.createBanner = async (req, res) => {
             };
         };
 
-        const imageData = await uploadImageToCloudinary(image);
+        // Upload image to Cloudinary
+        imageData = await uploadImageToCloudinary(image);
 
+        // Create a new banner object
         const bannerObj = {
             title,
             description,
             public_id: imageData.public_id,
             image: imageData.url,
+            status,
         };
 
+        // Save new banner to the database
         const newBanner = new Banner(bannerObj);
         await newBanner.save();
 
+        // Respond with success message
         res.status(201).json({
             success: true,
             message: 'Banner created successfully',
-            banner: newBanner
+            banner: newBanner,
         });
     } catch (error) {
-        console.log(error);
+        console.error('Error creating banner:', error);
 
-        if (imageData.public_id) {
+        // Cleanup the image from Cloudinary if it was uploaded but there was a failure
+        if (imageData && imageData.public_id) {
             try {
-                await cloudinary.uploader.destroy(imageData.public_id, {
-                    resource_type: 'image',
-                });
+                await cloudinary.uploader.destroy(imageData.public_id, { resource_type: 'image' });
             } catch (cleanupError) {
-                console.error('Error deleting image from Cloudinary:', cleanupError);
+                console.error('Error deleting image from Cloudinary during cleanup:', cleanupError);
             };
         };
 
+        // Handle validation errors
         if (error.name === 'ValidationError') {
             const validationErrors = Object.values(error.errors).map(err => err.message);
             return res.status(400).json({
@@ -77,12 +86,16 @@ exports.createBanner = async (req, res) => {
                 errors: validationErrors,
             });
         };
+
+        // Handle duplicate error
         if (error.code === 11000) {
             return res.status(409).json({
                 success: false,
-                message: `Banner already exists!`,
+                message: 'Banner already exists!',
             });
         };
+
+        // General server error response
         res.status(500).json({
             success: false,
             message: 'Server Error',
@@ -100,8 +113,8 @@ exports.getAllBanners = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Banners fetched successfully...',
+            totalBanners,
             banners,
-            totalBanners
         });
     } catch (error) {
         res.status(500).json({

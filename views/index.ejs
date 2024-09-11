@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="/css/index.css" />
   </head>
   <body>
+    <!-- header -->
     <header class="header">
       <div class="container-fluid fixed-top topbar">
         <div class="row d-flex justify-content-center align-items-center">
@@ -56,9 +57,11 @@
       </div>
     </header>
 
+    <!-- main -->
     <main class="content">
       <div class="container-fluid main-div-content">
         <div class="row d-flex">
+          <!-- sidebar -->
           <div
             class="col d-none d-lg-block d-md-none col-lg-2 col-6 sidebar px-0 py-3"
           >
@@ -156,6 +159,7 @@
             >
           </div>
 
+          <!-- content -->
           <div class="col-lg-10 offset-lg-2 px-3 content">
             <section id="dashboard" class="dashboard">
               <div class="main-content p-2 w-100">
@@ -1216,61 +1220,7 @@
                           <th>Action</th>
                         </tr>
                       </thead>
-                      <tbody id="couponTableBody">
-                        <tr>
-                          <td>MONTHLY10</td>
-                          <td>10%</td>
-                          <td>2024-12-31</td>
-                          <td>100</td>
-                          <td><span class="badge bg-success">Active</span></td>
-                          <td>
-                            <div class="d-flex justify-content-end">
-                              <button class="btn btn-secondary btn-sm me-2">
-                                Edit
-                              </button>
-                              <button class="btn btn-danger btn-sm">
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-
-                        <tr>
-                          <td>QUARTERLY15</td>
-                          <td>15%</td>
-                          <td>2025-03-31</td>
-                          <td>50</td>
-                          <td><span class="badge bg-success">Active</span></td>
-                          <td>
-                            <div class="d-flex justify-content-end">
-                              <button class="btn btn-secondary btn-sm me-2">
-                                Edit
-                              </button>
-                              <button class="btn btn-danger btn-sm">
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                        
-                        <tr>
-                          <td>YEARLY20</td>
-                          <td>20%</td>
-                          <td>2025-12-31</td>
-                          <td>30</td>
-                          <td><span class="badge bg-success">Active</span></td>
-                          <td>
-                            <div class="d-flex justify-content-end">
-                              <button class="btn btn-secondary btn-sm me-2">
-                                Edit
-                              </button>
-                              <button class="btn btn-danger btn-sm">
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      </tbody>
+                      <tbody id="couponTableBody"></tbody>
                     </table>
                   </div>
                 </div>
@@ -1287,13 +1237,23 @@
                       <label for="couponCode" class="form-label"
                         >Coupon Code</label
                       >
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="couponCode"
-                        placeholder="Enter coupon code"
-                        required
-                      />
+                      <div class="input-group">
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="couponCode"
+                          placeholder="Enter coupon code"
+                          required
+                          name="coupon_Code"
+                        />
+                        <button
+                          type="button"
+                          id="generateCouponBtn"
+                          class="btn btn-outline-secondary"
+                        >
+                          Generate
+                        </button>
+                      </div>
                     </div>
                     <div class="mb-3">
                       <label for="discountPercentage" class="form-label"
@@ -1305,6 +1265,7 @@
                         id="discountPercentage"
                         placeholder="Enter discount percentage"
                         required
+                        name="discountPercentage"
                       />
                     </div>
                     <div class="mb-3">
@@ -1316,6 +1277,7 @@
                         class="form-control"
                         id="expirationDate"
                         required
+                        name="expirationDate"
                       />
                     </div>
                     <div class="mb-3">
@@ -1326,7 +1288,22 @@
                         id="maxUsage"
                         placeholder="Enter max usage"
                         required
+                        name="maxUsage"
                       />
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="planStatus" class="form-label">Status</label>
+                      <select
+                        class="form-select"
+                        name="status"
+                        id="couponStatus"
+                        required
+                        name="status"
+                      >
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
                     </div>
 
                     <div class="d-flex justify-content-between">
@@ -1345,6 +1322,7 @@
                       >
                         Add Coupon
                       </button>
+
                       <button
                         class="btn btn-success custom-btn d-none"
                         type="button"
@@ -1452,6 +1430,20 @@
                     <div class="banner-preview mb-3" id="bannerPreview">
                       Banner Preview
                     </div>
+
+                    <div class="mb-3">
+                      <label for="planStatus" class="form-label">Status</label>
+                      <select
+                        class="form-select"
+                        name="status"
+                        id="bannerStatus"
+                        required
+                      >
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                    </div>
+
                     <div class="d-flex justify-content-between">
                       <button
                         type="button"
@@ -2073,6 +2065,7 @@
       </div>
     </main>
 
+    <!-- footer -->
     <footer class="footer"></footer>
 
     <script
@@ -2082,33 +2075,5 @@
     ></script>
 
     <script src="/js/index.js"></script>
-
-    <script>
-      document
-        .querySelector(".custom-file-input")
-        .addEventListener("change", function () {
-          const fileName = this.value.split("\\").pop();
-          this.nextElementSibling.classList.add("selected");
-          this.nextElementSibling.innerHTML = fileName;
-        });
-
-      const uploadMethodRadios = document.querySelectorAll(
-        'input[name="uploadMethod"]'
-      );
-      const videoUploadField = document.getElementById("videoUploadField");
-      const videoUrlField = document.getElementById("videoUrlField");
-
-      uploadMethodRadios.forEach((radio) => {
-        radio.addEventListener("change", function () {
-          if (document.getElementById("uploadVideo").checked) {
-            videoUploadField.style.display = "block";
-            videoUrlField.style.display = "none";
-          } else {
-            videoUploadField.style.display = "none";
-            videoUrlField.style.display = "block";
-          }
-        });
-      });
-    </script>
   </body>
 </html>

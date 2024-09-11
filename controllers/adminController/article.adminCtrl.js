@@ -116,10 +116,10 @@ exports.getAllArticles = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Article fetched successfully...',
-            articls,
             totalArticles,
             page,
             totalPages: Math.ceil(totalArticles / limit),
+            articls,
         });
 
     } catch (error) {

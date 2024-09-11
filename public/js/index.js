@@ -31,7 +31,6 @@ document.querySelectorAll('.sidebar-link').forEach(function (link) {
 
 document.querySelectorAll('.card-body').forEach((card) => {
     card.addEventListener('click', (event) => {
-        console.log(event.currentTarget.id);
         const target = card.getAttribute('data-target');
         if (target) {
             const sidebarLink = document.querySelector(target);
@@ -384,11 +383,17 @@ async function laodCouponData() {
     tableBody.innerHTML = '';
 
     data.coupons.forEach(coupon => {
+
+        const date = new Date(coupon.expirationDate);
+        const day = date.getDate();
+        const month = date.getMonth() + 1;
+        const year = date.getFullYear();
+
         const row = `
           <tr>
             <td>${coupon.couponCode}</td>
             <td>${coupon.discountPercentage}</td>
-            <td>${coupon.expirationDate}</td>
+            <td>${day}/${month}/${year}</td>
             <td>${coupon.maxUsage}</td>
             <td><span class="badge bg-${coupon.status === 'active' ? 'success' : 'danger'}">${coupon.status}</span></td>
             <td>
@@ -502,7 +507,6 @@ const newBanner = document.getElementById('add-new_banner');
 document.getElementById('banner-btn').addEventListener('click', () => toggleVisibility(banner, newBanner));
 document.getElementById('back-bnner-btn').addEventListener('click', () => goBack(banner, newBanner));
 
-
 const successModal = new bootstrap.Modal(document.getElementById('successModal'));
 
 function showModalWithMessage(message) {
@@ -513,14 +517,29 @@ function showModalWithMessage(message) {
 };
 
 // Function to handle form submission
-async function handleFormSubmission(form, url, successCallback, processBtnId, submitBtnId) {
+async function handleFormSubmission(form, url, successCallback, processBtnId, submitBtnId, isJson = false) {
     try {
         toggleProcessBtn(submitBtnId, processBtnId, true);
 
-        const formData = new FormData(form);
+        let body;
+        let headers = {};
+
+        if (isJson) {
+            const formDataObj = {};
+            new FormData(form).forEach((value, key) => {
+                formDataObj[key] = value;
+            });
+
+            body = JSON.stringify(formDataObj);
+            headers["Content-Type"] = "application/json";
+        } else {
+            body = new FormData(form);
+        };
+
         const response = await fetch(url, {
             method: "POST",
-            body: formData,
+            body: body,
+            headers: headers,
             credentials: "include",
         });
 
@@ -538,7 +557,7 @@ async function handleFormSubmission(form, url, successCallback, processBtnId, su
     } catch (error) {
         console.error("Error:", error);
         toggleProcessBtn(submitBtnId, processBtnId, false); // Hide loading button
-    };
+    }
 };
 
 // Function to toggle between loading and submit button
@@ -618,7 +637,7 @@ document.querySelector("#couponForm").addEventListener("submit", function (e) {
         "https://video-app-0i3v.onrender.com/admin/create-coupon",
         (data) => console.log("Coupon created successfully:", data),
         'coupon-process-btn',
-        'add-new-coupon-btn'
+        'add-new-coupon-btn',
     );
 });
 
@@ -640,4 +659,36 @@ document.getElementById('bannerImage').addEventListener('change', function () {
         bannerPreview.style.backgroundImage = 'none';
         bannerPreview.textContent = 'Banner Preview';
     };
+});
+
+// generate coupon
+document.getElementById('generateCouponBtn').addEventListener('click', function () {
+    const randomCouponCode = Math.random().toString(36).substr(2, 8).toUpperCase();
+    document.getElementById('couponCode').value = randomCouponCode;
+});
+
+// costom file input url of image select option viva js
+
+document.querySelector(".custom-file-input").addEventListener("change", function () {
+    const fileName = this.value.split("\\").pop();
+    this.nextElementSibling.classList.add("selected");
+    this.nextElementSibling.innerHTML = fileName;
+});
+
+const uploadMethodRadios = document.querySelectorAll(
+    'input[name="uploadMethod"]'
+);
+const videoUploadField = document.getElementById("videoUploadField");
+const videoUrlField = document.getElementById("videoUrlField");
+
+uploadMethodRadios.forEach((radio) => {
+    radio.addEventListener("change", function () {
+        if (document.getElementById("uploadVideo").checked) {
+            videoUploadField.style.display = "block";
+            videoUrlField.style.display = "none";
+        } else {
+            videoUploadField.style.display = "none";
+            videoUrlField.style.display = "block";
+        }
+    });
 });
