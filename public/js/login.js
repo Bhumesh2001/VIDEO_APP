@@ -1,4 +1,3 @@
-
 const loginBtn = document.getElementById('loginBtn');
 const loginText = document.getElementById('loginText');
 const loginSpinner = document.getElementById('loginSpinner');

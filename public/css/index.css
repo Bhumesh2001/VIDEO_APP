@@ -17,6 +17,11 @@ body {
 }
 /* -------------- default icon css ---------------*/
 
+.dropdown-item:hover {
+  background-color: transparent;
+  color: white;
+}
+
 .profile-button {
   background-color: #e79494;
   border: none;
@@ -534,9 +539,27 @@ body {
 
 /* ************ banner and coupon css ************* */
 
-.new-banner, .newCoupon {
+.new-banner,
+.newCoupon {
   padding: 30px;
   background-color: #2c2c2c;
   border-radius: 10px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+/* ************ admin profile css ************** */
+
+.content-box {
+  background-color: #2c2c2c;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.profile-image {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #007bff;
 }

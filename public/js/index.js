@@ -64,6 +64,26 @@ async function fetchData(url) {
     };
 };
 
+// function to handle admin logout
+async function adminLogout() {
+    try {
+        const response = await fetch('http://localhost:3001/admin/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (response.ok) {
+            window.location.href = '/login';
+        } else {
+            console.error('Failed to log out:', response.statusText);
+        };
+    } catch (error) {
+        console.error('Error logging out:', error);
+    };
+};
+
 // Function to load user data and display it in the table
 async function loadUserData() {
     const data = await fetchData('https://video-app-0i3v.onrender.com/admin/users');
@@ -421,12 +441,12 @@ async function updateDashboardElement(url, Data) {
 };
 
 // Initialize data loading
-// loadUserData();
-// loadVideoData();
-// loadArticleData();
-// loadStoryData();
-// loadCategoryData();
-// loadSubscriptionData();
+loadUserData();
+loadVideoData();
+loadArticleData();
+loadStoryData();
+loadCategoryData();
+loadSubscriptionData();
 laodCouponData();
 
 const url = "https://video-app-0i3v.onrender.com/admin/dashboard-count";
@@ -529,7 +549,6 @@ async function handleFormSubmission(form, url, successCallback, processBtnId, su
             new FormData(form).forEach((value, key) => {
                 formDataObj[key] = value;
             });
-
             body = JSON.stringify(formDataObj);
             headers["Content-Type"] = "application/json";
         } else {
@@ -551,15 +570,14 @@ async function handleFormSubmission(form, url, successCallback, processBtnId, su
             form.reset();
         } else {
             console.error("Error:", data);
-        };
-
-        toggleProcessBtn(submitBtnId, processBtnId, false); // Hide loading button
+            showModalWithMessage(data.message || 'Something went wrong!', 'error');
+        }
     } catch (error) {
-        console.log(error);
-
         console.error("Error:", error);
-        toggleProcessBtn(submitBtnId, processBtnId, false); // Hide loading button
-    }
+        showModalWithMessage('An unexpected error occurred.', 'error');
+    } finally {
+        toggleProcessBtn(submitBtnId, processBtnId, false);
+    };
 };
 
 // Function to toggle between loading and submit button
@@ -581,7 +599,7 @@ document.querySelector("#video-form").addEventListener("submit", function (e) {
     e.preventDefault();
     handleFormSubmission(
         e.target,
-        "https://video-app-0i3v.onrender.com/admin/upload-video",
+        "/admin/upload-video",
         (data) => console.log("Video uploaded successfully:", data),
         'video-process-btn',
         'add-video-btn'
@@ -592,7 +610,7 @@ document.querySelector("#article-form").addEventListener("submit", function (e) 
     e.preventDefault();
     handleFormSubmission(
         e.target,
-        "https://video-app-0i3v.onrender.com/admin/create-article",
+        "/admin/create-article",
         (data) => console.log("Article created successfully:", data),
         'process-btn',
         'article__btn'
@@ -603,7 +621,7 @@ document.querySelector("#adduser__").addEventListener("submit", function (e) {
     e.preventDefault();
     handleFormSubmission(
         e.target,
-        "https://video-app-0i3v.onrender.com/admin/create-user",
+        "/admin/create-user",
         (data) => console.log("User added successfully:", data),
         'user-process-btn',
         'add_user_btn'
@@ -614,7 +632,7 @@ document.querySelector("#addNew_story").addEventListener("submit", function (e) 
     e.preventDefault();
     handleFormSubmission(
         e.target,
-        "https://video-app-0i3v.onrender.com/admin/create-story",
+        "/admin/create-story",
         (data) => console.log("Story created successfully:", data),
         'story-process-btn',
         'addNew_story-btn'
@@ -625,7 +643,7 @@ document.querySelector("#add-new_subscription").addEventListener("submit", funct
     e.preventDefault();
     handleFormSubmission(
         e.target,
-        "https://video-app-0i3v.onrender.com/admin/create-subscription",
+        "/admin/create-subscription",
         (data) => console.log("Subscription plan created successfully:", data),
         'subscription-process-btn',
         'addNew_subscription-btn'
@@ -636,7 +654,7 @@ document.querySelector("#couponForm").addEventListener("submit", function (e) {
     e.preventDefault();
     handleFormSubmission(
         e.target,
-        "http://localhost:3001/admin/create-coupon",
+        "/admin/create-coupon",
         (data) => console.log("Coupon created successfully:", data),
         'coupon-process-btn',
         'add-new-coupon-btn',
@@ -644,8 +662,19 @@ document.querySelector("#couponForm").addEventListener("submit", function (e) {
     );
 });
 
+document.querySelector("#bannerForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    handleFormSubmission(
+        e.target,
+        "/admin/create-banner",
+        (data) => console.log("Banner created successfully:", data),
+        'banner-process-btn',
+        'add_new-banner',
+    );
+});
+
 // banner priview
-document.getElementById('bannerImage').addEventListener('change', function () {
+document.getElementById('bannerLink').addEventListener('change', function () {
     const file = this.files[0];
     const bannerPreview = document.getElementById('bannerPreview');
 
@@ -677,9 +706,7 @@ document.querySelector(".custom-file-input").addEventListener("change", function
     this.nextElementSibling.innerHTML = fileName;
 });
 
-const uploadMethodRadios = document.querySelectorAll(
-    'input[name="uploadMethod"]'
-);
+const uploadMethodRadios = document.querySelectorAll('input[name="uploadMethod"]');
 const videoUploadField = document.getElementById("videoUploadField");
 const videoUrlField = document.getElementById("videoUrlField");
 
@@ -691,6 +718,26 @@ uploadMethodRadios.forEach((radio) => {
         } else {
             videoUploadField.style.display = "none";
             videoUrlField.style.display = "block";
-        }
+        };
     });
+});
+
+// profile image upload of admin
+document.getElementById("imageUpload").addEventListener("change", function () {
+    const file = this.files[0];
+    const profileImage = document.getElementById("profileImage");
+
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            profileImage.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+});
+
+// admin logout
+document.getElementById('logout-btn').addEventListener('click', function (e) {
+    e.preventDefault();
+    adminLogout();
 });

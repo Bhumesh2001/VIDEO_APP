@@ -23,6 +23,17 @@ const adminSchema = new mongoose.Schema({
         required: [true, 'Password is required'],
         minlength: [8, 'Password must be at least 8 characters long'],
     },
+    phone: {
+        type: String,
+        required: [true, 'Phone number is required'],
+        unique: true,
+        validate: {
+            validator: function (v) {
+                return /^\+?[1-9]\d{1,14}$/.test(v);
+            },
+            message: props => `${props.value} is not a valid phone number!`
+        },
+    },
     role: {
         type: String,
         enum: ['superadmin', 'admin', 'moderator'],
@@ -38,8 +49,7 @@ const adminSchema = new mongoose.Schema({
         },
         default: 'https://example.com/default-profile-picture.png',
     },
-},{ timestamps: true }
-);
+}, { timestamps: true });
 
 adminSchema.pre('save', async function (next) {
     try {

@@ -40,15 +40,35 @@
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 >
-                  <img src="/icon/default_icon.png" alt="Profile" />
+                  <img
+                    src="/icon/default_icon.png"
+                    draggable="false"
+                    alt="Profile"
+                  />
                 </button>
                 <ul
-                  class="dropdown-menu dropdown-menu-end"
+                  class="dropdown-menu dropdown-menu-end bg-dark border border-secondary"
                   aria-labelledby="profileDropdown"
                 >
-                  <li><a class="dropdown-item" href="#">Profile</a></li>
-                  <li><hr class="dropdown-divider" /></li>
-                  <li><a class="dropdown-item" href="#">Logout</a></li>
+                  <li>
+                    <a
+                      class="dropdown-item nav-link px-3 py-1 text-white"
+                      data-target="#admin_profile"
+                      href="#"
+                      >Profile</a
+                    >
+                  </li>
+                  <li>
+                    <hr class="dropdown-divider border border-secondary" />
+                  </li>
+                  <li>
+                    <a
+                      class="dropdown-item px-3 py-1 text-white"
+                      id="logout-btn"
+                      href="#"
+                      >Logout</a
+                    >
+                  </li>
                 </ul>
               </div>
             </nav>
@@ -1164,36 +1184,36 @@
                         <option value="Active">Active</option>
                         <option value="Inactive">Inactive</option>
                       </select>
-                      <div class="d-flex justify-content-between">
-                        <button
-                          type="button"
-                          id="back-subscription-btn"
-                          class="btn btn-danger"
+                    </div>
+                    <div class="d-flex justify-content-between mt-3">
+                      <button
+                        type="button"
+                        id="back-subscription-btn"
+                        class="btn btn-danger"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="submit"
+                        id="addNew_subscription-btn"
+                        class="btn btn-success"
+                      >
+                        Add Subscription
+                      </button>
+
+                      <button
+                        class="btn btn-success custom-btn d-none"
+                        type="button"
+                        id="subscription-process-btn"
+                      >
+                        <span
+                          class="spinner-border spinner-border-sm"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="visually-hidden" role="status"
+                          >Loading...</span
                         >
-                          Back
-                        </button>
-                        <button
-                          type="submit"
-                          id="addNew_subscription-btn"
-                          class="btn btn-success"
-                        >
-                          Add Subscription
-                        </button>
-  
-                        <button
-                          class="btn btn-success custom-btn d-none"
-                          type="button"
-                          id="subscription-process-btn"
-                        >
-                          <span
-                            class="spinner-border spinner-border-sm"
-                            aria-hidden="true"
-                          ></span>
-                          <span class="visually-hidden" role="status"
-                            >Loading...</span
-                          >
-                        </button>
-                      </div>
+                      </button>
                     </div>
                   </form>
                 </div>
@@ -1313,7 +1333,7 @@
                       >
                         Back
                       </button>
-  
+
                       <button
                         type="submit"
                         id="add-new-coupon-btn"
@@ -1321,7 +1341,7 @@
                       >
                         Add Coupon
                       </button>
-  
+
                       <button
                         class="btn btn-success custom-btn d-none"
                         type="button"
@@ -1394,7 +1414,7 @@
               <div class="main-content">
                 <div class="container-fluid my-4 new-banner">
                   <h2 class="h2 text-center heading">Add New Banner</h2>
-                  <form>
+                  <form id="bannerForm">
                     <div class="mb-3">
                       <label for="bannerTitle" class="form-label">Title</label>
                       <input
@@ -1403,20 +1423,25 @@
                         id="bannerTitle"
                         placeholder="Enter banner title"
                         required
+                        autocomplete="off"
+                        name="title"
                       />
                     </div>
                     <div class="mb-3">
-                      <label for="bannerImage" class="form-label"
+                      <label for="bannerDescription" class="form-label"
                         >Description</label
                       >
-                      <input
-                        type="url"
+                      <textarea
                         class="form-control"
-                        id="bannerImage"
+                        id="bannerDescription"
                         placeholder="Enter description"
                         required
-                      />
+                        autocomplete="off"
+                        name="description"
+                        rows="4"
+                      ></textarea>
                     </div>
+
                     <div class="mb-3">
                       <label for="bannerLink" class="form-label">Image</label>
                       <input
@@ -1424,6 +1449,7 @@
                         class="form-control"
                         id="bannerLink"
                         required
+                        name="image"
                       />
                     </div>
                     <div class="banner-preview mb-3" id="bannerPreview">
@@ -1452,8 +1478,26 @@
                         Back
                       </button>
 
-                      <button type="submit" class="btn btn-success">
+                      <button
+                        type="submit"
+                        id="add_new-banner"
+                        class="btn btn-success"
+                      >
                         Add Banner
+                      </button>
+
+                      <button
+                        class="btn btn-success custom-btn d-none"
+                        type="button"
+                        id="banner-process-btn"
+                      >
+                        <span
+                          class="spinner-border spinner-border-sm"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="visually-hidden" role="status"
+                          >Loading...</span
+                        >
                       </button>
                     </div>
                   </form>
@@ -2019,6 +2063,85 @@
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- admin profile -->
+            <section class="admin-profile d-none" id="admin_profile">
+              <div class="main-content">
+                <div class="container-fluid my-4 content-box">
+                  <div class="text-center mb-3">
+                    <img
+                      src="https://via.placeholder.com/150"
+                      alt="Profile Image"
+                      class="profile-image"
+                      id="profileImage"
+                    />
+                  </div>
+                  <form id="admin_profile_form">
+                    <div class="mb-3">
+                      <label for="username" class="form-label">Username</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="username"
+                        placeholder="Enter username"
+                        required
+                        name="username"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="email" class="form-label">Email</label>
+                      <input
+                        type="email"
+                        class="form-control"
+                        id="email"
+                        placeholder="Enter email"
+                        required
+                        name="email"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="password" class="form-label">Password</label>
+                      <input
+                        type="password"
+                        class="form-control"
+                        id="password"
+                        placeholder="Enter password"
+                        required
+                        name="password"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="phone" class="form-label">Phone</label>
+                      <input
+                        type="tel"
+                        class="form-control"
+                        id="phone"
+                        placeholder="Enter phone number"
+                        required
+                        name="phone"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="imageUpload" class="form-label"
+                        >Profile Image</label
+                      >
+                      <input
+                        type="file"
+                        class="form-control"
+                        id="imageUpload"
+                        accept="image/*"
+                        name="profilePicture"
+                      />
+                    </div>
+                    <button type="submit" class="btn btn-danger">Save</button>
+                  </form>
                 </div>
               </div>
             </section>
