@@ -421,12 +421,12 @@ async function updateDashboardElement(url, Data) {
 };
 
 // Initialize data loading
-loadUserData();
-loadVideoData();
-loadArticleData();
-loadStoryData();
-loadCategoryData();
-loadSubscriptionData();
+// loadUserData();
+// loadVideoData();
+// loadArticleData();
+// loadStoryData();
+// loadCategoryData();
+// loadSubscriptionData();
 laodCouponData();
 
 const url = "https://video-app-0i3v.onrender.com/admin/dashboard-count";
@@ -439,7 +439,7 @@ const Data = {
     "total_articles": "totalArticle",
 };
 
-updateDashboardElement(url, Data);
+// updateDashboardElement(url, Data);
 
 // Reusable function to toggle visibility
 function toggleVisibility(hideElement, showElement) {
@@ -555,6 +555,8 @@ async function handleFormSubmission(form, url, successCallback, processBtnId, su
 
         toggleProcessBtn(submitBtnId, processBtnId, false); // Hide loading button
     } catch (error) {
+        console.log(error);
+
         console.error("Error:", error);
         toggleProcessBtn(submitBtnId, processBtnId, false); // Hide loading button
     }
@@ -634,10 +636,11 @@ document.querySelector("#couponForm").addEventListener("submit", function (e) {
     e.preventDefault();
     handleFormSubmission(
         e.target,
-        "https://video-app-0i3v.onrender.com/admin/create-coupon",
+        "http://localhost:3001/admin/create-coupon",
         (data) => console.log("Coupon created successfully:", data),
         'coupon-process-btn',
         'add-new-coupon-btn',
+        true,
     );
 });
 
@@ -668,7 +671,6 @@ document.getElementById('generateCouponBtn').addEventListener('click', function 
 });
 
 // costom file input url of image select option viva js
-
 document.querySelector(".custom-file-input").addEventListener("change", function () {
     const fileName = this.value.split("\\").pop();
     this.nextElementSibling.classList.add("selected");

@@ -97,10 +97,10 @@ exports.getAllCategories = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "All categories fetched successfully...",
-            categories,
             totalCategory,
             page,
             totalPages: Math.ceil(totalCategory / limit),
+            categories,
         });
     } catch (error) {
         console.log(error);

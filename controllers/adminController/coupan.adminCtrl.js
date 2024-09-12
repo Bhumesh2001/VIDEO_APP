@@ -6,7 +6,7 @@ const { convertToMongooseDate } = require('../../utils/subs.userUtil');
 exports.createCoupon = async (req, res) => {
     try {
         const { coupon_Code, discountPercentage, expirationDate, maxUsage, status } = req.body;
-
+     
         if (!discountPercentage || !expirationDate || !maxUsage) {
             return res.status(400).json({
                 success: false,

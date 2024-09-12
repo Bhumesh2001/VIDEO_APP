@@ -1,13 +1,17 @@
+const mongoose = require('mongoose');
 const UserPayment = require('../../models/userModel/payment.userModel');
-const categoryModel = require('../../models/adminModel/category.adminModel');
+const CategoryModel = require('../../models/adminModel/category.adminModel');
 const Coupon = require('../../models/adminModel/coupan.adminModel');
-const UserSubscriptionModel = require('../../models/userModel/subs.user.Model');
+
+const SingleCategorySubscriptionModel = require('../../models/userModel/subs.user.Model');
+const AllCategorySubscriptionModel = require('../../models/userModel/subsAll.userModle');
+
 const SubscriptionPlan = require('../../models/adminModel/subs.adminModel');
 
-exports.subscribeToCategory = async (req, res) => {
-    try {
-        const { categoryId, planName, planType, discountPercentage = 5, couponCode } = req.body;
+exports.subscribeToCategoryOrAll = async (req, res) => {
+    const { categoryId, planName, planType, discountPercentage = 5, couponCode } = req.body;
 
+    try {
         const userId = req.user._id;
         if (!userId) {
             return res.status(404).json({
@@ -16,19 +20,17 @@ exports.subscribeToCategory = async (req, res) => {
             });
         };
 
-        const category = await categoryModel.findById(categoryId);
-        if (!category) {
-            return res.status(404).json({
+        if (categoryId !== 'all' && categoryId !== 'All' && !mongoose.Types.ObjectId.isValid(categoryId)) {
+            return res.status(400).json({
                 success: false,
-                message: 'Category not found',
+                message: 'Invalid category ID format!',
             });
         };
 
-        const existingSubscription = await UserSubscriptionModel.findOne({ userId, categoryId });
-        if (existingSubscription) {
-            return res.status(409).json({
+        if (!categoryId || !planName || !planType) {
+            return res.status(400).json({
                 success: false,
-                message: 'Subscription already taken!',
+                message: 'categoryId, planName, and planType are required!',
             });
         };
 
@@ -41,13 +43,12 @@ exports.subscribeToCategory = async (req, res) => {
         };
 
         const originalPrice = subscriptionPlan.price;
-
         let discountFromPercentage = (originalPrice * discountPercentage) / 100;
-        let totalDiscount = discountFromPercentage; 
+        let totalDiscount = discountFromPercentage;
 
         let discountFromCoupon = 0;
         if (couponCode) {
-            const coupon = await Coupon.findOne({ code: couponCode });
+            const coupon = await Coupon.findOne({ couponCode });
 
             if (!coupon) {
                 return res.status(404).json({
@@ -63,7 +64,7 @@ exports.subscribeToCategory = async (req, res) => {
                 });
             };
 
-            if (!coupon.isActive) {
+            if (coupon.status !== 'active') {
                 return res.status(400).json({
                     success: false,
                     message: 'Coupon is inactive.'
@@ -76,19 +77,59 @@ exports.subscribeToCategory = async (req, res) => {
 
         const finalPrice = originalPrice - totalDiscount;
 
-        const newSubscription = new UserSubscriptionModel({
-            userId,
-            categoryId,
-            planName,
-            planType,
-            totalPrice: originalPrice,
-            discountedPrice: finalPrice,
-        });
+        const existingSingleSubscription = await SingleCategorySubscriptionModel.findOne({ userId }).exec();
+        const existingAllSubscription = await AllCategorySubscriptionModel.findOne({ userId }).exec();
+
+        if (existingSingleSubscription || existingAllSubscription) {
+            if (existingAllSubscription) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'Subscription already taken!',
+                });
+            };
+
+            if (existingSingleSubscription) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'Subscription already taken!',
+                });
+            };
+        };
+
+        let newSubscription;
+
+        if (categoryId === 'all' || categoryId === 'All') {
+            newSubscription = new AllCategorySubscriptionModel({
+                userId,
+                planName,
+                planType,
+                totalPrice: originalPrice,
+                discountedPrice: finalPrice,
+            });
+        }
+        else {
+            const category = await CategoryModel.findById(categoryId);
+            if (!category) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Category not found!',
+                });
+            };
+            newSubscription = new SingleCategorySubscriptionModel({
+                userId,
+                categoryId,
+                planName,
+                planType,
+                totalPrice: originalPrice,
+                discountedPrice: finalPrice,
+            });
+        };
+
         await newSubscription.save();
 
         res.status(201).json({
             success: true,
-            message: `Successfully subscribed to ${category.name} with a ${plan} plan!`,
+            message: `Successfully subscribed to ${categoryId === 'all' ? 'all categories' : 'the selected category'}.`,
             originalPrice: `₹${originalPrice}`,
             discountFromPercentage: `₹${discountFromPercentage}`,
             discountFromCoupon: `₹${discountFromCoupon}`,
@@ -110,124 +151,7 @@ exports.subscribeToCategory = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error occurred while creating the subscription',
-        });
-    };
-};
-
-exports.subscribeToCategories = async (req, res) => {
-    try {
-        const { planName, planType, price, discountPercentage = 5, couponCode } = req.body;
-        const userId = req.user._id;
-
-        if (!userId) {
-            return res.status(404).json({
-                success: false,
-                message: 'User ID not found!',
-            });
-        };
-
-        const categories = await categoryModel.find({});
-        if (!categories.length) {
-            return res.status(404).json({
-                success: false,
-                message: 'No categories available!',
-            });
-        };
-
-        const subscriptionPlans = await SubscriptionPlan.find(
-            { planName, planType },
-            { planName: 1, price: 1 }
-        );
-        const priceMap = subscriptionPlans.reduce((acc, plan) => {
-            acc[plan.planName] = plan.price;
-            return acc;
-        }, {});
-
-        if (!priceMap[plan]) {
-            return res.status(400).json({
-                success: false,
-                message: `Invalid plan: ${planName}`,
-            });
-        };
-
-        let totalCost = 0;
-        let subscriptions = [];
-
-        let couponDiscount = 0;
-        if (couponCode) {
-            const coupon = await Coupon.findOne({ code: couponCode });
-
-            if (!coupon) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Invalid coupon code.'
-                });
-            };
-
-            if (coupon.isExpired()) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Coupon has expired.'
-                });
-            };
-
-            if (!coupon.isActive) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Coupon is inactive.'
-                });
-            };
-
-            couponDiscount = coupon.discountPercentage;
-        };
-
-        for (let category of categories) {
-            const existingSubscription = await UserSubscriptionModel.findOne(
-                { userId, categoryId: category._id }
-            );
-
-            if (!existingSubscription) {
-                let price = priceMap[plan];
-                totalCost += price;
-
-                subscriptions.push({
-                    userId,
-                    categoryId: category._id,
-                    planName,
-                    planType,
-                    discountedPrice: price
-                });
-            };
-        };
-
-        if (!subscriptions.length) {
-            return res.status(409).json({
-                success: false,
-                message: 'Subscription already teken!'
-            });
-        };
-
-        const totalDiscountPercentage = discountPercentage + couponDiscount;
-        const discountedTotal = totalCost - (totalCost * (totalDiscountPercentage / 100));
-
-        for (let subscription of subscriptions) {
-            subscription.discountedPrice -= (subscription.discountedPrice * (totalDiscountPercentage / 100));
-            await new UserSubscriptionModel(subscription).save();
-        };
-
-        return res.status(200).json({
-            success: true,
-            message: `Successfully subscribed to all categories with a ${totalDiscountPercentage}% discount!`,
-            totalCost: `₹${totalCost.toFixed(2)}`,
-            discountedTotal: `₹${discountedTotal.toFixed(2)}`,
-            subscriptions
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Something went wrong!',
-            error: error.message
+            error,
         });
     };
 };

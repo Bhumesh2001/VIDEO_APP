@@ -1,15 +1,10 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const SingleCategorySubscriptionSchema = new Schema({
+const AllCategorySubscriptionSchema = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
-    },
-    categoryId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Category',
         required: true,
     },
     planName: {
@@ -18,16 +13,17 @@ const SingleCategorySubscriptionSchema = new Schema({
     },
     planType: {
         type: String,
-        required: true,
+        enum: ['monthly', 'quarterly', 'yearly'],
+        required: [true, 'Plan type is required'],
     },
     totalPrice: {
         type: Number,
-        require: [true, 'toatalPrice is required!'],
+        required: [true, 'Total price is required'],
     },
     discountedPrice: {
         type: Number,
-        required: [true, 'discountedPrice is required'],
-        min: [0, 'discountedPrice cannot be less than 0'],
+        required: [true, 'Discounted price is required'],
+        min: [0, 'Discounted price cannot be less than 0'],
     },
     startDate: {
         type: Date,
@@ -36,10 +32,11 @@ const SingleCategorySubscriptionSchema = new Schema({
     },
     expiryDate: {
         type: Date,
-        default: Date.now,
         required: true,
     },
 }, { timestamps: true });
+
+AllCategorySubscriptionSchema.index({ userId: 1 });
 
 function calculateExpiryDate(startDate, planType) {
     const expiryDate = new Date(startDate);
@@ -59,18 +56,11 @@ function calculateExpiryDate(startDate, planType) {
     return expiryDate;
 };
 
-SingleCategorySubscriptionSchema.pre('save', function (next) {
+AllCategorySubscriptionSchema.pre('save', function (next) {
     this.expiryDate = calculateExpiryDate(this.startDate, this.planType);
     next();
 });
 
-SingleCategorySubscriptionSchema.virtual('isActive').get(function () {
-    return new Date() < this.expiryDate;
-});
+const AllCategorySubscriptionModel = mongoose.model('AllCategorySubscription', AllCategorySubscriptionSchema);
 
-SingleCategorySubscriptionSchema.index({ userId: 1 });
-SingleCategorySubscriptionSchema.index({ categoryId: 1 });
-
-const SingleCategorySubscriptionModel = mongoose.model('SingleCategorySubscription', SingleCategorySubscriptionSchema);
-
-module.exports = SingleCategorySubscriptionModel;
+module.exports = AllCategorySubscriptionModel;

@@ -49,7 +49,7 @@ cloudinary.config({
 
 connectToDB();
 
-app.get('/', adminAuth, (req, res) => {
+app.get('/', (req, res) => {
     res.render('index');
 });
 

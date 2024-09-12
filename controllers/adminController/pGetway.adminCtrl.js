@@ -8,7 +8,7 @@ const razorpay = new Razorpay({
 // razorpay payment getway
 exports.createOrder = async (req, res) => {
     try {
-        const { amount, currency, receipt } = req.body;
+        const { amount, currency = 'INR', receipt } = req.body;
 
         if (!amount || !currency || !receipt) {
             return res.status(400).json({
@@ -34,7 +34,7 @@ exports.createOrder = async (req, res) => {
             success: false,
             message: error.message,
         });
-    }
+    };
 };
 
 exports.verifyPayment = (req, res) => {

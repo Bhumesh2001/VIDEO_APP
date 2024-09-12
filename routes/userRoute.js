@@ -65,14 +65,7 @@ userRouter.get('/videos/by-category', userAuthentication, videoUserController.ge
 userRouter.post(
     '/subscribe',
     userAuthentication,
-    validateRequiredFields(['categoryId','planName', 'planType', 'price']),
-    subscriptionUserController.subscribeToCategory
-);
-userRouter.post(
-    '/subscribe/all',
-    userAuthentication,
-    validateRequiredFields(['planName', 'planType', 'price']),
-    subscriptionUserController.subscribeToCategories
+    subscriptionUserController.subscribeToCategoryOrAll
 );
 userRouter.get(
     '/subscription/plan', 
