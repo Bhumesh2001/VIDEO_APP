@@ -4,13 +4,16 @@ const {
     deleteImageAndUploadToCloudinary,
     deleteImageOnCloudinary,
 } = require('../../utils/uploadImage');
+const cloudinary = require('cloudinary').v2;
 
 const { convertToMongooseDate } = require('../../utils/subs.userUtil');
 
 exports.createArticle = async (req, res) => {
+    let imageData = null;
     try {
-        let { title, authorName, publicationDate, topic, content, image, } = req.body;
+        let { title, authorName, publicationDate, topic, content, image } = req.body;
 
+        // Check for existing article
         const existingArticle = await Article.findOne({ title });
         if (existingArticle) {
             return res.status(409).json({
@@ -19,35 +22,38 @@ exports.createArticle = async (req, res) => {
             });
         };
 
-        if (!(req.files && req.files.image) && !req.body.image) {
+        // Validate image
+        if (!(req.files && req.files.image) && !image) {
             return res.status(400).json({
                 success: false,
                 message: 'Image file or image URL is required!',
             });
         };
 
+        // Handle file upload or image URL
         if (req.files && req.files.image) {
             image = req.files.image.tempFilePath;
-        } else {
-            if (!/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid image URL!',
-                });
-            };
+        } else if (image && !/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid image URL!',
+            });
         };
 
-        const imageData = await uploadImageToCloudinary(image);
+        // Upload image to Cloudinary
+        if (image) {
+            imageData = await uploadImageToCloudinary(image);
+        };
 
         const articleData = {
-            userId: req.admin.id,
-            title: title,
-            publicid: imageData.public_id,
+            userId: req.admin._id,
+            title,
+            public_id: imageData.public_id,
             image: imageData.url,
             publicationDate: convertToMongooseDate(publicationDate),
-            authorName: authorName,
-            topic: topic,
-            content: content,
+            authorName,
+            topic,
+            content,
         };
 
         const article = new Article(articleData);
@@ -60,9 +66,9 @@ exports.createArticle = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
+        console.error(error);
 
-        if (imageData.public_id) {
+        if (imageData && imageData.public_id) {
             try {
                 await cloudinary.uploader.destroy(imageData.public_id, {
                     resource_type: 'image',
@@ -86,7 +92,7 @@ exports.createArticle = async (req, res) => {
                 success: false,
                 message: 'Article already exists!',
             });
-        };
+        }
 
         res.status(500).json({
             success: false,

@@ -1,10 +1,10 @@
-const Story = require('../../models/adminModel/story.adminModel');
-const { checkUrl } = require('../../utils/uploadImage');
 const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
 
+const Story = require('../../models/adminModel/story.adminModel');
+const { checkUrl } = require('../../utils/uploadImage');
+
 exports.createStoryByAdmin = async (req, res) => {
-    
     const { video, ...data } = req.body;
     const videoFile = req.files?.video;
 
@@ -16,16 +16,13 @@ exports.createStoryByAdmin = async (req, res) => {
     };
 
     try {
-
-        // Validate video URL if no video file is provided
         if (!videoFile && !checkUrl(video)) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid URL format',
+                message: 'Either video file or video URL is required!',
             });
-        };
+        }
 
-        // Check if a story with the same title exists
         const existingStory = await Story.findOne({ title: data.title });
         if (existingStory) {
             return res.status(409).json({
@@ -34,45 +31,19 @@ exports.createStoryByAdmin = async (req, res) => {
             });
         };
 
-        // Handle video upload
         if (videoFile) {
-            try {
-                // Upload large video files efficiently
-                let videoResult = await cloudinary.uploader.upload_large(videoFile.tempFilePath, {
-                    resource_type: 'video',
-                    chunk_size: 6000000,
-                });
+            const videoResult = await cloudinary.uploader.upload_large(videoFile.tempFilePath, {
+                resource_type: 'video',
+                chunk_size: 20000000,
+            });
+            fs.unlinkSync(videoFile.tempFilePath);
 
-                console.log('Cloudinary Upload Response:', videoResult);
-
-                if (videoResult && videoResult.public_id && videoResult.secure_url) {
-                    console.log(videoResult.secure_url, videoResult.public_id, '==============');
-
-                    storyData.public_id = videoResult.public_id;
-                    storyData.video = videoResult.secure_url;
-
-                    // Remove temp file after uploading
-                    fs.unlinkSync(videoFile.tempFilePath);
-                } else {
-                    return res.status(500).json({
-                        success: false,
-                        message: 'Failed to get public_id or secure_url from Cloudinary response',
-                    });
-                }
-
-            } catch (error) {
-                console.error('Error uploading video file:', error);
-                return res.status(500).json({
-                    success: false,
-                    message: 'Error uploading video file',
-                    error: error.message,
-                });
-            }
+            storyData.public_id = videoResult.public_id;
+            storyData.video = videoResult.secure_url;
         } else {
             storyData.video = video;
         };
 
-        // Create and save the story
         const story = new Story(storyData);
         await story.save();
 
@@ -83,34 +54,25 @@ exports.createStoryByAdmin = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Server error:', error);
+        console.error('Error:', error);
 
-        // Cleanup if the video has been uploaded but story creation fails
         if (storyData.public_id) {
             try {
                 await cloudinary.uploader.destroy(storyData.public_id, { resource_type: 'video' });
             } catch (cleanupError) {
-                console.error('Error deleting video from Cloudinary:', cleanupError);
-            }
-        }
+                console.error('Error cleaning up Cloudinary video:', cleanupError);
+            };
+        };
 
-        // Handle validation errors
-        if (error.name === 'ValidationError') {
-            const validationErrors = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({
-                success: false,
-                message: 'Validation Error',
-                errors: validationErrors,
-            });
-        }
+        const errorMessage = error.name === 'ValidationError'
+            ? Object.values(error.errors).map(err => err.message)
+            : error.message;
 
-        // General server error
         return res.status(500).json({
             success: false,
-            message: 'Server Error',
-            error: error.message,
+            message: errorMessage || 'Server Error',
         });
-    }
+    };
 };
 
 exports.getAllStoriesByAdmin = async (req, res) => {

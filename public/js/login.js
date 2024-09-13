@@ -14,7 +14,7 @@ document.getElementById('loginForm').addEventListener('submit', async function (
     loginBtn.style.backgroundColor = '#ff0000';
 
     try {
-        const response = await fetch('https://video-app-0i3v.onrender.com/admin/login-admin', {
+        const response = await fetch('/admin/login-admin', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

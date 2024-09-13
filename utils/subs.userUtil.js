@@ -47,28 +47,39 @@ cron.schedule('0 0 * * *', async () => {
     await checkSubscriptionsAndNotify();
 });
 
-exports.convertToMongooseDate = (dateString) => {    
+exports.convertToMongooseDate = (dateString) => {
+    // Determine the date separator used
     const separator = dateString.includes('/') ? '/' : '-';
-
     const parts = dateString.split(separator);
 
+    if (parts.length !== 3) {
+        throw new Error('Invalid date format');
+    }
+
+    let [first, second, third] = parts.map(part => part.trim());
+
+    // Determine if the first part is a day or month
     let day, month, year;
-
-    if (parseInt(parts[0], 10) > 12) {
-        day = parts[0];
-        month = parts[1];
-        year = parts[2];
+    if (parseInt(first, 10) > 12) {
+        // Format is DD/MM/YYYY or DD-MM-YYYY
+        day = first;
+        month = second;
+        year = third;
     } else {
-        month = parts[0];
-        day = parts[1];
-        year = parts[2];
-    };
+        // Format is MM/DD/YYYY or MM-DD-YYYY
+        month = first;
+        day = second;
+        year = third;
+    }
 
-    const formattedDate = new Date(`${year}-${month}-${day}`);
+    // Create a date string in the format YYYY-MM-DD
+    const formattedDateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    const formattedDate = new Date(formattedDateString);
 
+    // Check if the date is valid
     if (isNaN(formattedDate.getTime())) {
         throw new Error('Invalid date');
-    };
+    }
 
     return formattedDate;
 };

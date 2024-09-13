@@ -360,7 +360,7 @@
                 <div class="form-container my-4" id="upload-video">
                   <h2 class="text-center heading">Add New Video</h2>
 
-                  <form id="video-form">
+                  <form id="video-form" enctype="multipart/form-data">
                     <div class="form-group mb-3">
                       <label for="title">Title</label>
                       <input
@@ -595,7 +595,7 @@
                 <div id="others-story" class="text-dark article my-4">
                   <div class="card story-card">
                     <h2 class="heading" id="new-article">Add New Article</h2>
-                    <form id="article-form">
+                    <form id="article-form" enctype="multipart/form-data">
                       <div class="mb-3">
                         <label for="title_" class="form-label">Title</label>
                         <input
@@ -767,7 +767,7 @@
               <div class="main-content">
                 <div class="container-fluid new__user my-4">
                   <h2 class="text-center heading">Add New User</h2>
-                  <form id="adduser__">
+                  <form id="adduser__" enctype="multipart/form-data">
                     <div class="mb-3">
                       <label for="name_" class="form-label">Name</label>
                       <input
@@ -908,7 +908,7 @@
               <div class="main-content">
                 <div class="container-fluid my-4 new-category">
                   <h2 class="text-center heading">Add New Category</h2>
-                  <form>
+                  <form id="categoryForm" enctype="multipart/form-data">
                     <div class="mb-3">
                       <label for="_name" class="form-label">Name</label>
                       <input
@@ -918,6 +918,7 @@
                         placeholder="Enter category name"
                         required
                         autocomplete="off"
+                        name="name"
                       />
                     </div>
                     <div class="mb-3">
@@ -931,11 +932,17 @@
                         placeholder="Enter category description"
                         required
                         autocomplete="off"
+                        name="description"
                       ></textarea>
                     </div>
                     <div class="mb-3">
                       <label for="status" class="form-label">Status</label>
-                      <select class="form-select" id="status" required>
+                      <select
+                        class="form-select"
+                        name="status"
+                        id="status"
+                        required
+                      >
                         <option value="active" selected>Active</option>
                         <option value="inactive">Inactive</option>
                       </select>
@@ -948,14 +955,33 @@
                         id="image"
                         accept="image/*"
                         required
+                        name="image"
                       />
                     </div>
                     <div class="d-flex justify-content-between">
                       <a href="#" id="category-back-btn" class="btn btn-danger"
                         >Back</a
                       >
-                      <button type="submit" class="btn btn-success">
+                      <button
+                        type="submit"
+                        id="add-category-btn"
+                        class="btn btn-success"
+                      >
                         Add Category
+                      </button>
+
+                      <button
+                        class="btn btn-success custom-btn d-none"
+                        type="button"
+                        id="category-process-btn"
+                      >
+                        <span
+                          class="spinner-border spinner-border-sm"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="visually-hidden" role="status"
+                          >Loading...</span
+                        >
                       </button>
                     </div>
                   </form>
@@ -1006,7 +1032,11 @@
               <div class="main-content">
                 <div class="container-fluid story-container my-4 px-1">
                   <h2 class="text-center heading pt-4">Add New Story</h2>
-                  <form class="px-4 pb-4" id="addNew_story">
+                  <form
+                    class="px-4 pb-4"
+                    id="addNew_story"
+                    enctype="multipart/form-data"
+                  >
                     <div class="mb-3">
                       <label for="story-title" class="form-label">Title</label>
                       <input
@@ -1121,7 +1151,7 @@
             <section class="add_new_subscription d-none" id="new_subscription">
               <div class="main-content">
                 <div class="container-fluid my-4 new-subscription">
-                  <form id="add-new_subscription">
+                  <form id="add-new_subscription" enctype="multipart/form-data">
                     <h2 class="h2 text-center heading">Add New Plan</h2>
                     <div class="mb-3">
                       <label for="planName" class="form-label">Plan Name</label>
@@ -1252,7 +1282,7 @@
               <div class="main-content">
                 <div class="container-fluid my-4 newCoupon">
                   <h2 class="h2 text-center heading">Add New Coupon</h2>
-                  <form id="couponForm">
+                  <form id="couponForm" enctype="multipart/form-data">
                     <div class="mb-3">
                       <label for="couponCode" class="form-label"
                         >Coupon Code</label
@@ -1370,41 +1400,7 @@
                       Add New
                     </button>
                   </div>
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="card">
-                        <img
-                          src="https://via.placeholder.com/300x150"
-                          class="img-fluid rounded"
-                          alt="Banner 1"
-                        />
-                        <div class="card-body">
-                          <h5 class="card-title text-white mb-3">
-                            Sample Banner 1
-                          </h5>
-                          <button class="btn btn-success">Edit</button>
-                          <button class="btn btn-danger">Delete</button>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="card">
-                        <img
-                          src="https://via.placeholder.com/300x150"
-                          class="img-fluid rounded"
-                          alt="Banner 2"
-                        />
-                        <div class="card-body">
-                          <h5 class="card-title text-white mb-3">
-                            Sample Banner 2
-                          </h5>
-
-                          <button class="btn btn-success">Edit</button>
-                          <button class="btn btn-danger">Delete</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <div id="banners-container"></div>
                 </div>
               </div>
             </section>
@@ -1414,7 +1410,7 @@
               <div class="main-content">
                 <div class="container-fluid my-4 new-banner">
                   <h2 class="h2 text-center heading">Add New Banner</h2>
-                  <form id="bannerForm">
+                  <form id="bannerForm" enctype="multipart/form-data">
                     <div class="mb-3">
                       <label for="bannerTitle" class="form-label">Title</label>
                       <input
@@ -1480,7 +1476,7 @@
 
                       <button
                         type="submit"
-                        id="add_new-banner"
+                        id="add_new-banner-btn"
                         class="btn btn-success"
                       >
                         Add Banner
@@ -2079,7 +2075,7 @@
                       id="profileImage"
                     />
                   </div>
-                  <form id="admin_profile_form">
+                  <form id="admin_profile_form" enctype="multipart/form-data">
                     <div class="mb-3">
                       <label for="username" class="form-label">Username</label>
                       <input

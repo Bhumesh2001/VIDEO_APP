@@ -61,7 +61,7 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             try {
                 const videoResult = await cloudinary.uploader.upload(videoFile.tempFilePath, {
                     resource_type: 'video',
-                    chunk_size: 6000000,
+                    chunk_size: 20000000,
                 });
 
                 videoData.video.publicId = videoResult.public_id;
@@ -193,7 +193,7 @@ exports.uploadVideoToMega = async (req, res) => {
 
         // Use fs.createReadStream to stream the file directly
         const fileStream = fs.createReadStream(videoFile.tempFilePath, {
-            highWaterMark: 1024 * 1024 * 10 // Adjust chunk size as needed (e.g., 10MB)
+            highWaterMark: 1024 * 1024 * 20 // Adjust chunk size as needed (e.g., 10MB)
         });
         fileStream.pipe(uploadStream);
 

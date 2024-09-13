@@ -31,7 +31,7 @@ exports.createBanner = async (req, res) => {
 
         // Handle image file upload or URL validation
         if (req.files && req.files.image) {
-            image = req.files.image.data; // Use the image file's data for Cloudinary upload
+            image = req.files.image.tempFilePath;
         } else {
             // Validate image URL format
             const isValidImageUrl = /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image);

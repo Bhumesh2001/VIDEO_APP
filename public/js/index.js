@@ -67,7 +67,7 @@ async function fetchData(url) {
 // function to handle admin logout
 async function adminLogout() {
     try {
-        const response = await fetch('http://localhost:3001/admin/logout', {
+        const response = await fetch('/admin/logout', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ async function adminLogout() {
 
 // Function to load user data and display it in the table
 async function loadUserData() {
-    const data = await fetchData('https://video-app-0i3v.onrender.com/admin/users');
+    const data = await fetchData('/admin/users');
 
     if (!data) return;
 
@@ -137,7 +137,7 @@ async function loadUserData() {
 
 // funtion to load video data and display it on video section
 async function loadVideoData() {
-    const data = await fetchData('https://video-app-0i3v.onrender.com/admin/videos');
+    const data = await fetchData('/admin/videos');
     if (!data) return;
 
     const videoRow = document.getElementById('video-row');
@@ -157,7 +157,7 @@ async function loadVideoData() {
         // Set classes and attributes
         colDiv.classList.add('col-12', 'col-sm-4', 'col-md-4', 'col-lg-3', 'mb-4');
         cardDiv.classList.add('card');
-        img.classList.add('img-fluid', 'rounded-top');
+        img.classList.add('card-img-top', 'rounded-top');
         img.setAttribute('alt', 'Video Thumbnail');
         img.src = video.thumbnail.url;
         cardBody.classList.add('card-body');
@@ -183,7 +183,7 @@ async function loadVideoData() {
 
 // function to load article data and display it on article section
 async function loadArticleData() {
-    const data = await fetchData('https://video-app-0i3v.onrender.com/admin/articls');
+    const data = await fetchData('/admin/articls');
 
     if (!data) return;
 
@@ -205,7 +205,7 @@ async function loadArticleData() {
         // Set classes and attributes
         colDiv.classList.add('col-12', 'col-sm-4', 'col-md-4', 'col-lg-3', 'mb-4');
         articleCard.classList.add('card', 'article-card');
-        articleImg.classList.add('card-img-top');
+        articleImg.classList.add('article-card-img-top');
         articleImg.src = article.image;
         articleImg.setAttribute('alt', 'Article Image');
         cardHeader.classList.add('card-header');
@@ -233,7 +233,7 @@ async function loadArticleData() {
 
 // function to load story data and display it on story section
 async function loadStoryData() {
-    const data = await fetchData('https://video-app-0i3v.onrender.com/admin/stories');
+    const data = await fetchData('/admin/stories');
 
     if (!data) return;
 
@@ -254,7 +254,7 @@ async function loadStoryData() {
         // Set classes and attributes
         colDiv.classList.add('col-12', 'col-sm-4', 'col-md-4', 'col-lg-3', 'mb-4');
         storyCard.classList.add('card', 'story_card');
-        storyImg.classList.add('card-img-top', 'img-fluid');
+        storyImg.classList.add('story-card-img-top');
         storyImg.setAttribute('alt', 'story-image');
         storyImg.src = story.image;
         storyCardBody.classList.add('card-body');
@@ -280,7 +280,7 @@ async function loadStoryData() {
 
 // function to load category data and display it on category section
 async function loadCategoryData() {
-    const data = await fetchData('https://video-app-0i3v.onrender.com/admin/categories');
+    const data = await fetchData('/admin/categories');
 
     if (!data) return;
 
@@ -301,7 +301,7 @@ async function loadCategoryData() {
         // Set classes and attributes
         categoryColDiv.classList.add('col-12', 'col-sm-4', 'col-md-4', 'col-lg-3', 'mb-4');
         categoryCard.classList.add('card', 'category-card');
-        categoryImg.classList.add('card-img-top');
+        categoryImg.classList.add('category-card-img-top');
         categoryImg.setAttribute('alt', 'category_img');
         categoryImg.src = category.image_url;
         categoryCardBody.classList.add('card-body');
@@ -327,7 +327,7 @@ async function loadCategoryData() {
 
 // function to laod subscription data and display it on subscription section
 async function loadSubscriptionData() {
-    const data = await fetchData('https://video-app-0i3v.onrender.com/admin/subscriptions');
+    const data = await fetchData('/admin/subscriptions');
 
     if (!data) return;
 
@@ -395,7 +395,7 @@ async function loadSubscriptionData() {
 
 // functionn to load coupon data and display it on coupon section
 async function laodCouponData() {
-    const data = await fetchData('https://video-app-0i3v.onrender.com/admin/coupons');
+    const data = await fetchData('/admin/coupons');
 
     if (!data) return;
 
@@ -415,7 +415,7 @@ async function laodCouponData() {
             <td>${coupon.discountPercentage}</td>
             <td>${day}/${month}/${year}</td>
             <td>${coupon.maxUsage}</td>
-            <td><span class="badge bg-${coupon.status === 'active' ? 'success' : 'danger'}">${coupon.status}</span></td>
+            <td><span class="badge bg-${coupon.status === 'Active' ? 'success' : 'danger'}">${coupon.status}</span></td>
             <td>
               <div class="d-flex justify-content-end">
                 <button class="btn btn-secondary btn-sm me-2">Edit</button>
@@ -426,6 +426,47 @@ async function laodCouponData() {
         `;
         tableBody.insertAdjacentHTML('beforeend', row);
     });
+};
+
+// function to load the banner data and display it on banner section
+async function laodBannerData() {
+    const data = await fetchData('/admin/banners');
+
+    if (!data) return;
+
+    function createBannerHtml(banner) {
+        return `
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <img src="${banner.image}" class="card-img-top rounded" alt="${banner.title}" />
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">${banner.title}</h5>
+                        <button class="btn btn-success">Edit</button>
+                        <button class="btn btn-danger">Delete</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+
+    const container = document.getElementById('banners-container');
+    container.innerHTML = '';
+
+    let rowHtml = '';
+    data.banners.forEach((banner, index) => {
+        rowHtml += createBannerHtml(banner);
+
+        // Every 2 banners, create a new row
+        if ((index + 1) % 3 === 0) {
+            container.innerHTML += `<div class="row">${rowHtml}</div>`;
+            rowHtml = '';
+        };
+    });
+
+    // Add any remaining banners
+    if (rowHtml) {
+        container.innerHTML += `<div class="row">${rowHtml}</div>`;
+    };
 };
 
 // Function to update DOM elements with fetched data
@@ -448,8 +489,9 @@ loadStoryData();
 loadCategoryData();
 loadSubscriptionData();
 laodCouponData();
+laodBannerData();
 
-const url = "https://video-app-0i3v.onrender.com/admin/dashboard-count";
+const url = "/admin/dashboard-count";
 const Data = {
     "total_user": "totalUser",
     "total_video": "totalVideo",
@@ -459,7 +501,7 @@ const Data = {
     "total_articles": "totalArticle",
 };
 
-// updateDashboardElement(url, Data);
+updateDashboardElement(url, Data);
 
 // Reusable function to toggle visibility
 function toggleVisibility(hideElement, showElement) {
@@ -537,7 +579,9 @@ function showModalWithMessage(message) {
 };
 
 // Function to handle form submission
-async function handleFormSubmission(form, url, successCallback, processBtnId, submitBtnId, isJson = false) {
+async function handleFormSubmission(
+    form, url, successCallback,processBtnId, submitBtnId, dataLoadCallback, isJson = false,
+) {
     try {
         toggleProcessBtn(submitBtnId, processBtnId, true);
 
@@ -568,6 +612,7 @@ async function handleFormSubmission(form, url, successCallback, processBtnId, su
             successCallback(data);
             showModalWithMessage(data.message);
             form.reset();
+            dataLoadCallback();
         } else {
             console.error("Error:", data);
             showModalWithMessage(data.message || 'Something went wrong!', 'error');
@@ -602,7 +647,8 @@ document.querySelector("#video-form").addEventListener("submit", function (e) {
         "/admin/upload-video",
         (data) => console.log("Video uploaded successfully:", data),
         'video-process-btn',
-        'add-video-btn'
+        'add-video-btn',
+        loadVideoData
     );
 });
 
@@ -613,7 +659,8 @@ document.querySelector("#article-form").addEventListener("submit", function (e) 
         "/admin/create-article",
         (data) => console.log("Article created successfully:", data),
         'process-btn',
-        'article__btn'
+        'article__btn',
+        loadArticleData
     );
 });
 
@@ -624,7 +671,20 @@ document.querySelector("#adduser__").addEventListener("submit", function (e) {
         "/admin/create-user",
         (data) => console.log("User added successfully:", data),
         'user-process-btn',
-        'add_user_btn'
+        'add_user_btn',
+        loadUserData
+    );
+});
+
+document.querySelector("#categoryForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    handleFormSubmission(
+        e.target,
+        "/admin/create-category",
+        (data) => console.log("Cateogy created successfully:", data),
+        'category-process-btn',
+        'add-category-btn',
+        loadCategoryData
     );
 });
 
@@ -635,7 +695,8 @@ document.querySelector("#addNew_story").addEventListener("submit", function (e) 
         "/admin/create-story",
         (data) => console.log("Story created successfully:", data),
         'story-process-btn',
-        'addNew_story-btn'
+        'addNew_story-btn',
+        loadStoryData
     );
 });
 
@@ -646,7 +707,8 @@ document.querySelector("#add-new_subscription").addEventListener("submit", funct
         "/admin/create-subscription",
         (data) => console.log("Subscription plan created successfully:", data),
         'subscription-process-btn',
-        'addNew_subscription-btn'
+        'addNew_subscription-btn',
+        loadSubscriptionData
     );
 });
 
@@ -658,6 +720,7 @@ document.querySelector("#couponForm").addEventListener("submit", function (e) {
         (data) => console.log("Coupon created successfully:", data),
         'coupon-process-btn',
         'add-new-coupon-btn',
+        laodCouponData,
         true,
     );
 });
@@ -669,7 +732,8 @@ document.querySelector("#bannerForm").addEventListener("submit", function (e) {
         "/admin/create-banner",
         (data) => console.log("Banner created successfully:", data),
         'banner-process-btn',
-        'add_new-banner',
+        'add_new-banner-btn',
+        laodBannerData,
     );
 });
 

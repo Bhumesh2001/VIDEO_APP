@@ -1,6 +1,5 @@
 const Coupon = require('../../models/adminModel/coupan.adminModel');
 const { generateCouponCode } = require('../../utils/coupanCode');
-const { convertToMongooseDate } = require('../../utils/subs.userUtil');
 
 // Create a new coupon
 exports.createCoupon = async (req, res) => {
@@ -18,7 +17,7 @@ exports.createCoupon = async (req, res) => {
         const coupon = new Coupon({
             couponCode,
             discountPercentage,
-            expirationDate: convertToMongooseDate(expirationDate),
+            expirationDate,
             maxUsage,
             status
         });
@@ -113,7 +112,7 @@ exports.updateCoupon = async (req, res) => {
             { 
                 couponCode, 
                 discountPercentage, 
-                expirationDate: convertToMongooseDate(expirationDate), 
+                expirationDate, 
                 maxUsage, 
                 status, 
                 updatedAt: Date.now() 
