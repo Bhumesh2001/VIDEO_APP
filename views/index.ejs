@@ -184,135 +184,203 @@
             <section id="dashboard" class="dashboard">
               <div class="main-content p-2 w-100">
                 <h3 class="mt-1 mb-3">Dashboard</h3>
+
                 <div class="row">
-                  <div class="col-md-4 mb-3">
-                    <div class="card dashboard-card">
-                      <div class="card-body" data-target="#user" id="user-card">
-                        <h5 class="card-title">
-                          <i class="fas fa-users"></i> Total Users
-                        </h5>
-                        <h4 class="card-text card_text users" id="total_user">
-                          0
-                        </h4>
+                  <div class="col-lg-3 col-md-4 mb-3">
+                    <div class="card dashboard-card user-dashbord-card">
+                      <div
+                        class="card-body d-flex justify-content-between"
+                        data-target="#user"
+                        id="user-card"
+                      >
+                        <div class="_content">
+                          <h5 class="card-title">Users</h5>
+                          <h4 class="card-text card_text users" id="total_user">
+                            0
+                          </h4>
+                        </div>
+
+                        <div class="icon user-icon">
+                          <i class="fas fa-users"></i>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div class="col-md-4 mb-3">
+
+                  <div class="col-lg-3 col-md-4 mb-3">
                     <div class="card dashboard-card">
                       <div
-                        class="card-body"
+                        class="card-body d-flex justify-content-between"
                         data-target="#videos"
                         id="video-card"
                       >
-                        <h5 class="card-title">
-                          <i class="fas fa-video"></i> Total Videos
-                        </h5>
-                        <h4 class="card-text card_text videos" id="total_video">
-                          0
-                        </h4>
+                        <div class="_content">
+                          <h5 class="card-title">Videos</h5>
+                          <h4
+                            class="card-text card_text videos"
+                            id="total_video"
+                          >
+                            0
+                          </h4>
+                        </div>
+
+                        <div class="icon video-icon">
+                          <i class="fas fa-video"></i>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div class="col-md-4 mb-3">
+
+                  <div class="col-lg-3 col-md-4 mb-3">
                     <div class="card dashboard-card">
                       <div
-                        class="card-body"
+                        class="card-body d-flex justify-content-between"
                         data-target="#category"
                         id="category-card"
                       >
-                        <h5 class="card-title">
-                          <i class="fas fa-th-list"></i> Total Categories
-                        </h5>
-                        <h4
-                          class="card-text card_text categories"
-                          id="total_category"
-                        >
-                          0
-                        </h4>
+                        <div class="_content">
+                          <h5 class="card-title">Categories</h5>
+                          <h4
+                            class="card-text card_text categories"
+                            id="total_category"
+                          >
+                            0
+                          </h4>
+                        </div>
+                        <div class="icon category-icon">
+                          <i class="fas fa-th-list"></i>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div class="row">
-                  <div class="col-md-4 mb-3">
-                    <div class="card dashboard-card">
-                      <div class="card-body" id="like-card">
-                        <h5 class="card-title">
-                          <i class="fas fa-thumbs-up"></i> Total Likes
-                        </h5>
-                        <h4 class="card-text card_text likes" id="total_like">
-                          0
-                        </h4>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-md-4 mb-3">
-                    <div class="card dashboard-card">
-                      <div class="card-body" id="comment-card">
-                        <h5 class="card-title">
-                          <i class="fas fa-comments"></i> Total Comments
-                        </h5>
-                        <h4
-                          class="card-text card_text comments"
-                          id="total_comment"
-                        >
-                          0
-                        </h4>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-md-4 mb-3">
+                  <div class="col-lg-3 col-md-4 mb-3">
                     <div class="card dashboard-card">
                       <div
-                        class="card-body"
+                        class="card-body d-flex justify-content-between"
+                        id="like-card"
+                      >
+                        <div class="_content">
+                          <h5 class="card-title">Likes</h5>
+                          <h4 class="card-text card_text likes" id="total_like">
+                            0
+                          </h4>
+                        </div>
+                        <div class="icon like_card-icon">
+                          <i class="fas fa-thumbs-up"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-lg-3 col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div
+                        class="card-body d-flex justify-content-between"
+                        id="comment-card"
+                      >
+                        <div class="_content">
+                          <h5 class="card-title">Comments</h5>
+                          <h4
+                            class="card-text card_text comments"
+                            id="total_comment"
+                          >
+                            0
+                          </h4>
+                        </div>
+                        <div class="icon comment-icon">
+                          <i class="fas fa-comments"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-lg-3 col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div
+                        class="card-body d-flex justify-content-between"
                         data-target="#Article"
                         id="article-card"
                       >
-                        <h5 class="card-title">
-                          <i class="fas fa-share-alt"></i> Total Articles
-                        </h5>
-                        <h4
-                          class="card-text card_text articles"
-                          id="total_articles"
-                        >
-                          0
-                        </h4>
+                        <div class="_content">
+                          <h5 class="card-title">Articles</h5>
+                          <h4
+                            class="card-text card_text articles"
+                            id="total_articles"
+                          >
+                            0
+                          </h4>
+                        </div>
+                        <div class="icon article-icon">
+                          <i class="fas fa-share-alt"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-lg-3 col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div
+                        class="card-body d-flex justify-content-between"
+                        data-target="#Others"
+                        id="other-card"
+                      >
+                        <div class="_content">
+                          <h5 class="card-title">Others</h5>
+                          <h4
+                            class="card-text card_text Others"
+                            id="total_others"
+                          >
+                            0
+                          </h4>
+                        </div>
+                        <div class="icon others-icon">
+                          <i class="fas fa-share-alt"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-lg-3 col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div
+                        class="card-body d-flex justify-content-between"
+                        id="subscriber-card"
+                      >
+                        <div class="_content">
+                          <h5 class="card-title">Subscribers</h5>
+                          <h4 class="card-text card_text subscribers">0</h4>
+                        </div>
+                        <div class="icon subscribers-icon">
+                          <i class="fas fa-user-plus"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-lg-3 col-md-4 mb-3">
+                    <div class="card dashboard-card">
+                      <div
+                        class="card-body d-flex justify-content-between"
+                        id="amount-card"
+                      >
+                        <div class="_content">
+                          <h5 class="card-title">Amount</h5>
+                          <h4 class="card-text card_text amount">$0</h4>
+                        </div>
+                        <div class="icon amount-icon">
+                          <i class="fas fa-dollar-sign"></i>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div class="row">
-                  <div class="col-md-4 mb-3">
-                    <div class="card dashboard-card">
-                      <div class="card-body" id="other-card">
-                        <h5 class="card-title">
-                          <i class="fas fa-ellipsis-h"></i> Total Others
-                        </h5>
-                        <h4 class="card-text card_text others">300</h4>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-md-4 mb-3">
-                    <div class="card dashboard-card">
-                      <div class="card-body" id="subscriber-card">
-                        <h5 class="card-title">
-                          <i class="fas fa-user-plus"></i> Total Subscribers
-                        </h5>
-                        <h4 class="card-text card_text subscribers">500</h4>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-md-4 mb-3">
-                    <div class="card dashboard-card">
-                      <div class="card-body" id="amount-card">
-                        <h5 class="card-title">
-                          <i class="fas fa-dollar-sign"></i> Total Amount
-                        </h5>
-                        <h4 class="card-text card_text amount">$1000</h4>
-                      </div>
-                    </div>
+                <!-- revenue chart -->
+                <div class="content-box-chart mb-3">
+                  <h2 class="h2 display-8">User Analytics</h2>
+                  <div class="chart-container">
+                    <canvas id="revenueChart"></canvas>
                   </div>
                 </div>
               </div>
@@ -1278,7 +1346,7 @@
             </section>
 
             <!-- add new coupon -->
-            <section class="add_new_coupon" id="new-coupon">
+            <section class="add_new_coupon d-none" id="new-coupon">
               <div class="main-content">
                 <div class="container-fluid my-4 newCoupon">
                   <h2 class="h2 text-center heading">Add New Coupon</h2>
@@ -2191,7 +2259,91 @@
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
       crossorigin="anonymous"
     ></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/index.js"></script>
+
+    <script>
+      // Sample data for the chart
+      const labels = [
+        "User123",
+        "User456",
+        "User789",
+        "User101",
+        "User202",
+        "User303",
+        "User404",
+      ];
+      const data = {
+        labels: labels,
+        datasets: [
+          {
+            label: "Revenue Amount ($)",
+            data: [100, 200, 150, 250, 300, 180, 400],
+            backgroundColor: "#0fa3b1", 
+            borderColor: "#0fa3b1", // Darker blue
+            borderWidth: 1,
+          },
+          {
+            label: "Projected Revenue ($)",
+            data: [120, 180, 220, 300, 250, 320, 380],
+            backgroundColor: "#e9c46a",
+            borderColor: "#e9c46a",
+            borderWidth: 1,
+          },
+          {
+            label: "Potential Revenue ($)",
+            data: [150, 250, 300, 400, 350, 420, 450],
+            backgroundColor: "#db3545",
+            borderColor: "#db3545",
+            borderWidth: 1,
+          },
+        ],
+      };
+
+      const config = {
+        type: "bar",
+        data: data,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "rgba(255, 255, 255, 0.1)",
+              },
+              title: {
+                display: true,
+                text: "Revenue ($)",
+                color: "#ffffff",
+              },
+            },
+            x: {
+              grid: {
+                color: "rgba(255, 255, 255, 0.1)",
+              },
+              title: {
+                display: true,
+                text: "Users",
+                color: "#ffffff",
+              },
+            },
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: "#ffffff",
+              },
+            },
+          },
+        },
+      };
+
+      // Render the chart
+      const revenueChart = new Chart(
+        document.getElementById("revenueChart"),
+        config
+      );
+    </script>
   </body>
 </html>
