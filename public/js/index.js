@@ -1,3 +1,5 @@
+const navBar = document.getElementById('nav-bar_');
+
 document.querySelector('.toggle-btn').addEventListener('click', () => {
     const sideBar = document.querySelector('.sidebar');
     sideBar.classList.toggle('d-none');
@@ -6,6 +8,10 @@ document.querySelector('.toggle-btn').addEventListener('click', () => {
 document.querySelectorAll(".nav-link").forEach(function (navLink) {
     navLink.addEventListener("click", function (event) {
         event.preventDefault();
+
+        const clickedText = navLink.textContent.trim();
+        navBar.textContent = clickedText;
+
         document.querySelectorAll(".content > section").forEach(function (page) {
             page.classList.add("d-none");
         });
