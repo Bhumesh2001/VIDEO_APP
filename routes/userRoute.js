@@ -12,6 +12,7 @@ const categorAdminController = require('../controllers/adminController/category.
 const couponUserController = require('../controllers/userController/coupon.userCtrl');
 const bannerAdminController = require('../controllers/adminController/banner.adminCtrl');
 const subscriptionPlanAdminController = require('../controllers/adminController/subs.admin.Ctrl');
+const paymentGetwayController = require('../controllers/userController/pGetway.userCtrl');
 
 // ****************** middlewares *******************
 
@@ -46,10 +47,23 @@ userRouter.get('/auth/google/callback', userController.getGoogleProfile);
 userRouter.get('/auth/facebook', userController.redirectToFacebookProfile);
 userRouter.get('/auth/facebook/callback', userController.getFacebookProfile);
 
-userRouter.get('/resend-otp', userController.resendCodeOrOtp);
+userRouter.post(
+    '/forgot-password',
+    validateRequiredFields(['email']),
+    userController.forgotPassword
+);
+userRouter.post(
+    '/reset-password',
+    validateRequiredFields(['email', 'otp', 'newPassword']),
+    userController.resetPassword
+);
+userRouter.post(
+    '/resend-otp',
+    validateRequiredFields(['email']),
+    userController.resendOtp
+);
 
-
-// ******************** User profile routes *****************
+// ******************** User profile routes ******************
 
 userRouter.get('/profile', userAuthentication, userController.userProfile);
 userRouter.put('/update-profile', userAuthentication, userController.updateUser);
@@ -65,11 +79,19 @@ userRouter.get('/videos/by-category', userAuthentication, videoUserController.ge
 userRouter.post(
     '/subscribe',
     userAuthentication,
+    validateRequiredFields(['categoryId', 'planId']),
     subscriptionUserController.subscribeToCategoryOrAll
 );
+
 userRouter.get(
-    '/subscription/plan', 
-    userAuthentication, 
+    '/my-subscription',
+    userAuthentication,
+    subscriptionUserController.mySubscription
+);
+
+userRouter.get(
+    '/subscription/plan',
+    userAuthentication,
     subscriptionPlanAdminController.getSubscriptionsPlan
 );
 userRouter.get('/history', userAuthentication, subscriptionUserController.getHistory);
@@ -220,6 +242,22 @@ userRouter.delete(
     userAuthentication,
     validateObjectIds(['videoId', 'commentId']),
     videoUserController.deleteComment
+);
+
+// ******************* razorpay routes *********************
+
+userRouter.post(
+    '/rozorpay/create-order',
+    userAuthentication,
+    validateRequiredFields(['amount', 'currency']),
+    paymentGetwayController.createOrder
+);
+
+userRouter.post(
+    '/rozorpay/verify-payment',
+    userAuthentication,
+    validateRequiredFields(['order_id', 'payment_id', 'signature']),
+    paymentGetwayController.verifyPayment
 );
 
 module.exports = userRouter;

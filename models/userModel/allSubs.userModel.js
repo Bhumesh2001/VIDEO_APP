@@ -7,23 +7,59 @@ const AllCategorySubscriptionSchema = new Schema({
         ref: 'User',
         required: true,
     },
+    categoryId: {
+        type: String,
+        required: [true, 'CategoryId is required!'],
+    },
     planName: {
         type: String,
         required: [true, 'Plan is required'],
     },
     planType: {
         type: String,
-        enum: ['monthly', 'quarterly', 'yearly'],
-        required: [true, 'Plan type is required'],
+        required: true,
     },
     totalPrice: {
         type: Number,
-        required: [true, 'Total price is required'],
+        require: [true, 'toatalPrice is required!'],
+    },
+    discountFromPlan: {
+        type: Number,
+        default: 0,
+        min: [0, 'Discount from plan cannot be less than 0'],
+        max: [100, 'Discount from plan cannot exceed 100'],
+        validate: {
+            validator: function (v) {
+                return v % 1 === 0;
+            },
+            message: 'Discount from plan must be a whole number',
+        },
+    },
+    discountFromCoupon: {
+        type: Number,
+        default: 0,
+        min: [0, 'Discount from coupon cannot be less than 0'],
+        max: [100, 'Discount from coupon cannot exceed 100'],
+        validate: {
+            validator: function (v) {
+                return v % 1 === 0;
+            },
+            message: 'Discount from coupon must be a whole number',
+        },
     },
     discountedPrice: {
         type: Number,
         required: [true, 'Discounted price is required'],
         min: [0, 'Discounted price cannot be less than 0'],
+    },
+    paymentGetway: {
+        type: String,
+        default: '',
+    },
+    paymentId: {
+        type: String,
+        unique: true,
+        default: '',
     },
     startDate: {
         type: Date,
@@ -34,9 +70,15 @@ const AllCategorySubscriptionSchema = new Schema({
         type: Date,
         required: true,
     },
+    status: {
+        type: String,
+        enum: ['active', 'expired'],
+        default: 'active',
+    },
 }, { timestamps: true });
 
 AllCategorySubscriptionSchema.index({ userId: 1 });
+AllCategorySubscriptionSchema.index({ paymentGetway: 1 });
 
 function calculateExpiryDate(startDate, planType) {
     const expiryDate = new Date(startDate);
@@ -60,6 +102,12 @@ AllCategorySubscriptionSchema.pre('save', function (next) {
     this.expiryDate = calculateExpiryDate(this.startDate, this.planType);
     next();
 });
+
+AllCategorySubscriptionSchema.methods.calculateFinalPrice = function () {
+    const totalDiscountPercentage = this.discountFromPlan + this.discountFromCoupon;
+    const discountAmount = (this.totalPrice * totalDiscountPercentage) / 100;
+    this.discountedPrice = this.totalPrice - discountAmount;
+};
 
 const AllCategorySubscriptionModel = mongoose.model('AllCategorySubscription', AllCategorySubscriptionSchema);
 

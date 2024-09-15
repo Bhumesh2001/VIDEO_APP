@@ -14,6 +14,14 @@ const client = new OAuth2Client(
 
 const temporaryStorage = new Map();
 
+let transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL,
+        pass: process.env.EMAIL_PASSWORD,
+    },
+});
+
 // --------------- Register User -----------------
 exports.registerUser = async (req, res) => {
     try {
@@ -42,13 +50,6 @@ exports.registerUser = async (req, res) => {
         };
         temporaryStorage.set(email, userData);
 
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL,
-                pass: process.env.EMAIL_PASSWORD,
-            },
-        });
         const mailOptions = {
             from: process.env.EMAIL,
             to: email,
@@ -172,25 +173,103 @@ exports.verifyUser = async (req, res) => {
     };
 };
 
-exports.resendCodeOrOtp = (req, res) => {
+// -------------- Forget password -----------------
+exports.forgotPassword = async (req, res) => {
+    const { email } = req.body;
+
     try {
-        const CodeOrOtp = generateCode();
-        if (!CodeOrOtp) {
-            return res.status(404).json({
-                success: true,
-                message: 'Code not found!',
-            });
+        const user = await userModel.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found!' });
         };
-        res.status(200).json({
-            success: true,
-            message: "Otp or Code gernerated successfully...",
-            code: CodeOrOtp,
+
+        // Generate OTP and expiration (valid for 10 minutes)
+        const otp = generateCode();
+        user.otp = otp;
+        user.otpExpiration = Date.now() + 10 * 60 * 1000; // 10 minutes from now
+        await user.save();
+
+        // Send OTP via email
+        await transporter.sendMail({
+            to: user.email,
+            from: 'support@example.com',
+            subject: 'Your OTP for Password Reset',
+            html: `<p>Your OTP is <strong>${otp}</strong>. It is valid for 10 minutes.</p>`
         });
+
+        res.status(200).json({ success: true, message: 'OTP sent to your email!' });
     } catch (error) {
         console.log(error);
+        res.status(500).json({ success: false, message: 'Error sending OTP' });
+    };
+};
+
+// -------------- Reset password ------------------
+exports.resetPassword = async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+
+    try {
+        const user = await userModel.findOne({ email, otp, otpExpiration: { $gt: Date.now() } });
+        if (!user) {
+            return res.status(400).json({ success: false, message: 'Invalid OTP or OTP has expired!' });
+        };
+
+        user.password = newPassword;
+        user.otp = undefined;
+        user.otpExpiration = undefined;
+        await user.save();
+
+        res.status(200).json({ success: true, message: 'Password reset successfully!' });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: 'Error resetting password' });
+    };
+};
+
+// -------------- Resend otp -------------------
+exports.resendOtp = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await userModel.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found!'
+            });
+        };
+
+        // Generate new OTP if the user has no OTP or if the current one has expired
+        if (!user.otp || user.otpExpiration < Date.now()) {
+            const newOTP = generateCode();
+            user.otp = newOTP;
+            user.otpExpiration = Date.now() + 10 * 60 * 1000; // New OTP expires in 10 minutes
+            await user.save();
+
+            // Send OTP via email
+            await transporter.sendMail({
+                to: user.email,
+                from: process.env.EMAIL,
+                subject: 'Your Resent OTP for Password Reset',
+                html: `<p>Your new OTP is <strong>${newOTP}</strong>. It is valid for 10 minutes.</p>`
+            });
+
+            return res.status(200).json({
+                success: true,
+                message: 'New OTP has been sent to your email!',
+            });
+        } else {
+            // If the current OTP is still valid, do not generate a new one
+            return res.status(400).json({
+                success: false,
+                message: 'The current OTP is still valid. Please wait until it expires.'
+            });
+        };
+    } catch (error) {
         res.status(500).json({
             success: false,
-            message: 'error occured during genrating the code',
+            message: 'Error occurred while resending OTP',
         });
     };
 };
@@ -243,12 +322,20 @@ exports.logoutUser = async (req, res) => {
     try {
         res.clearCookie('userToken', { httpOnly: true, secure: true, path: '/' });
         const userToken = req.cookies.userToken;
+        if (!userToken) {
+            return res.status(400).json({
+                success: false,
+                message: 'User already logged out.',
+            });
+        };
         res.status(200).json({
             success: true,
             message: 'Logged out successfully...',
             userToken,
         });
     } catch (error) {
+        console.log(error);
+        
         res.status(500).json({
             success: false,
             error: 'Failed to log out.'

@@ -1,4 +1,5 @@
 const Razorpay = require('razorpay');
+const crypto = require('crypto'); 
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_ID_KEY,
@@ -6,28 +7,29 @@ const razorpay = new Razorpay({
 });
 
 // razorpay payment getway
+
 exports.createOrder = async (req, res) => {
     try {
-        const { amount, currency = 'INR', receipt } = req.body;
+        const { amount, currency } = req.body;
 
-        if (!amount || !currency || !receipt) {
-            return res.status(400).json({
-                success: true,
-                message: "amount, currency and receipt are required",
-            });
-        };
+        const receipt = `receipt_${crypto.randomBytes(4).toString('hex')}_${Date.now()}`;
+
         const options = {
             amount: amount * 100, // Amount is in smallest currency unit, so convert to paise
             currency,
-            receipt,
+            receipt, 
             payment_capture: 1, // Automatically capture payment after order is created
         };
-        const order = await razorpay.orders.create(options);
+
+        const order = await razorpay.orders.create(options);     
 
         res.status(201).json({
             success: true,
-            message: "Order created successfully...",
+            message: 'Order created successfully',
             orderId: order.id,
+            amount: order.amount,
+            currency: order.currency,
+            receipt: order.receipt
         });
     } catch (error) {
         res.status(500).json({

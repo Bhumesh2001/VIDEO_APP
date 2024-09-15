@@ -11,7 +11,6 @@ const articleController = require('../controllers/adminController/article.adminC
 const storyController = require('../controllers/adminController/story.adminCtrl');
 const bannerController = require('../controllers/adminController/banner.adminCtrl');
 const subscriptionController = require('../controllers/adminController/subs.admin.Ctrl');
-const paymentGetwayController = require('../controllers/adminController/pGetway.adminCtrl');
 const dashboardController = require('../controllers/adminController/dashboard.adminCtrl');
 const couponController = require('../controllers/adminController/coupan.adminCtrl');
 
@@ -247,10 +246,5 @@ adminRouter.delete(
     adminAuth,
     couponController.deleteCoupon
 );
-
-// ******************* razorpay routes *********************
-
-adminRouter.post('/create-order', adminAuth, paymentGetwayController.createOrder);
-adminRouter.post('/verify-payment', adminAuth, paymentGetwayController.verifyPayment);
 
 module.exports = adminRouter;

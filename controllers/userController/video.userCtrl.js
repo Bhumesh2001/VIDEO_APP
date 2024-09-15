@@ -1,26 +1,50 @@
 const Video = require('../../models/adminModel/video.adminModel');
-const userPaymentModel = require('../../models/userModel/payment.userModel');
+const { UserSubscription } = require('../../utils/subs.userUtil');
 
 exports.getAllVideos = async (req, res) => {
     try {
-        const userPayment = await userPaymentModel.find({ userId: req.user._id }, { category: 1 });
-        let paidCategories = userPayment.map(paymentObj => paymentObj.category);
+        const userId = req.user._id;
+        if (!userId) {
+            return res.status(404).json({
+                success: false,
+                message: 'User ID not found!',
+            });
+        };
 
+        // Fetch user subscription details
+        const userSubscription = await UserSubscription(userId);
+        const subscribedCategoryName = userSubscription?.name || '';
+
+        // Fetch all videos from DB
         let videos = await Video.find({}, { __v: 0 }).lean();
 
-        videos = videos.map(video => ({
-            ...video,
-            thumbnail: video.thumbnail.url,
-            likes: video.likes.length,
-            comments: video.comments.length,
-            video: video.video.url,
-            paid: paidCategories.includes(video.category) ? true : false,
-        }));
+        // If user has 'all' in categoryId, mark all videos as paid
+        if (subscribedCategoryName === 'all' || subscribedCategoryName === 'All') {
+            videos = videos.map(video => ({
+                ...video,
+                thumbnail: video.thumbnail.url,
+                likes: video.likes.length,
+                comments: video.comments.length,
+                video: video.video.url,
+                paid: true,  // User has paid for all categories
+            }));
+        } else {
+            // For specific category subscriptions
+            videos = videos.map(video => ({
+                ...video,
+                thumbnail: video.thumbnail.url,
+                likes: video.likes.length,
+                comments: video.comments.length,
+                video: video.video.url,
+                // Check if video belongs to a paid category
+                paid: subscribedCategoryName === video.category,
+            }));
+        };
 
         if (videos.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: "Video not found!",
+                message: 'Videos not found!',
             });
         };
 
@@ -30,10 +54,10 @@ exports.getAllVideos = async (req, res) => {
             videos,
         });
     } catch (error) {
-        console.log(error);
+        console.error(error);
         res.status(500).json({
             success: false,
-            message: 'Error occured while fetching the videos',
+            message: 'Error occurred while fetching the videos',
         });
     };
 };
@@ -47,30 +71,50 @@ exports.getAllVideosByCategory = async (req, res) => {
                 messagge: 'category is required',
             });
         };
-        let videosByCategory = await Video.find(
-            { category },
-            { __v: 0 }
-        ).lean();
 
-        const Categories = await userPaymentModel.find(
-            { userId: req.user._id, category },
-            { category: 1, _id: 0 },
-        );
-        const paidCategories = Categories.map(doc => doc.category);
+        const userId = req.user._id;
+        if (!userId) {
+            return res.status(404).json({
+                success: false,
+                message: 'User ID not found!',
+            });
+        };
 
-        videosByCategory = videosByCategory.map(video => ({
-            ...video,
-            thumbnail: video.thumbnail.url,
-            video: video.video.url,
-            paid: paidCategories.includes(video.category) ? true : false,
-        }));
-
+        let videosByCategory = await Video.find({ category }, { __v: 0 }).lean();
         if (videosByCategory.length === 0) {
             return res.status(404).json({
                 success: true,
                 message: "videos not found!",
             });
         };
+
+        // Fetch user subscription details
+        const userSubscription = await UserSubscription(userId);
+        const subscribedCategoryName = userSubscription?.name || '';
+
+        if (subscribedCategoryName === 'all' || subscribedCategoryName === 'All') {
+            videosByCategory = videosByCategory.map(video => ({
+                ...video,
+                thumbnail: video.thumbnail.url,
+                likes: video.likes.length,
+                comments: video.comments.length,
+                video: video.video.url,
+                paid: true,  // User has paid for all categories
+            }));
+        } 
+        else {
+            // For specific category subscriptions
+            videosByCategory = videosByCategory.map(video => ({
+                ...video,
+                thumbnail: video.thumbnail.url,
+                likes: video.likes.length,
+                comments: video.comments.length,
+                video: video.video.url,
+                // Check if video belongs to a paid category
+                paid: subscribedCategoryName === video.category,
+            }));
+        };
+
         res.status(200).json({
             success: true,
             message: "Video fetched By category successfully...",

@@ -24,6 +24,18 @@ const SubscriptionPlanSchema = new mongoose.Schema({
             message: 'Price must be a whole number',
         },
     },
+    discount: {
+        type: Number,
+        default: 0,
+        min: [0, 'Discount cannot be less than 0'],
+        max: [100, 'Discount cannot exceed 100'],
+        validate: {
+            validator: function (v) {
+                return v % 1 === 0;
+            },
+            message: 'Discount must be a whole number',
+        },
+    },
     features: {
         type: [String],
         required: [true, 'At least one feature is required'],

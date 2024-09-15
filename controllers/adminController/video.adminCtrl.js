@@ -1,7 +1,9 @@
 const cloudinary = require('cloudinary').v2;
-const Video = require('../../models/adminModel/video.adminModel');
 const fs = require('fs');
 const Mega = require('megajs');
+
+const Category = require('../../models/adminModel/category.adminModel');
+const Video = require('../../models/adminModel/video.adminModel');
 
 // ------------- upload video -----------------
 
@@ -18,6 +20,14 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'Title, description, category, video, and thumbnail are required.',
+            });
+        };
+
+        const isCategoryAvailabel = await Category.findOne({ category }).exec();
+        if(!isCategoryAvailabel){
+            return res.status(404).json({
+                success: false,
+                message: 'Category is not availabe!',
             });
         };
 

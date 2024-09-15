@@ -35,6 +35,12 @@ const userSchema = new Schema({
                 `${props.value} is not a valid mobile number! Mobile number should be 10 digits.`,
         }
     },
+    otp: {
+        type: String,
+    },
+    otpExpiration: {
+        type: Date
+    },
     role: {
         type: String,
         enum: ['user'],

@@ -1,52 +1,75 @@
 const cron = require('node-cron');
-const UserSubscriptionModel = require('../models/userModel/subs.user.Model');
+const moment = require('moment');
+const mongoose = require('mongoose')
 
-const checkSubscriptionsAndNotify = async () => {
+const SingleCategorySubscriptionModel = require('../models/userModel/subs.user.Model');
+const AllCategorySubscriptionModel = require('../models/userModel/allSubs.userModel');
+const Category = require('../models/adminModel/category.adminModel');
+
+// Cron job that runs every day at midnight
+cron.schedule('0 0 * * *', async () => {
+    const now = moment().toDate();  // Get the current date
+
     try {
-        const userId = req.user._id;
-        console.log(userId);
-        
-        const today = new Date();
-        const futureDate = new Date();
-        futureDate.setDate(today.getDate() + 7);
+        // Find and expire single-category subscriptions
+        await SingleCategorySubscriptionModel.updateMany(
+            { expiryDate: { $lt: now }, status: 'active' },
+            { $set: { status: 'expired' } }
+        );
 
-        const expiringSubscriptions = await UserSubscriptionModel.find({
-            userId,
-            expiryDate: { $gte: today, $lt: futureDate }
-        }).populate('categoryId');
+        // Find and expire all-category subscriptions
+        await AllCategorySubscriptionModel.updateMany(
+            { expiryDate: { $lt: now }, status: 'active' },
+            { $set: { status: 'expired' } }
+        );
 
-        if (!expiringSubscriptions.length) {
-            console.log({
-                success: true,
-                message: 'No expiring subscriptions found for the logged-in user.',
-            });
-        };
-
-        const subscriptionsWithDaysLeft = expiringSubscriptions.map(subscription => {
-            const daysLeft = Math.ceil((subscription.expiryDate - today) / (1000 * 60 * 60 * 24));
-            return {
-                category: subscription.categoryId.name,
-                plan: subscription.plan,
-                expiryDate: subscription.expiryDate,
-                daysLeft,
-            };
-        });
-
-        console.log({
-            success: true,
-            message: 'Found expiring subscriptions for the logged-in user.',
-            subscriptions: subscriptionsWithDaysLeft,
-        });
-
+        console.log('Subscription expiration check completed successfully.');
     } catch (error) {
-        console.error('Error checking subscriptions:', error);
+        console.error('Error updating subscription statuses:', error);
+    };
+});
+
+// set the remidner for the user subescription 
+const sendReminder = (subscription, userType) => {
+    console.log(`Reminder: ${userType} subscription for user ${subscription.userId} is expiring on ${subscription.expiryDate}.`);
+};
+
+// Function to check and send reminders for expiring subscriptions
+const sendExpiryReminder = async () => {
+    const now = moment();
+    const reminderDate = now.add(3, 'days').toDate();  // Remind 3 days before expiry
+
+    try {
+        // Find expiring single-category subscriptions
+        const singleCategoryExpiring = await SingleCategorySubscriptionModel.find({
+            expiryDate: { $lte: reminderDate, $gt: now.toDate() },
+            status: 'active',
+        });
+
+        singleCategoryExpiring.forEach(subscription => {
+            sendReminder(subscription, 'Single-category');
+        });
+
+        // Find expiring all-category subscriptions
+        const allCategoryExpiring = await AllCategorySubscriptionModel.find({
+            expiryDate: { $lte: reminderDate, $gt: now.toDate() },
+            status: 'active',
+        });
+
+        allCategoryExpiring.forEach(subscription => {
+            sendReminder(subscription, 'All-category');
+        });
+
+        console.log('Subscription reminders check completed successfully.');
+    } catch (error) {
+        console.error('Error checking expiring subscriptions:', error);
     };
 };
 
-cron.schedule('0 0 * * *', async () => {
-    await checkSubscriptionsAndNotify();
-});
+// Schedule cron job to run daily at midnight
+cron.schedule('0 0 * * *', sendExpiryReminder);
 
+// convert the normal into the mongoose data
 exports.convertToMongooseDate = (dateString) => {
     // Determine the date separator used
     const separator = dateString.includes('/') ? '/' : '-';
@@ -82,4 +105,35 @@ exports.convertToMongooseDate = (dateString) => {
     }
 
     return formattedDate;
+};
+
+// fetch and return the userSubscription 
+exports.UserSubscription = async (userId) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            throw new Error('Invalid userId');
+        }
+
+        // Fetch both subscription types in parallel
+        const [singleSubscription, allSubscription] = await Promise.all([
+            SingleCategorySubscriptionModel.findOne({ userId }).select('categoryId').lean().exec(),
+            AllCategorySubscriptionModel.findOne({ userId }).select('categoryId').lean().exec()
+        ]);
+
+        const userSubscription = singleSubscription || allSubscription;
+
+        if (!userSubscription) {
+            return null; // or { name: 'none' } depending on your requirements
+        }
+
+        if (mongoose.Types.ObjectId.isValid(userSubscription.categoryId)) {
+            const category = await Category.findById(userSubscription.categoryId).lean().exec();
+            return category || { name: 'unknown' };
+        } else {
+            return { name: 'all' };
+        }
+    } catch (error) {
+        console.error('Error in UserSubscription:', error);
+        throw error; // or return a default value, depending on your error handling strategy
+    }
 };

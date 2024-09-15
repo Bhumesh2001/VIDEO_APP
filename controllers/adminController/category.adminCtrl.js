@@ -94,6 +94,13 @@ exports.getAllCategories = async (req, res) => {
         }).skip(skip).limit(limit);
         const totalCategory = await Category.countDocuments();
 
+        if(categories.length === 0){
+            return res.status(404).json({
+                success: false,
+                message: 'Article not found!',
+            });
+        };
+
         res.status(200).json({
             success: true,
             message: "All categories fetched successfully...",

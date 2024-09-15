@@ -12,6 +12,7 @@ const couponSchema = new mongoose.Schema({
     },
     discountPercentage: {
         type: Number,
+        default: 0,
         required: [true, 'Discount percentage is required.'],
         min: [0, 'Discount percentage must be at least 0%.'],
         max: [100, 'Discount percentage cannot exceed 100%.'],
