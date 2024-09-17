@@ -1,13 +1,13 @@
 const jwt = require('jsonwebtoken');
 
-exports.adminAuth = async (req, res, next) => {
+exports.adminAuthentication = async (req, res, next) => {
     try {
         const authHeader = req.headers['authorization'];
         let token;
 
         if (authHeader) {
             const tokenParts = authHeader.split(' ');
-
+            
             if (tokenParts[0] === 'Bearer' && tokenParts[1]) {
                 token = tokenParts[1];
             } else {
@@ -19,7 +19,11 @@ exports.adminAuth = async (req, res, next) => {
         };
 
         if (!token) {
-            token = req.cookies.adminToken;
+            token = req.session.adminToken;
+        };
+
+        if(req.session.adminToken !== token){
+            return res.redirect('/login');
         };
         
         if (!token) {

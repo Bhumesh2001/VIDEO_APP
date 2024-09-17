@@ -1,6 +1,7 @@
 require('dotenv').config();
 require('./utils/subs.userUtil');
 const express = require('express');
+const session = require('express-session');
 const cors = require('cors');
 const cookiParser = require('cookie-parser');
 const fileUpload = require('express-fileupload');
@@ -14,7 +15,7 @@ const { connectToDB } = require('./db/connect');
 const adminRouter = require('./routes/adminRoute');
 const userRouter = require('./routes/userRoute');
 
-const { adminAuth } = require('./middlewares/adminMiddleware/auth.adminMdlwr');;
+const { adminAuthentication } = require('./middlewares/adminMiddleware/auth.adminMdlwr');
 
 app.use(cors({
     origin: [
@@ -36,6 +37,13 @@ app.use(cookiParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+app.use(session({
+    secret: process.env.SECRET_KEY,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }, // Should be true in production with HTTPS
+}));
+
 app.use(fileUpload({
     useTempFiles: true,
     tempFileDir: '/tmp/',
@@ -49,12 +57,12 @@ cloudinary.config({
 
 connectToDB();
 
-app.get('/', adminAuth, (req, res) => {
+app.get('/', adminAuthentication, (req, res) => {
     res.render('index');
 });
 
 app.get('/login', (req, res) => {
-    if (req.cookies.adminToken) {
+    if (req.session.adminToken) {
         return res.redirect('/');
     };
     res.render('login');

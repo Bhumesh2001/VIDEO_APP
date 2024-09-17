@@ -16,7 +16,11 @@ exports.userAuthentication = async (req, res, next) => {
         };
 
         if (!token) {
-            token = req.cookies.userToken;
+            token = req.session.userToken;
+        };
+
+        if(req.session.userToken !== token){
+            return res.status(401).json({ message: 'Unauthorized, please login.' });
         };
 
         if (!token) {
@@ -24,7 +28,7 @@ exports.userAuthentication = async (req, res, next) => {
         };
 
         const decoded = jwt.verify(token, process.env.USER_SECRET_KEY);
-        
+
         req.user = decoded;
         next();
 

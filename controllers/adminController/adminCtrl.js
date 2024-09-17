@@ -72,16 +72,12 @@ exports.loginAdmin = async (req, res) => {
             { expiresIn: '2d' }
         );
 
-        res.cookie('adminToken', token, {
-            httpOnly: true,
-            secure: false,
-            maxAge: 2 * 24 * 60 * 60 * 1000,
-            path: '/',
-        });
+        req.session.adminToken = token;
 
         res.status(200).json({
             success: true,
             message: 'Admin logged in successfully',
+            adminId: admin._id,
             token,
         });
 
@@ -174,13 +170,22 @@ exports.updateProfile = async (req, res) => {
 
 exports.LogoutAdmin = async (req, res) => {
     try {
-        res.clearCookie('adminToken', { httpOnly: true, secure: true, path: '/' });
-        const adminToken = req.cookies.adminToken;
-        res.status(200).json({
-            success: true,
-            message: 'Admin Logged out successfully...',
-            adminToken,
-        });
+        const adminToken = req.session.adminToken;
+        if (adminToken) {
+            req.session.destroy(err => {
+                if (err) return res.status(500).json({ message: 'Logout failed.' });
+                return res.status(200).json({
+                    success: true, 
+                    message: 'Admin logged out successfully.', 
+                    adminToken,
+                });
+            });
+        } else {
+            return res.status(400).json({ 
+                success: false,
+                message: 'Admin is already logged out.', 
+            });
+        };
     } catch (error) {
         console.log(error);
         return res.status(500).json({

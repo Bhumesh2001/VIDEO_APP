@@ -150,12 +150,7 @@ exports.verifyUser = async (req, res) => {
             { expiresIn: '2d' },
         );
 
-        res.cookie('userToken', token, {
-            httpOnly: true,
-            secure: true,
-            maxAge: 2 * 24 * 60 * 60 * 1000,
-            path: '/',
-        });
+        req.session.userToken = token;
 
         res.status(200).json({
             success: true,
@@ -294,19 +289,13 @@ exports.loginUser = async (req, res) => {
             { expiresIn: '2d' },
         );
 
-        res.cookie('userToken', token, {
-            httpOnly: true,
-            secure: true,
-            maxAge: 2 * 24 * 60 * 60 * 1000,
-            path: '/',
-        });
+        req.session.userToken = token;
 
         res.status(200).json({
             success: true,
-            message: 'User logged in successful...',
+            message: 'User logged in successful...!',
             userId: user._id,
             token,
-
         });
     } catch (error) {
         console.log(error);
@@ -320,22 +309,24 @@ exports.loginUser = async (req, res) => {
 // ------------- Logout User -----------------
 exports.logoutUser = async (req, res) => {
     try {
-        res.clearCookie('userToken', { httpOnly: true, secure: true, path: '/' });
-        const userToken = req.cookies.userToken;
-        if (!userToken) {
-            return res.status(400).json({
+        const userToken = req.session.userToken;
+        if (userToken) {
+            req.session.destroy(err => {
+                if (err) return res.status(500).json({ message: 'Logout failed.' });
+                return res.status(200).json({ 
+                    success: true,
+                    message: 'User logged out successfully.',
+                    userToken,
+                });
+            });
+        } else {
+            return res.status(400).json({ 
                 success: false,
-                message: 'User already logged out.',
+                message: 'User is already logged out.', 
             });
         };
-        res.status(200).json({
-            success: true,
-            message: 'Logged out successfully...',
-            userToken,
-        });
     } catch (error) {
         console.log(error);
-        
         res.status(500).json({
             success: false,
             error: 'Failed to log out.'
@@ -389,16 +380,12 @@ exports.getGoogleProfile = async (req, res) => {
             { expiresIn: '2d' }
         );
 
-        res.cookie('userToken', token, {
-            httpOnly: true,
-            secure: true,
-            maxAge: 2 * 24 * 60 * 60 * 1000,
-            path: '/',
-        });
+        req.session.userToken = token;
 
         res.status(200).json({
             success: true,
             message: 'User logged in successful...',
+            userId,
             token,
         });
     } catch (error) {
@@ -456,16 +443,12 @@ exports.getFacebookProfile = async (req, res) => {
             { expiresIn: '2d' }
         );
 
-        res.cookie('userToken', token, {
-            httpOnly: true,
-            secure: true,
-            maxAge: 2 * 24 * 60 * 60 * 1000,
-            path: '/',
-        });
+        req.session.userToken = token;
 
         res.status(200).json({
             success: true,
             message: 'User logged in successful...',
+            userId: id,
             token,
         });
 

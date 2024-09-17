@@ -13,6 +13,7 @@ const couponUserController = require('../controllers/userController/coupon.userC
 const bannerAdminController = require('../controllers/adminController/banner.adminCtrl');
 const subscriptionPlanAdminController = require('../controllers/adminController/subs.admin.Ctrl');
 const paymentGetwayController = require('../controllers/userController/pGetway.userCtrl');
+const contactUserController = require('../controllers/userController/contact.userCtrl');
 
 // ****************** middlewares *******************
 
@@ -68,6 +69,17 @@ userRouter.post(
 userRouter.get('/profile', userAuthentication, userController.userProfile);
 userRouter.put('/update-profile', userAuthentication, userController.updateUser);
 userRouter.delete('/delete-profile', userAuthentication, userController.deleteUser);
+
+// ****************** Countact Us routes **********************
+
+userRouter.post(
+    '/contat-us',
+    userAuthentication,
+    validateRequiredFields([
+        'name', 'email', 'phone', 'city', 'district', 'state', 'country', 'pincode', 'message'
+    ]),
+    contactUserController.createContactUser
+);
 
 // ******************** video routes **********************
 

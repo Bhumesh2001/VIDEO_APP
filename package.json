@@ -36,6 +36,7 @@
     "path": "^0.12.7",
     "razorpay": "^2.9.4",
     "stream": "^0.0.3",
-    "valid-url": "^1.0.9"
+    "valid-url": "^1.0.9",
+    "validator": "^13.12.0"
   }
 }

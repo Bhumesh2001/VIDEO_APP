@@ -114,7 +114,6 @@ exports.UserSubscription = async (userId) => {
             throw new Error('Invalid userId');
         }
 
-        // Fetch both subscription types in parallel
         const [singleSubscription, allSubscription] = await Promise.all([
             SingleCategorySubscriptionModel.findOne({ userId }).select('categoryId').lean().exec(),
             AllCategorySubscriptionModel.findOne({ userId }).select('categoryId').lean().exec()
@@ -123,7 +122,7 @@ exports.UserSubscription = async (userId) => {
         const userSubscription = singleSubscription || allSubscription;
 
         if (!userSubscription) {
-            return null; // or { name: 'none' } depending on your requirements
+            return null;
         }
 
         if (mongoose.Types.ObjectId.isValid(userSubscription.categoryId)) {
@@ -134,6 +133,6 @@ exports.UserSubscription = async (userId) => {
         }
     } catch (error) {
         console.error('Error in UserSubscription:', error);
-        throw error; // or return a default value, depending on your error handling strategy
+        throw error;
     }
 };
