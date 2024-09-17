@@ -39,14 +39,17 @@ app.use(cookiParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+const sessionStore = MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    collectionName: 'sessions',
+    ttl: 48 * 60 * 60
+});
+
 app.use(session({
     secret: process.env.SECRET_KEY,
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGO_URI,
-        ttl: 48 * 60 * 60 
-    }),
+    store: sessionStore,
     cookie: {
         secure: true,
         httpOnly: true,
