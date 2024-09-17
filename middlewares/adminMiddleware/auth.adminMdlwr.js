@@ -19,11 +19,7 @@ exports.adminAuthentication = async (req, res, next) => {
         };
 
         if (!token) {
-            token = req.session.adminToken;
-        };
-        
-        if(req.session.adminToken !== token){
-            return res.redirect('/login');
+            token = req.cookies.adminToken;
         };
         
         if (!token) {

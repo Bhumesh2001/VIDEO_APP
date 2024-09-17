@@ -16,13 +16,9 @@ exports.userAuthentication = async (req, res, next) => {
         };
 
         if (!token) {
-            token = req.session.userToken;
+            token = req.cookies.userToken;
         };        
-
-        if(req.session.userToken !== token){
-            return res.status(401).json({ message: 'Unauthorized, please login.' });
-        };
-
+        
         if (!token) {
             return res.status(401).json({ message: 'Unauthorized, please login.' });
         };

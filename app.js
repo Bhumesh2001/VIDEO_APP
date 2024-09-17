@@ -1,8 +1,6 @@
 require('dotenv').config();
 require('./utils/subs.userUtil');
 const express = require('express');
-const session = require('express-session');
-const MongoStore = require('connect-mongo');
 const cors = require('cors');
 const cookiParser = require('cookie-parser');
 const fileUpload = require('express-fileupload');
@@ -23,7 +21,6 @@ app.use(cors({
         'https://web-digital-vle.netlify.app',
         'https://digital-vle-admin-login.netlify.app',
         'http://localhost:3001',
-        'http://127.0.0.1:5500',
         'https://video-app-0i3v.onrender.com',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -38,25 +35,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(cookiParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
-const sessionStore = MongoStore.create({
-    mongoUrl: process.env.MONGO_URI,
-    collectionName: 'sessions',
-    ttl: 48 * 60 * 60
-});
-
-app.use(session({
-    secret: process.env.SECRET_KEY,
-    resave: false,
-    saveUninitialized: false,
-    store: sessionStore,
-    cookie: {
-        secure: true,
-        httpOnly: true,
-        maxAge: 1000 * 60 * 60 * 48,
-        name: 'session_cookie',
-    },
-}));
 
 app.use(fileUpload({
     useTempFiles: true,

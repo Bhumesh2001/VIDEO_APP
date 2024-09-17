@@ -72,7 +72,13 @@ exports.loginAdmin = async (req, res) => {
             { expiresIn: '2d' }
         );
 
-        req.session.adminToken = token;
+        res.cookie('adminToken', token, {
+            httpOnly: true,
+            secure: true,
+            maxAge: 1000 * 60 * 60 * 48,
+            sameSite: 'Lax',
+            path: '/',
+        });
 
         res.status(200).json({
             success: true,
@@ -170,32 +176,30 @@ exports.updateProfile = async (req, res) => {
 
 exports.logoutAdmin = async (req, res) => {
     try {
-        if (req.session.adminToken) {
-            req.session.destroy(err => {
-                if (err) {
-                    console.error('Admin logout error:', err);
-                    return res.status(500).json({
-                        success: false,
-                        message: 'Admin logout failed due to server error.'
-                    });
-                }
-                res.clearCookie('session_cookie');
-                return res.status(200).json({
-                    success: true,
-                    message: 'Admin logged out successfully.'
-                });
+        const adminToken = req.cookies.adminToken;
+        if (adminToken) {
+            res.clearCookie('adminToken', {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'Lax',
+                path: '/',
+            });
+            return res.status(200).json({
+                success: true,
+                message: 'Admin logged out successfully.',
+                adminToken,
             });
         } else {
             return res.status(400).json({
                 success: false,
-                message: 'Admin is already logged out or session does not exist.'
+                message: 'Admin is already logged out!',
             });
-        }
+        };
     } catch (error) {
-        console.error('Admin logout exception:', error);
+        console.error('Logout exception:', error);
         return res.status(500).json({
             success: false,
-            message: 'Failed to log out admin due to an exception.'
+            message: 'Failed to log out due to an exception.'
         });
     };
 };
