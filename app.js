@@ -10,7 +10,7 @@ const cloudinary = require('cloudinary').v2;
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000;
 const { connectToDB } = require('./db/connect');
 
 const adminRouter = require('./routes/adminRoute');
