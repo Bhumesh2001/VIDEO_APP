@@ -115,7 +115,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
         };
 
         // Calculate final price and save subscription
-        newSubscription.calculateFinalPrice(); // Assuming this function exists
+        newSubscription.calculateFinalPrice();
         await newSubscription.save();
 
         res.status(201).json({

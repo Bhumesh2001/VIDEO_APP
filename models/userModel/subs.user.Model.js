@@ -26,7 +26,7 @@ const SingleCategorySubscriptionSchema = new Schema({
     },
     discountFromPlan: {
         type: Number,
-        default: 0, 
+        default: 0,
         min: [0, 'Discount from plan cannot be less than 0'],
         max: [100, 'Discount from plan cannot exceed 100'],
         validate: {
@@ -60,6 +60,11 @@ const SingleCategorySubscriptionSchema = new Schema({
     paymentId: {
         type: String,
         default: '',
+    },
+    paymentStatus: {
+        type: String,
+        enum: ["pending", "completed", "failed"],
+        default: "pending",
     },
     startDate: {
         type: Date,

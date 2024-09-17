@@ -60,6 +60,11 @@ const AllCategorySubscriptionSchema = new Schema({
         type: String,
         default: '',
     },
+    paymentStatus: {
+        type: String,
+        enum: ["pending", "completed", "failed"],
+        default: "pending",
+    },
     startDate: {
         type: Date,
         default: Date.now,
