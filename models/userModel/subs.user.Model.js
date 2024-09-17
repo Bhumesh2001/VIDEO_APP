@@ -59,7 +59,6 @@ const SingleCategorySubscriptionSchema = new Schema({
     },
     paymentId: {
         type: String,
-        unique: true,
         default: '',
     },
     startDate: {

@@ -27,7 +27,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
                 message: 'Invalid category ID format!',
             });
         };
-        
+
         // Fetch the subscription plan
         const subscriptionPlan = await SubscriptionPlan.findById(planId);
         if (!subscriptionPlan) {
@@ -65,8 +65,10 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
         };
 
         // Check for existing subscriptions for the user
-        const existingSingleSubscription = await SingleCategorySubscriptionModel.findOne({ userId });
-        const existingAllSubscription = await AllCategorySubscriptionModel.findOne({ userId });
+        const [existingSingleSubscription, existingAllSubscription] = await Promise.all([
+            SingleCategorySubscriptionModel.findOne({ userId }).exec(),
+            AllCategorySubscriptionModel.findOne({ userId }).exec()
+        ]);
 
         if (existingSingleSubscription || existingAllSubscription) {
             return res.status(409).json({
@@ -90,7 +92,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
                 discountFromPlan,
                 discountFromCoupon,
             });
-        } 
+        }
         else {
             // Validate category existence before creating subscription
             const category = await CategoryModel.findById(categoryId);
@@ -131,6 +133,13 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
                 success: false,
                 message: 'Validation Error',
                 errors: validationErrors,
+            });
+        };
+
+        if(error.code === 1100){
+            return res.status(409).json({
+                success: true,
+                message: 'Subscription already taken!',
             });
         };
 
