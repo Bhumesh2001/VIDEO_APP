@@ -309,27 +309,35 @@ exports.loginUser = async (req, res) => {
 // ------------- Logout User -----------------
 exports.logoutUser = async (req, res) => {
     try {
-        const userToken = req.session.userToken;
-        if (userToken) {
+        // Check if a user session exists
+        if (req.session.userToken) {
             req.session.destroy(err => {
-                if (err) return res.status(500).json({ message: 'Logout failed.' });
+                if (err) {
+                    console.error('Logout error:', err);
+                    return res.status(500).json({ 
+                        success: false,
+                        message: 'Logout failed due to server error.' 
+                    });
+                };
+                // Clear the session cookie
+                res.clearCookie('session_cookie');
                 return res.status(200).json({ 
                     success: true,
-                    message: 'User logged out successfully.',
-                    userToken,
+                    message: 'User logged out successfully.'
                 });
             });
         } else {
+            // If no session exists
             return res.status(400).json({ 
                 success: false,
-                message: 'User is already logged out.', 
+                message: 'User is already logged out or session does not exist.' 
             });
-        };
+        }
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
+        console.error('Logout exception:', error);
+        return res.status(500).json({
             success: false,
-            error: 'Failed to log out.'
+            message: 'Failed to log out due to an exception.'
         });
     };
 };

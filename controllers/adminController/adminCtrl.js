@@ -66,7 +66,7 @@ exports.loginAdmin = async (req, res) => {
             {
                 _id: admin._id,
                 role: admin.role,
-                email: admin.email, 
+                email: admin.email,
             },
             process.env.ADMIN_SECRET_KEY,
             { expiresIn: '2d' }
@@ -168,30 +168,34 @@ exports.updateProfile = async (req, res) => {
     };
 };
 
-exports.LogoutAdmin = async (req, res) => {
+exports.logoutAdmin = async (req, res) => {
     try {
-        const adminToken = req.session.adminToken;
-        if (adminToken) {
+        if (req.session.adminToken) {
             req.session.destroy(err => {
-                if (err) return res.status(500).json({ message: 'Logout failed.' });
+                if (err) {
+                    console.error('Admin logout error:', err);
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Admin logout failed due to server error.'
+                    });
+                }
+                res.clearCookie('session_cookie');
                 return res.status(200).json({
-                    success: true, 
-                    message: 'Admin logged out successfully.', 
-                    adminToken,
+                    success: true,
+                    message: 'Admin logged out successfully.'
                 });
             });
         } else {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                message: 'Admin is already logged out.', 
+                message: 'Admin is already logged out or session does not exist.'
             });
-        };
+        }
     } catch (error) {
-        console.log(error);
+        console.error('Admin logout exception:', error);
         return res.status(500).json({
-            success: true,
-            message: 'error occured while login out',
-            error: error.message,
+            success: false,
+            message: 'Failed to log out admin due to an exception.'
         });
     };
 };

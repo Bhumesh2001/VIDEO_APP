@@ -2,6 +2,7 @@ require('dotenv').config();
 require('./utils/subs.userUtil');
 const express = require('express');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const cors = require('cors');
 const cookiParser = require('cookie-parser');
 const fileUpload = require('express-fileupload');
@@ -42,10 +43,15 @@ app.use(session({
     secret: process.env.SECRET_KEY,
     resave: false,
     saveUninitialized: false,
-    cookie: { 
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URI,
+        ttl: 48 * 60 * 60 
+    }),
+    cookie: {
         secure: true,
-        httpOnly: true, 
-        maxAge: 1000 * 60 * 60 * 48
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60 * 48,
+        name: 'session_cookie',
     },
 }));
 

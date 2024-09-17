@@ -40,7 +40,7 @@ adminRouter.post(
 
 adminRouter.get('/profile', adminAuthentication, adminController.adminProfile);
 adminRouter.put('/update-profile', adminAuthentication, adminController.updateProfile);
-adminRouter.post('/logout', adminAuthentication, adminController.LogoutAdmin);
+adminRouter.post('/logout', adminAuthentication, adminController.logoutAdmin);
 
 // ****************** Countact Us routes **********************
 
