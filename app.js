@@ -54,7 +54,7 @@ app.get('/', adminAuthentication, (req, res) => {
 });
 
 app.get('/login', (req, res) => {
-    if (req.session.adminToken) {
+    if (req.cookies.adminToken) {
         return res.redirect('/');
     };
     res.render('login');
