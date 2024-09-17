@@ -42,7 +42,11 @@ app.use(session({
     secret: process.env.SECRET_KEY,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: true },
+    cookie: { 
+        secure: true,
+        httpOnly: true, 
+        maxAge: 1000 * 60 * 60 * 48
+    },
 }));
 
 app.use(fileUpload({
