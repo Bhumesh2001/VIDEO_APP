@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const moment = require('moment');
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
 const SingleCategorySubscriptionModel = require('../models/userModel/subs.user.Model');
 const AllCategorySubscriptionModel = require('../models/userModel/allSubs.userModel');
@@ -112,7 +112,7 @@ exports.UserSubscription = async (userId) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             throw new Error('Invalid userId');
-        }
+        };
 
         const [singleSubscription, allSubscription] = await Promise.all([
             SingleCategorySubscriptionModel.findOne({ userId }).select('categoryId').lean().exec(),
@@ -135,4 +135,10 @@ exports.UserSubscription = async (userId) => {
         console.error('Error in UserSubscription:', error);
         throw error;
     }
+};
+
+// is valid razorpay payment id or not
+exports.isValidRazorpayPaymentId = (paymentId) => {
+    const regex = /^pay_[a-zA-Z0-9]{14}$/;
+    return regex.test(paymentId);
 };

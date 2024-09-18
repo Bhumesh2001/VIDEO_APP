@@ -42,13 +42,7 @@ exports.createOrder = async (req, res) => {
 exports.verifyPayment = (req, res) => {
     try {
         const { order_id, payment_id, signature } = req.body;
-
-        if (!order_id || !payment_id || !signature) {
-            return res.status(400).json({
-                success: true,
-                message: "amount, currency and signiture are required",
-            });
-        };
+        
         const generated_signature = razorpay.utils.sha256(
             order_id + '|' + payment_id,
             razorpay.key_secret
@@ -58,6 +52,8 @@ exports.verifyPayment = (req, res) => {
             res.json({
                 success: true,
                 message: 'Payment verified successfully',
+                paymentGetway: 'Razorpay',
+                payment_id,
             });
         } else {
             res.status(400).json({

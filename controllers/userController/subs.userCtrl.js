@@ -1,15 +1,22 @@
+const Razorpay = require('razorpay');
 const mongoose = require('mongoose');
-const UserPayment = require('../../models/userModel/payment.userModel');
+
 const CategoryModel = require('../../models/adminModel/category.adminModel');
 const Coupon = require('../../models/adminModel/coupan.adminModel');
+const SubscriptionPlan = require('../../models/adminModel/subs.adminModel');
 
 const SingleCategorySubscriptionModel = require('../../models/userModel/subs.user.Model');
 const AllCategorySubscriptionModel = require('../../models/userModel/allSubs.userModel');
 
-const SubscriptionPlan = require('../../models/adminModel/subs.adminModel');
+const { isValidRazorpayPaymentId } = require('../../utils/subs.userUtil');
+
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_ID_KEY,
+    key_secret: process.env.RAZORPAY_SECRET_KEY
+});
 
 exports.subscribeToCategoryOrAll = async (req, res) => {
-    const { categoryId, planId, couponCode } = req.body;
+    const { categoryId, planId, couponCode, paymentGetway, paymentId, } = req.body;
 
     try {
         const userId = req.user._id;
@@ -89,12 +96,14 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
                 planName: subscriptionPlan.planName,
                 planType: subscriptionPlan.planType,
                 totalPrice: subscriptionPlan.price,
+                paymentGetway,
+                paymentId,
+                paymentStatus: 'completed',
                 discountFromPlan,
                 discountFromCoupon,
             });
         }
         else {
-            // Validate category existence before creating subscription
             const category = await CategoryModel.findById(categoryId);
             if (!category) {
                 return res.status(404).json({
@@ -109,6 +118,9 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
                 planName: subscriptionPlan.planName,
                 planType: subscriptionPlan.planType,
                 totalPrice: subscriptionPlan.price,
+                paymentGetway,
+                paymentId,
+                paymentStatus: 'completed',
                 discountFromPlan,
                 discountFromCoupon,
             });
@@ -136,7 +148,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             });
         };
 
-        if(error.code === 1100){
+        if (error.code === 1100) {
             return res.status(409).json({
                 success: true,
                 message: 'Subscription already taken!',
@@ -197,8 +209,12 @@ exports.getHistory = async (req, res) => {
             });
         };
 
-        const payments = await UserPayment.find({ userId }, { __v: 0 });
-        if (payments.length === 0) {
+        const [SingleSubscriptions, AllSubscriptions] = await Promise.all([
+            SingleCategorySubscriptionModel.find({ userId }).exec(),
+            AllCategorySubscriptionModel.find({ userId }).exec()
+        ]);
+
+        if (SingleSubscriptions.length === 0 || AllSubscriptions.length === 0) {
             return res.status(404).json({
                 success: true,
                 message: "History not found!"
@@ -207,7 +223,7 @@ exports.getHistory = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "History fetched successfully...",
-            payments,
+            History: [...SingleSubscriptions, ...AllSubscriptions],
         });
 
     } catch (error) {
@@ -215,6 +231,63 @@ exports.getHistory = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Error occured while fetching the History",
+        });
+    };
+};
+
+exports.getSingleHistory = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { paymentId } = req.params;
+
+        if (!userId) {
+            return res.status(404).json({
+                success: false,
+                message: "User ID not found",
+            });
+        };
+        
+        if(!isValidRazorpayPaymentId(paymentId)){
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid payment id!',
+            }); 
+        };
+
+        // Fetch history from both models based on userId and paymentId
+        const [singleHistory, allHistory] = await Promise.all([
+            SingleCategorySubscriptionModel.findOne({ userId, paymentId }).exec(),
+            AllCategorySubscriptionModel.findOne({ userId, paymentId }).exec()
+        ]);
+
+        // If history is found in any model, return it
+        const history = singleHistory || allHistory;
+        
+        // fetch payments details from razor pay 
+        const payment = await razorpay.payments.fetch(paymentId);
+
+        if (!history) {
+            return res.status(404).json({
+                success: false,
+                message: "No history found for the provided user and paymentId.",
+            });
+        };
+
+        // Respond with the fetched history
+        res.status(200).json({
+            success: true,
+            message: "History fetched successfully.",
+            history: {
+                ...history,
+                ...payment
+            },
+        });
+
+    } catch (error) {
+        console.error('Error fetching history:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Error occurred while fetching the history.",
         });
     };
 };

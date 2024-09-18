@@ -21,7 +21,7 @@
     <!-- header -->
     <header class="header">
       <div class="container-fluid fixed-top topbar">
-        <div class="row d-flex justify-content-center align-items-center">
+        <div class="row d-flex justify-content-center align-items-center h-100">
           <div class="col-2 col-md-2 col-lg-2 logo-col p-1">
             <img src="/icon/new_logo.png" class="img-fluid" alt="logo" />
           </div>
@@ -390,9 +390,11 @@
                       Add New
                     </button>
                   </div>
+
                   <div class="row" id="video-row"></div>
+
                   <nav aria-label="Page navigation example">
-                    <ul class="pagination m-0">
+                    <ul class="pagination m-0" id="video-pagination">
                       <li class="page-item">
                         <a class="page-link" href="#" aria-label="Previous">
                           <span aria-hidden="true">&laquo;</span>
@@ -627,7 +629,7 @@
                   </div>
                   <div class="row" id="article-row"></div>
                   <nav aria-label="Page navigation example">
-                    <ul class="pagination m-0">
+                    <ul class="pagination m-0" id="article-pagination">
                       <li class="page-item">
                         <a class="page-link" href="#" aria-label="Previous">
                           <span aria-hidden="true">&laquo;</span>
@@ -800,7 +802,7 @@
                   </div>
 
                   <nav aria-label="Page navigation example">
-                    <ul class="pagination m-0">
+                    <ul class="pagination m-0" id="user-pagination">
                       <li class="page-item">
                         <a class="page-link" href="#" aria-label="Previous">
                           <span aria-hidden="true">&laquo;</span>
@@ -941,7 +943,7 @@
                   </div>
                   <div class="row" id="category-row"></div>
                   <nav aria-label="Page navigation example">
-                    <ul class="pagination m-0">
+                    <ul class="pagination m-0" id="category-pagination">
                       <li class="page-item">
                         <a class="page-link" href="#" aria-label="Previous">
                           <span aria-hidden="true">&laquo;</span>
@@ -1065,7 +1067,7 @@
                   <div class="row" id="story-row"></div>
 
                   <nav aria-label="Page navigation example">
-                    <ul class="pagination m-0">
+                    <ul class="pagination m-0" id="story-pagination">
                       <li class="page-item">
                         <a class="page-link" href="#" aria-label="Previous">
                           <span aria-hidden="true">&laquo;</span>
@@ -2276,8 +2278,8 @@
           {
             label: "Revenue Amount ($)",
             data: [100, 200, 150, 250, 300, 180, 400],
-            backgroundColor: "#0fa3b1",
-            borderColor: "#0fa3b1", // Darker blue
+            backgroundColor: "#3f37c9",
+            borderColor: "#6162dc", // Darker blue
             borderWidth: 1,
           },
           {

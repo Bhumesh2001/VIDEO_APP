@@ -91,8 +91,8 @@ async function adminLogout() {
 };
 
 // Function to load user data and display it in the table
-async function loadUserData() {
-    const data = await fetchData('/admin/users');
+async function loadUserData(page = 1, limit = 10) {
+    const data = await fetchData(`/admin/users?page=${page}$limit=${limit}`);
 
     if (!data) return;
 
@@ -131,6 +131,7 @@ async function loadUserData() {
         ['Edit', 'Delete'].forEach(action => {
             const button = document.createElement('button');
             button.innerText = action;
+            button.setAttribute('data-id', user._id);
             button.setAttribute('class', `btn btn-sm btn-${action === 'Edit' ? 'primary' : 'danger'}`);
             div.appendChild(button);
         });
@@ -142,8 +143,8 @@ async function loadUserData() {
 };
 
 // funtion to load video data and display it on video section
-async function loadVideoData() {
-    const data = await fetchData('/admin/videos');
+async function loadVideoData(page = 1, limit = 12) {
+    const data = await fetchData(`/admin/videos?page=${page}&limit=${limit}`);
     if (!data) return;
 
     const videoRow = document.getElementById('video-row');
@@ -172,6 +173,8 @@ async function loadVideoData() {
         btnDiv.classList.add('btn-group');
         editBtn.classList.add('btn', 'btn-sm', 'btn-success');
         deleteBtn.classList.add('btn', 'btn-sm', 'btn-danger');
+        editBtn.setAttribute('data-id', video._id);
+        deleteBtn.setAttribute('data-id', video._id);
         editBtn.innerText = 'Edit';
         deleteBtn.innerText = 'Delete';
 
@@ -185,11 +188,12 @@ async function loadVideoData() {
 
     // Append all at once
     videoRow.appendChild(fragment);
+
 };
 
 // function to load article data and display it on article section
-async function loadArticleData() {
-    const data = await fetchData('/admin/articls');
+async function loadArticleData(page = 1, limit = 12) {
+    const data = await fetchData(`/admin/articls?page=${page}&limit=${limit}`);
 
     if (!data) return;
 
@@ -221,6 +225,8 @@ async function loadArticleData() {
         btnDiv.classList.add('d-flex', 'justify-content-end');
         editBtn.classList.add('btn', 'btn-sm', 'btn-primary', 'me-2');
         deleteBtn.classList.add('btn', 'btn-sm', 'btn-danger');
+        editBtn.setAttribute('data-id', article._id);
+        deleteBtn.setAttribute('data-id', article._id);
         editBtn.innerText = 'Edit';
         deleteBtn.innerText = 'Delete';
 
@@ -238,8 +244,8 @@ async function loadArticleData() {
 };
 
 // function to load story data and display it on story section
-async function loadStoryData() {
-    const data = await fetchData('/admin/stories');
+async function loadStoryData(page = 1, limit = 12) {
+    const data = await fetchData(`/admin/stories?page${page}&limit${limit}`);
 
     if (!data) return;
 
@@ -269,6 +275,8 @@ async function loadStoryData() {
         storyBtnDiv.classList.add('d-flex', 'justify-content-between');
         storyEditBtn.classList.add('btn', 'btn-primary', 'btn-sm', 'me-1');
         storyDeleteBtn.classList.add('btn', 'btn-danger', 'btn-sm');
+        storyEditBtn.setAttribute('data-id', story._id);
+        storyDeleteBtn.setAttribute('data-id', story._id);
         storyEditBtn.innerText = 'Edit';
         storyDeleteBtn.innerText = 'Delete';
 
@@ -285,8 +293,8 @@ async function loadStoryData() {
 };
 
 // function to load category data and display it on category section
-async function loadCategoryData() {
-    const data = await fetchData('/admin/categories');
+async function loadCategoryData(page = 1, limit = 12) {
+    const data = await fetchData(`/admin/categories?page=${page}&limit=${limit}`);
 
     if (!data) return;
 
@@ -316,6 +324,8 @@ async function loadCategoryData() {
         categoryBtnDiv.classList.add('d-flex', 'justify-content-between');
         categoryEditBtn.classList.add('btn', 'btn-primary');
         categoryDeleteBtn.classList.add('btn', 'btn-danger');
+        categoryEditBtn.setAttribute('data-id', category._id);
+        categoryDeleteBtn.setAttribute('data-id', category._id);
         categoryEditBtn.innerText = 'Edit';
         categoryDeleteBtn.innerText = 'Delete';
 
@@ -329,6 +339,7 @@ async function loadCategoryData() {
 
     // Append all at once
     categoryRow.appendChild(fragment);
+
 };
 
 // function to laod subscription data and display it on subscription section
@@ -382,6 +393,8 @@ async function loadSubscriptionData() {
         const deleteButton = document.createElement('button');
         deleteButton.className = 'btn btn-danger btn-sm';
         deleteButton.textContent = 'Delete';
+        editButton.setAttribute('data-id',plan._id);
+        deleteButton.setAttribute('data-id',plan._id);
         actionDiv.appendChild(editButton);
         actionDiv.appendChild(deleteButton);
         actionCell.appendChild(actionDiv);
@@ -424,8 +437,8 @@ async function laodCouponData() {
             <td><span class="badge bg-${coupon.status === 'Active' ? 'success' : 'danger'}">${coupon.status}</span></td>
             <td>
               <div class="d-flex justify-content-end">
-                <button class="btn btn-secondary btn-sm me-2">Edit</button>
-                <button class="btn btn-danger btn-sm">Delete</button>
+                <button class="btn btn-secondary btn-sm me-2" data-id="${coupon._id}" >Edit</button>
+                <button class="btn btn-danger btn-sm" data-id="${coupon._id}">Delete</button>
               </div>
             </td>
           </tr>
@@ -447,8 +460,8 @@ async function laodBannerData() {
                     <img src="${banner.image}" class="card-img-top rounded" alt="${banner.title}" />
                     <div class="card-body">
                         <h5 class="card-title mb-3">${banner.title}</h5>
-                        <button class="btn btn-success">Edit</button>
-                        <button class="btn btn-danger">Delete</button>
+                        <button class="btn btn-success" data-id="${banner._id}">Edit</button>
+                        <button class="btn btn-danger" data-id="${banner._id}">Delete</button>
                     </div>
                 </div>
             </div>
@@ -586,7 +599,7 @@ function showModalWithMessage(message) {
 
 // Function to handle form submission
 async function handleFormSubmission(
-    form, url, successCallback,processBtnId, submitBtnId, dataLoadCallback, isJson = false,
+    form, url, successCallback, processBtnId, submitBtnId, dataLoadCallback, isJson = false,
 ) {
     try {
         toggleProcessBtn(submitBtnId, processBtnId, true);

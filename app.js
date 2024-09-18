@@ -21,6 +21,7 @@ app.use(cors({
         'https://web-digital-vle.netlify.app',
         'https://digital-vle-admin-login.netlify.app',
         'http://localhost:3001',
+        'http://127.0.0.1:5500',
         'https://video-app-0i3v.onrender.com',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],

@@ -107,6 +107,11 @@ userRouter.get(
     subscriptionPlanAdminController.getSubscriptionsPlan
 );
 userRouter.get('/history', userAuthentication, subscriptionUserController.getHistory);
+userRouter.get(
+    '/single-history',
+    userAuthentication,
+    subscriptionUserController.getSingleHistory
+)
 
 // ****************** coupans routes *****************
 
