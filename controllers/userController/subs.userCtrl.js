@@ -1,5 +1,6 @@
 const Razorpay = require('razorpay');
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const CategoryModel = require('../../models/adminModel/category.adminModel');
 const Coupon = require('../../models/adminModel/coupan.adminModel');
@@ -8,7 +9,7 @@ const SubscriptionPlan = require('../../models/adminModel/subs.adminModel');
 const SingleCategorySubscriptionModel = require('../../models/userModel/subs.user.Model');
 const AllCategorySubscriptionModel = require('../../models/userModel/allSubs.userModel');
 
-const { isValidRazorpayPaymentId } = require('../../utils/subs.userUtil');
+const { isValidRazorpayOrderId } = require('../../utils/subs.userUtil');
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_ID_KEY,
@@ -16,7 +17,7 @@ const razorpay = new Razorpay({
 });
 
 exports.subscribeToCategoryOrAll = async (req, res) => {
-    const { categoryId, planId, couponCode, paymentGetway, paymentId, } = req.body;
+    const { categoryId, planId, couponCode } = req.body;
 
     try {
         const userId = req.user._id;
@@ -28,7 +29,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
         };
 
         // Validate category ID if not subscribing to 'all'
-        if (categoryId !== 'all' && categoryId !== 'All' && !mongoose.Types.ObjectId.isValid(categoryId)) {
+        if (categoryId.toLowerCase() !== 'all' && !mongoose.Types.ObjectId.isValid(categoryId)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid category ID format!',
@@ -57,6 +58,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             };
 
             if (coupon.isExpired()) {
+                await Coupon.deleteOne({ _id: coupon._id });
                 return res.status(400).json({
                     success: false,
                     message: 'Coupon has expired.',
@@ -88,17 +90,30 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
         const discountFromPlan = subscriptionPlan.discount || 0;
         const discountFromCoupon = coupon ? coupon.discountPercentage : 0;
 
+        const receipt = `receipt_${crypto.randomBytes(4).toString('hex')}_${Date.now()}`;
+
+        const options = {
+            amount: subscriptionPlan.price * 100, // Amount is in smallest currency unit, so convert to paise
+            currency: 'INR',
+            receipt,
+            payment_capture: 1,
+        };
+
+        const order = await razorpay.orders.create(options);
+        const payments = await razorpay.orders.fetchPayments(order.id);
+
         // Create the new subscription
         let newSubscription;
-        if (categoryId === 'all' || categoryId === 'All') {
+        if (categoryId.toLowerCase() === 'all') {
             newSubscription = new AllCategorySubscriptionModel({
                 userId,
+                categoryId,
                 planName: subscriptionPlan.planName,
                 planType: subscriptionPlan.planType,
-                totalPrice: subscriptionPlan.price,
-                paymentGetway,
-                paymentId,
-                paymentStatus: 'completed',
+                price: subscriptionPlan.price,
+                paymentGetway: 'Razorpay',
+                paymentMethod: payments.items?.[0]?.method || 'Unknown',
+                paymentId: order.id,
                 discountFromPlan,
                 discountFromCoupon,
             });
@@ -117,10 +132,10 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
                 categoryId,
                 planName: subscriptionPlan.planName,
                 planType: subscriptionPlan.planType,
-                totalPrice: subscriptionPlan.price,
-                paymentGetway,
-                paymentId,
-                paymentStatus: 'completed',
+                price: subscriptionPlan.price,
+                paymentGetway: 'Razorpay',
+                paymentMethod: payments.items?.[0]?.method || 'Unknown',
+                paymentId: order.id,
                 discountFromPlan,
                 discountFromCoupon,
             });
@@ -130,11 +145,28 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
         newSubscription.calculateFinalPrice();
         await newSubscription.save();
 
-        res.status(201).json({
+        const responseObj = {
             success: true,
-            message: `Successfully subscribed to ${categoryId === 'all' ? 'all categories' : 'the selected category'}.`,
-            subscription: newSubscription,
-        });
+            message: `Successfully subscribed to ${categoryId.toLowerCase() === 'all' ? 'all categories' : 'the selected category'}.`,
+            orderId: order.id,
+            currency: order.currency,
+            receipt: order.receipt,
+            userId: newSubscription.userId,
+            categoryId: newSubscription.categoryId,
+            planName: newSubscription.planName,
+            planType: newSubscription.planType,
+            price: `₹${newSubscription.price}`,
+            discountFromPlan: `${newSubscription.discountFromPlan}%`,
+            discountFromCoupon: `${newSubscription.discountFromCoupon}%`,
+            finalPrice: `₹${newSubscription.finalPrice}`,
+            paymentId: newSubscription.paymentId,
+            paymentStatus: newSubscription.paymentStatus,
+            status: newSubscription.status,
+            startDate: newSubscription.startDate,
+            expiryDate: newSubscription.expiryDate,
+        };
+
+        res.status(201).json(responseObj);
 
     } catch (error) {
         console.error(error);
@@ -148,7 +180,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             });
         };
 
-        if (error.code === 1100) {
+        if (error.code === 11000) {
             return res.status(409).json({
                 success: true,
                 message: 'Subscription already taken!',
@@ -246,12 +278,12 @@ exports.getSingleHistory = async (req, res) => {
                 message: "User ID not found",
             });
         };
-        
-        if(!isValidRazorpayPaymentId(paymentId)){
+
+        if (!isValidRazorpayOrderId(paymentId)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid payment id!',
-            }); 
+            });
         };
 
         // Fetch history from both models based on userId and paymentId
@@ -262,9 +294,6 @@ exports.getSingleHistory = async (req, res) => {
 
         // If history is found in any model, return it
         const history = singleHistory || allHistory;
-        
-        // fetch payments details from razor pay 
-        const payment = await razorpay.payments.fetch(paymentId);
 
         if (!history) {
             return res.status(404).json({
@@ -277,10 +306,7 @@ exports.getSingleHistory = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "History fetched successfully.",
-            history: {
-                ...history,
-                ...payment
-            },
+            history,
         });
 
     } catch (error) {

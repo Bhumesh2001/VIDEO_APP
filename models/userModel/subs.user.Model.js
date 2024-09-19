@@ -20,9 +20,9 @@ const SingleCategorySubscriptionSchema = new Schema({
         type: String,
         required: true,
     },
-    totalPrice: {
+    price: {
         type: Number,
-        require: [true, 'toatalPrice is required!'],
+        require: [true, 'price is required!'],
     },
     discountFromPlan: {
         type: Number,
@@ -48,14 +48,17 @@ const SingleCategorySubscriptionSchema = new Schema({
             message: 'Discount from coupon must be a whole number',
         },
     },
-    discountedPrice: {
+    finalPrice: {
         type: Number,
-        required: [true, 'discountedPrice is required'],
-        min: [0, 'discountedPrice cannot be less than 0'],
+        required: [true, 'finalPrice is required'],
+        min: [0, 'finalPrice cannot be less than 0'],
     },
     paymentGetway: {
         type: String,
         default: '',
+    },
+    paymentMethod: {
+        type: String,
     },
     paymentId: {
         type: String,
@@ -69,12 +72,9 @@ const SingleCategorySubscriptionSchema = new Schema({
     startDate: {
         type: Date,
         default: Date.now,
-        required: true,
     },
     expiryDate: {
         type: Date,
-        default: Date.now,
-        required: true,
     },
     status: {
         type: String,
@@ -112,8 +112,8 @@ SingleCategorySubscriptionSchema.pre('save', function (next) {
 
 SingleCategorySubscriptionSchema.methods.calculateFinalPrice = function () {
     const totalDiscountPercentage = this.discountFromPlan + this.discountFromCoupon;
-    const discountAmount = (this.totalPrice * totalDiscountPercentage) / 100;
-    this.discountedPrice = this.totalPrice - discountAmount;
+    const discountAmount = (this.price * totalDiscountPercentage) / 100;
+    this.finalPrice = this.price - discountAmount;
 };
 
 const SingleCategorySubscriptionModel = mongoose.model('SingleCategorySubscription', SingleCategorySubscriptionSchema);

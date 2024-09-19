@@ -138,7 +138,7 @@ exports.UserSubscription = async (userId) => {
 };
 
 // is valid razorpay payment id or not
-exports.isValidRazorpayPaymentId = (paymentId) => {
-    const regex = /^pay_[a-zA-Z0-9]{14}$/;
-    return regex.test(paymentId);
+exports.isValidRazorpayOrderId = (orderId) => {
+    const regex = /^order_[a-zA-Z0-9]{14}$/;
+    return regex.test(orderId);
 };
