@@ -78,7 +78,7 @@ adminRouter.post('/mega/upload-video', adminAuthentication, videoController.uplo
 adminRouter.get('/videos', videoController.getAllvideos);
 adminRouter.get('/videos-by-category', adminAuthentication, videoController.getAllvideosByCategory);
 
-// ******************** Category routes *******************
+// ******************** Category routes ********************
 
 adminRouter.post(
     '/create-category',
@@ -141,7 +141,7 @@ adminRouter.delete(
 adminRouter.post(
     '/create-article',
     adminAuthentication,
-    validateRequiredFields(['title', 'content', 'authorName', 'publicationDate', 'topic']),
+    validateRequiredFields(['title', 'description']),
     articleController.createArticle
 );
 adminRouter.get('/articls', articleController.getAllArticles);
@@ -155,7 +155,7 @@ adminRouter.put(
     '/update-article',
     adminAuthentication,
     validateObjectIds(['articleId']),
-    validateRequiredFields(['title', 'content', 'authorName', 'publicationDate', 'topic']),
+    validateRequiredFields(['title', 'description']),
     articleController.updateArticle
 );
 adminRouter.delete(

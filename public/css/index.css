@@ -15,6 +15,9 @@ body {
 .nav-col {
   border-left: 2px solid red;
 }
+.navbar-brand {
+  font-weight: bold;
+}
 /* -------------- default icon css ---------------*/
 
 .dropdown-item:hover {
@@ -62,6 +65,7 @@ body {
   bottom: 0;
   height: 100vh;
   background-color: #252422;
+  font-weight: bold;
   z-index: 1000;
   overflow-y: auto;
   transition: transform 0.3s ease;
@@ -256,17 +260,15 @@ body {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.card-img-top {
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
+/* .card-img-top {
   width: 100%;
   height: auto;
   max-width: 1080px;
-  aspect-ratio: 2 / 1;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
-}
+} */
 
-.article-card-img-top,
+/* .article-card-img-top,
 .category-card-img-top,
 .story-card-img-top {
   border-top-left-radius: 10px;
@@ -276,7 +278,7 @@ body {
   max-width: 1080px;
   aspect-ratio: 1 / 1;
   object-fit: cover;
-}
+} */
 
 .card-title {
   font-weight: bold;
@@ -301,11 +303,13 @@ body {
 .btn-danger {
   background-color: red;
   border-color: red;
+  font-weight: bold;
 }
 
 .btn-success {
   background-color: green;
   border-color: green;
+  font-weight: bold;
 }
 
 .btn-success:hover {
@@ -583,6 +587,7 @@ body {
   background-color: #2c2c2c;
   color: #ffffff;
   border: 1px solid transparent;
+  font-weight: bold;
 }
 
 .nav-tabs .active {
@@ -590,6 +595,7 @@ body {
   color: #ffffff;
   border: 1px solid red;
   border-radius: 5px;
+  font-weight: bold;
 }
 
 .nav-tabs li a {
@@ -692,4 +698,40 @@ body {
   .chart-container {
     padding-bottom: 50%;
   }
+}
+
+/* thumbnail preview  */
+
+.thumbnail-preview {
+  max-width: 200px;
+  margin-top: 10px;
+  display: none;
+}
+
+/*  menu css */
+
+.form-select {
+  background-color: #3a3a3a; /* Dark background */
+  border: 1px solid #444444; /* Dark border */
+  color: #ffffff; /* White text */
+  font-weight: bold;
+}
+
+.form-select:focus {
+  /* border-color: #007bff; */
+  box-shadow: none;
+  outline: none;
+}
+/* Remove the default focus outline for all form elements */
+.form-control:focus,
+.form-select:focus,
+.btn:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.form-control:focus,
+.form-select:focus,
+.btn:focus {
+  border-color: #fa042d;
 }

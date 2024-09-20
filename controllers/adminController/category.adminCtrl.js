@@ -89,12 +89,13 @@ exports.getAllCategories = async (req, res) => {
 
         const skip = (page - 1) * limit;
 
-        const categories = await Category.find({}, {
-            __v: 0, createdAt: 0, updatedAt: 0,
-        }).skip(skip).limit(limit);
+        const categories = await Category.find({}, { __v: 0, createdAt: 0, updatedAt: 0 })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
         const totalCategory = await Category.countDocuments();
 
-        if(categories.length === 0){
+        if (categories.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Article not found!',
@@ -105,8 +106,8 @@ exports.getAllCategories = async (req, res) => {
             success: true,
             message: "All categories fetched successfully...",
             totalCategory,
-            page,
             totalPages: Math.ceil(totalCategory / limit),
+            page,
             categories,
         });
     } catch (error) {

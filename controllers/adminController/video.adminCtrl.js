@@ -23,8 +23,8 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             });
         };
 
-        const isCategoryAvailabel = await Category.findOne({ category }).exec();
-        if(!isCategoryAvailabel){
+        const isCategoryAvailabel = await Category.findOne({ name: category }).exec();
+        if (!isCategoryAvailabel) {
             return res.status(404).json({
                 success: false,
                 message: 'Category is not availabe!',
@@ -49,7 +49,7 @@ exports.uploadVideoToCloudinary = async (req, res) => {
         };
 
         const existingVideo = await Video.findOne({ title });
-        if(existingVideo){
+        if (existingVideo) {
             return res.status(409).json({
                 success: false,
                 message: 'Video already eixists!',
@@ -70,8 +70,9 @@ exports.uploadVideoToCloudinary = async (req, res) => {
         if (videoFile) {
             try {
                 const videoResult = await cloudinary.uploader.upload(videoFile.tempFilePath, {
+                    folder: 'Videos',
                     resource_type: 'video',
-                    chunk_size: 20000000,
+                    chunk_size: 90000000,
                 });
 
                 videoData.video.publicId = videoResult.public_id;
@@ -86,6 +87,7 @@ exports.uploadVideoToCloudinary = async (req, res) => {
         else if (video) {
             try {
                 const videoResult = await cloudinary.uploader.upload(video, {
+                    folder: 'Videos',
                     resource_type: 'video',
                 });
 
@@ -100,11 +102,15 @@ exports.uploadVideoToCloudinary = async (req, res) => {
         if (thumbnailFile) {
             try {
                 const thumbnailResult = await cloudinary.uploader.upload(thumbnailFile.tempFilePath, {
+                    folder: 'thumbnails',
                     resource_type: 'image',
+                    transformation: [
+                        { width: 1280, height: 720, crop: "fill" }
+                    ]
                 });
 
-                videoData.thumbnail.publicId = thumbnailResult.public_id;
-                videoData.thumbnail.url = thumbnailResult.secure_url;
+                videoData.video.publicId = thumbnailResult.public_id;
+                videoData.video.url = thumbnailResult.secure_url;
 
                 fs.unlinkSync(thumbnailFile.tempFilePath);
 
@@ -115,11 +121,15 @@ exports.uploadVideoToCloudinary = async (req, res) => {
         else if (thumbnail) {
             try {
                 const thumbnailResult = await cloudinary.uploader.upload(thumbnail, {
+                    folder: 'thumbnails',
                     resource_type: 'image',
+                    transformation: [
+                        { width: 1280, height: 720, crop: "fill" }
+                    ]
                 });
 
                 videoData.thumbnail.publicId = thumbnailResult.public_id;
-                videoData.thumbnail.url = thumbnailResult.secure_url;
+                videoData.thumbnail.url = thumbnailResult.url;
 
             } catch (error) {
                 console.error('Error uploading thumbnail URL:', error);
@@ -137,6 +147,7 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             message: 'Video uploaded successfully!',
             video: newVideo,
         });
+
     } catch (error) {
         console.error(error);
 
@@ -203,7 +214,7 @@ exports.uploadVideoToMega = async (req, res) => {
 
         // Use fs.createReadStream to stream the file directly
         const fileStream = fs.createReadStream(videoFile.tempFilePath, {
-            highWaterMark: 1024 * 1024 * 20 // Adjust chunk size as needed (e.g., 10MB)
+            highWaterMark: 1024 * 1024 * 90 // Adjust chunk size as needed (e.g., 10MB)
         });
         fileStream.pipe(uploadStream);
 
@@ -257,7 +268,7 @@ exports.getAllvideos = async (req, res) => {
 
         const skip = (page - 1) * limit;
 
-        const videos = await Video.find({}, { __v: 0 }).skip(skip).limit(limit);
+        const videos = await Video.find({}, { __v: 0 }).sort({ createdAt: -1 }).skip(skip).limit(limit);
         const totalVideos = await Video.countDocuments();
 
         if (videos.length === 0) {
@@ -270,8 +281,8 @@ exports.getAllvideos = async (req, res) => {
             success: true,
             message: 'Video fetched successfully...',
             totalVideos,
-            page,
             totalPages: Math.ceil(totalVideos / limit),
+            page,
             videos,
         });
     } catch (error) {

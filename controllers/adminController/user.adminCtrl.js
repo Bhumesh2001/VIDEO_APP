@@ -59,6 +59,7 @@ exports.getAllUsersByAdmin = async (req, res) => {
         const skip = (page - 1) * limit;
 
         const users = await userModel.find({})
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
 
@@ -120,7 +121,7 @@ exports.updateUserByAdmin = async (req, res) => {
     try {
         const { userId } = req.query;
         const updates = req.body;
-        
+
         const user = await userModel.findByIdAndUpdate(
             userId,
             { ...updates, updatedAt: Date.now() },

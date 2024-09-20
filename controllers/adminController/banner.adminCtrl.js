@@ -1,11 +1,13 @@
+const cloudinary = require('cloudinary').v2
 const Banner = require('../../models/adminModel/banner.adminModlel');
 const {
-    uploadImageToCloudinary,
     deleteImageAndUploadToCloudinary,
     deleteImageOnCloudinary,
+    imageToBuffer,
+    uploadArticleImageToCloudinary,
+    resizeImage,
 } = require('../../utils/uploadImage');
 
-const cloudinary = require('cloudinary').v2
 
 exports.createBanner = async (req, res) => {
     let { title, description, image, status } = req.body;
@@ -17,7 +19,7 @@ exports.createBanner = async (req, res) => {
         if (existingBanner) {
             return res.status(409).json({
                 success: false,
-                message: 'Banner with this title already exists!',
+                message: 'Banner already exists!',
             });
         };
 
@@ -43,10 +45,20 @@ exports.createBanner = async (req, res) => {
             };
         };
 
-        // Upload image to Cloudinary
-        imageData = await uploadImageToCloudinary(image);
+        if (image) {
+            const aspect_ratio = {
+                width: 1280,
+                height: 720,
+            };
+            const folderName = 'Banners';
+            const format = req.files.image.mimetype.split('/')[1];
 
-        // Create a new banner object
+            const imageBuffer = await imageToBuffer(image);
+            const resizedBuffer = await resizeImage(imageBuffer, aspect_ratio.width, aspect_ratio.height);
+
+            imageData = await uploadArticleImageToCloudinary(resizedBuffer, format, aspect_ratio, folderName);
+        };
+
         const bannerObj = {
             title,
             description,
@@ -106,14 +118,23 @@ exports.createBanner = async (req, res) => {
 
 exports.getAllBanners = async (req, res) => {
     try {
-        const banners = await Banner.find({} ,{
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+
+        const skip = (page - 1) * limit;
+
+        const banners = await Banner.find({}, {
             __v: 0, createdAt: 0, updatedAt: 0,
-        });
+        }).sort({ publishedAt: -1 }).skip(skip).limit(limit);
+
         const totalBanners = await Banner.countDocuments();
+
         res.status(200).json({
             success: true,
             message: 'Banners fetched successfully...',
             totalBanners,
+            totalPages: Math.ceil(totalBanners / limit),
+            page,
             banners,
         });
     } catch (error) {
@@ -181,16 +202,30 @@ exports.updateBanner = async (req, res) => {
             });
         };
 
-        const public_id = bannerData.public_id;
-        const imageData = await deleteImageAndUploadToCloudinary(public_id, image);
-
         const bannerUpdates = {
             title,
             description,
-            public_id: imageData.public_id,
-            image: imageData.url,
             status,
             updatedAt: Date.now(),
+        };
+
+        if (image) {
+            const aspect_ratio = {
+                width: 1280,
+                height: 720,
+            };
+            const folderName = 'Banners';
+            const format = req.files.image.mimetype.split('/')[1];
+
+            const imageBuffer = await imageToBuffer(image);
+            const resizedBuffer = await resizeImage(imageBuffer, aspect_ratio.width, aspect_ratio.height);
+
+            const public_id = bannerData.public_id;
+            const updateData = { resizedBuffer, format, aspect_ratio, folderName, public_id }
+            const imageData = await deleteImageAndUploadToCloudinary(updateData);
+
+            bannerUpdates['image'] = imageData.url;
+            bannerUpdates['public_id'] = imageData.public_id;
         };
 
         const banner = await Banner.findByIdAndUpdate(

@@ -53,7 +53,9 @@ exports.createCoupon = async (req, res) => {
 // Get all coupons
 exports.getCoupons = async (req, res) => {
     try {
-        const coupons = await Coupon.find({});
+        const coupons = await Coupon.find({}).sort({ createdAt: -1 });
+        const totalCoupons = await Coupon.countDocuments();
+
         if (!coupons) {
             return res.status(404).json({
                 success: true,
@@ -63,6 +65,7 @@ exports.getCoupons = async (req, res) => {
 
         res.status(200).json({
             success: true,
+            totalCoupons,
             coupons
         });
     } catch (error) {

@@ -77,7 +77,18 @@ exports.createStoryByAdmin = async (req, res) => {
 
 exports.getAllStoriesByAdmin = async (req, res) => {
     try {
-        const stories = await Story.find({});
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+
+        const skip = (page - 1) * limit;
+
+        const stories = await Story.find({})
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        const totalStories = await Story.countDocuments();
+
         if (!stories) {
             return res.status(404).json({
                 success: false,
@@ -87,6 +98,9 @@ exports.getAllStoriesByAdmin = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Stories fetched successfully...',
+            totalStories,
+            totalPages: Math.ceil(totalStories / limit),
+            page,
             stories,
         });
     } catch (error) {

@@ -21,8 +21,9 @@ const commentSchema = new mongoose.Schema({
 
 const articleSchema = new mongoose.Schema({
     userId: {
-        type: String,
-        required: [true, 'userId is required'],
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
     },
     title: {
         type: String,
@@ -32,30 +33,11 @@ const articleSchema = new mongoose.Schema({
         minlength: [10, 'Title must be at least 10 characters long'],
         maxlength: [200, 'Title cannot exceed 200 characters'],
     },
-    authorName: {
+    description: {
         type: String,
-        required: [true, 'Author name is required'],
-        trim: true,
-        minlength: [5, 'Author name must be at least 5 characters long'],
-        maxlength: [100, 'Author name cannot exceed 100 characters'],
-    },
-    publicationDate: {
-        type: Date,
-        default: Date.now,
-        required: [true, 'Publication date is required'],
-    },
-    content: {
-        type: String,
-        required: [true, 'Content is required'],
-        minlength: [50, 'Content must be at least 50 characters long'],
-        maxlength: [5000, 'Content cannot exceed 5000 characters'],
-    },
-    topic: {
-        type: String,
-        required: [true, 'Topic is required'],
-        trim: true,
-        minlength: [3, 'Topic must be at least 3 characters long'],
-        maxlength: [100, 'Topic cannot exceed 100 characters'],
+        required: [true, 'Description is required'],
+        minlength: [50, 'Description must be at least 50 characters long'],
+        maxlength: [5000, 'Description cannot exceed 5000 characters'],
     },
     image: {
         type: String,
@@ -82,7 +64,6 @@ const articleSchema = new mongoose.Schema({
 );
 
 articleSchema.index({ title: 1 }, { unique: true });
-articleSchema.index({ authorName: 1 });
 articleSchema.index({ likes: 1 }, { sparse: true });
 articleSchema.index({ 'comments.userId': 1 });
 articleSchema.index({ timestamps: 1 });

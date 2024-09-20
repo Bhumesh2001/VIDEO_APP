@@ -98,6 +98,8 @@ async function loadUserData(page = 1, limit = 10) {
 
     const tbody = document.getElementById('t-body');
 
+    tbody.innerHTML = '';
+
     data.users.forEach(user => {
         const tr = document.createElement('tr');
         tr.setAttribute('class', 'user_row');
@@ -150,6 +152,8 @@ async function loadVideoData(page = 1, limit = 12) {
     const videoRow = document.getElementById('video-row');
     const fragment = document.createDocumentFragment();
 
+    videoRow.innerHTML = '';
+
     data.videos.forEach(video => {
         // Create elements
         const colDiv = document.createElement('div');
@@ -164,7 +168,7 @@ async function loadVideoData(page = 1, limit = 12) {
         // Set classes and attributes
         colDiv.classList.add('col-12', 'col-sm-4', 'col-md-4', 'col-lg-3', 'mb-4');
         cardDiv.classList.add('card');
-        img.classList.add('card-img-top', 'rounded-top');
+        img.classList.add('img-fluid', 'rounded-top');
         img.setAttribute('alt', 'Video Thumbnail');
         img.src = video.thumbnail.url;
         cardBody.classList.add('card-body');
@@ -200,6 +204,8 @@ async function loadArticleData(page = 1, limit = 12) {
     const articleRow = document.getElementById('article-row');
     const fragment = document.createDocumentFragment();
 
+    articleRow.innerHTML = '';
+
     data.articls.forEach(article => {
         // Create elements
         const colDiv = document.createElement('div');
@@ -215,7 +221,7 @@ async function loadArticleData(page = 1, limit = 12) {
         // Set classes and attributes
         colDiv.classList.add('col-12', 'col-sm-4', 'col-md-4', 'col-lg-3', 'mb-4');
         articleCard.classList.add('card', 'article-card');
-        articleImg.classList.add('article-card-img-top');
+        articleImg.classList.add('img-fluid', 'rounded-top');
         articleImg.src = article.image;
         articleImg.setAttribute('alt', 'Article Image');
         cardHeader.classList.add('card-header');
@@ -252,6 +258,8 @@ async function loadStoryData(page = 1, limit = 12) {
     const storyRow = document.getElementById('story-row');
     const fragment = document.createDocumentFragment();
 
+    storyRow.innerHTML = '';
+
     data.stories.forEach(story => {
         // Create elements
         const colDiv = document.createElement('div');
@@ -266,7 +274,7 @@ async function loadStoryData(page = 1, limit = 12) {
         // Set classes and attributes
         colDiv.classList.add('col-12', 'col-sm-4', 'col-md-4', 'col-lg-3', 'mb-4');
         storyCard.classList.add('card', 'story_card');
-        storyImg.classList.add('story-card-img-top');
+        storyImg.classList.add('img-fluid', 'rounded-top');
         storyImg.setAttribute('alt', 'story-image');
         storyImg.src = story.image;
         storyCardBody.classList.add('card-body');
@@ -301,6 +309,8 @@ async function loadCategoryData(page = 1, limit = 12) {
     const categoryRow = document.getElementById('category-row');
     const fragment = document.createDocumentFragment();
 
+    categoryRow.innerHTML = '';
+
     data.categories.forEach(category => {
         // Create elements
         const categoryColDiv = document.createElement('div');
@@ -315,7 +325,7 @@ async function loadCategoryData(page = 1, limit = 12) {
         // Set classes and attributes
         categoryColDiv.classList.add('col-12', 'col-sm-4', 'col-md-4', 'col-lg-3', 'mb-4');
         categoryCard.classList.add('card', 'category-card');
-        categoryImg.classList.add('category-card-img-top');
+        categoryImg.classList.add('img-fluid', 'rounded-top');
         categoryImg.setAttribute('alt', 'category_img');
         categoryImg.src = category.image_url;
         categoryCardBody.classList.add('card-body');
@@ -393,8 +403,8 @@ async function loadSubscriptionData() {
         const deleteButton = document.createElement('button');
         deleteButton.className = 'btn btn-danger btn-sm';
         deleteButton.textContent = 'Delete';
-        editButton.setAttribute('data-id',plan._id);
-        deleteButton.setAttribute('data-id',plan._id);
+        editButton.setAttribute('data-id', plan._id);
+        deleteButton.setAttribute('data-id', plan._id);
         actionDiv.appendChild(editButton);
         actionDiv.appendChild(deleteButton);
         actionCell.appendChild(actionDiv);
@@ -457,7 +467,7 @@ async function laodBannerData() {
         return `
             <div class="col-md-4 mb-3">
                 <div class="card">
-                    <img src="${banner.image}" class="card-img-top rounded" alt="${banner.title}" />
+                    <img src="${banner.image}" class="img-fluid rounded" alt="${banner.title}" />
                     <div class="card-body">
                         <h5 class="card-title mb-3">${banner.title}</h5>
                         <button class="btn btn-success" data-id="${banner._id}">Edit</button>
@@ -824,3 +834,86 @@ document.getElementById('logout-btn').addEventListener('click', function (e) {
     e.preventDefault();
     adminLogout();
 });
+
+
+// Sample data for the chart
+const labels = [
+    "User123",
+    "User456",
+    "User789",
+    "User101",
+    "User202",
+    "User303",
+    "User404",
+];
+const data = {
+    labels: labels,
+    datasets: [
+        {
+            label: "Revenue Amount ($)",
+            data: [100, 200, 150, 250, 300, 180, 400],
+            backgroundColor: "#3f37c9",
+            borderColor: "#6162dc", // Darker blue
+            borderWidth: 1,
+        },
+        {
+            label: "Projected Revenue ($)",
+            data: [120, 180, 220, 300, 250, 320, 380],
+            backgroundColor: "#e9c46a",
+            borderColor: "#e9c46a",
+            borderWidth: 1,
+        },
+        {
+            label: "Potential Revenue ($)",
+            data: [150, 250, 300, 400, 350, 420, 450],
+            backgroundColor: "#db3545",
+            borderColor: "#db3545",
+            borderWidth: 1,
+        },
+    ],
+};
+
+const config = {
+    type: "bar",
+    data: data,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: "rgba(255, 255, 255, 0.1)",
+                },
+                title: {
+                    display: true,
+                    text: "Revenue ($)",
+                    color: "#ffffff",
+                },
+            },
+            x: {
+                grid: {
+                    color: "rgba(255, 255, 255, 0.1)",
+                },
+                title: {
+                    display: true,
+                    text: "Users",
+                    color: "#ffffff",
+                },
+            },
+        },
+        plugins: {
+            legend: {
+                labels: {
+                    color: "#ffffff",
+                },
+            },
+        },
+    },
+};
+
+// Render the chart
+const revenueChart = new Chart(
+    document.getElementById("revenueChart"),
+    config
+);

@@ -1,17 +1,17 @@
 const Article = require('../../models/adminModel/article.adminModel');
+const cloudinary = require('cloudinary').v2;
 const {
-    uploadImageToCloudinary,
     deleteImageAndUploadToCloudinary,
     deleteImageOnCloudinary,
+    imageToBuffer,
+    uploadArticleImageToCloudinary,
+    resizeImage,
 } = require('../../utils/uploadImage');
-const cloudinary = require('cloudinary').v2;
-
-const { convertToMongooseDate } = require('../../utils/subs.userUtil');
 
 exports.createArticle = async (req, res) => {
     let imageData = null;
     try {
-        let { title, authorName, publicationDate, topic, content, image } = req.body;
+        let { title, description, image } = req.body;
 
         // Check for existing article
         const existingArticle = await Article.findOne({ title });
@@ -42,18 +42,25 @@ exports.createArticle = async (req, res) => {
 
         // Upload image to Cloudinary
         if (image) {
-            imageData = await uploadImageToCloudinary(image);
+            const aspect_ratio = {
+                height: 1200,
+                width: 1200
+            };
+            const folderName = 'Articles';
+            const format = req.files.image.mimetype.split('/')[1];
+
+            const imageBuffer = await imageToBuffer(image);
+            const resizedBuffer = await resizeImage(imageBuffer, aspect_ratio.width, aspect_ratio.height);
+
+            imageData = await uploadArticleImageToCloudinary(resizedBuffer, format, aspect_ratio, folderName);
         };
 
         const articleData = {
             userId: req.admin._id,
             title,
-            public_id: imageData.public_id,
+            description,
             image: imageData.url,
-            publicationDate: convertToMongooseDate(publicationDate),
-            authorName,
-            topic,
-            content,
+            public_id: imageData.public_id,
         };
 
         const article = new Article(articleData);
@@ -109,7 +116,7 @@ exports.getAllArticles = async (req, res) => {
 
         const skip = (page - 1) * limit;
 
-        const articls = await Article.find({}).skip(skip).limit(limit);
+        const articls = await Article.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit);
         const totalArticles = await Article.countDocuments();
 
         if (!articls) {
@@ -123,8 +130,8 @@ exports.getAllArticles = async (req, res) => {
             success: true,
             message: 'Article fetched successfully...',
             totalArticles,
-            page,
             totalPages: Math.ceil(totalArticles / limit),
+            page,
             articls,
         });
 
@@ -168,7 +175,7 @@ exports.getSingleArticle = async (req, res) => {
 exports.updateArticle = async (req, res) => {
     try {
         const { articleId } = req.query;
-        let { image, publicationDate, ...data } = req.body;
+        let { title, description, image } = req.body;
 
         if (!(req.files && req.files.image) && !req.body.image) {
             return res.status(400).json({
@@ -196,14 +203,28 @@ exports.updateArticle = async (req, res) => {
             });
         };
 
-        const public_id = articleData.public_id;
-        const imageData = await deleteImageAndUploadToCloudinary(public_id, image);
-
         const dataToUpdate = {
-            public_id: imageData.public_id,
-            image: imageData.url,
-            publicationDate: publicationDate ? new Date(publicationDate) : new Date(),
-            ...data,
+            title,
+            description,
+        };
+
+        if(image){
+            const aspect_ratio = {
+                height: 1200,
+                width: 1200
+            };
+            const folderName = 'Articles';
+            const format = req.files.image.mimetype.split('/')[1];
+    
+            const imageBuffer = await imageToBuffer(image);
+            const resizedBuffer = await resizeImage(imageBuffer, aspect_ratio.width, aspect_ratio.height);
+    
+            const public_id = articleData.public_id;
+            const updateData = { resizedBuffer, format, aspect_ratio, folderName, public_id }
+            const imageData = await deleteImageAndUploadToCloudinary(updateData);
+
+            dataToUpdate['image'] = imageData.url;
+            dataToUpdate['public_id'] = imageData.public_id;
         };
 
         const article = await Article.findByIdAndUpdate(

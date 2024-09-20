@@ -53,7 +53,7 @@ exports.createSubscriptionPlan = async (req, res) => {
 
 exports.getSubscriptionsPlan = async (req, res) => {
     try {
-        const subscriptions = await Subscription.find({});
+        const subscriptions = await Subscription.find({}).sort({ createdAt: -1 });
         const totalSubscription = await Subscription.countDocuments();
 
         res.status(200).json({
