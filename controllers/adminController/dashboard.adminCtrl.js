@@ -5,34 +5,23 @@ const Category = require('../../models/adminModel/category.adminModel');
 
 exports.dashboardCount = async (req, res) => {
     try {
-        const articlesAggregation = await Article.aggregate([
-            {
-                $group: {
-                    _id: null,
-                    totalLikes: { $sum: { $size: "$likes" } },
-                    totalComments: { $sum: { $size: "$comments" } }
+        const aggregateData = async (model) => {
+            const result = await model.aggregate([
+                {
+                    $group: {
+                        _id: null,
+                        totalLikes: { $sum: { $size: "$likes" } },
+                        totalComments: { $sum: { $size: "$comments" } }
+                    }
                 }
-            }
+            ]);
+            return result.length ? result[0] : { totalLikes: 0, totalComments: 0 };
+        };
+
+        const [articleData, videoData] = await Promise.all([
+            aggregateData(Article),
+            aggregateData(Video),
         ]);
-
-        const videosAggregation = await Video.aggregate([
-            {
-                $group: {
-                    _id: null,
-                    totalLikes: { $sum: { $size: "$likes" } },
-                    totalComments: { $sum: { $size: "$comments" } }
-                }
-            }
-        ]);
-
-        const totalArticleLikes = articlesAggregation.length ? articlesAggregation[0].totalLikes : 0;
-        const totalVideoLikes = videosAggregation.length ? videosAggregation[0].totalLikes : 0;
-
-        const totalVideoComments = videosAggregation.length ? videosAggregation[0].totalComments : 0;
-        const totalArticleComments = articlesAggregation.length ? articlesAggregation[0].totalComments : 0;
-
-        const totalArticleAndVideoLikes = totalArticleLikes + totalVideoLikes;
-        const totalArticleAndVideoComments = totalArticleComments + totalVideoComments;
 
         const totalUser = await User.countDocuments();
         const totalCategory = await Category.countDocuments();
@@ -45,19 +34,18 @@ exports.dashboardCount = async (req, res) => {
             totalUser,
             totalVideo,
             totalCategory,
-            totalArticleAndVideoLikes,
-            totalArticleAndVideoComments,
+            totalLikes: articleData.totalLikes + videoData.totalLikes,
+            totalComments: articleData.totalComments + videoData.totalComments,
             totalArticle,
         };
 
         res.status(200).json(response);
-
     } catch (error) {
-        console.error(error);
+        console.error('Error fetching dashboard counts:', error);
         res.status(500).json({
             success: false,
             message: 'Error fetching total likes and comments',
             error: error.message
         });
-    };
+    }
 };

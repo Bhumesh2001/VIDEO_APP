@@ -525,8 +525,8 @@ const Data = {
     "total_user": "totalUser",
     "total_video": "totalVideo",
     "total_category": "totalCategory",
-    "total_like": "totalArticleAndVideoLikes",
-    "total_comment": "totalArticleAndVideoComments",
+    "total_like": "totalLikes",
+    "total_comment": "totalComments",
     "total_articles": "totalArticle",
 };
 

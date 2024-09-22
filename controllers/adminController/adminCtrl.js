@@ -5,81 +5,71 @@ exports.createAdmin = async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
+        // Validate password strength
         const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
         if (!strongPasswordRegex.test(password)) {
             return res.status(400).json({
                 success: false,
-                message: 'Password must be strong (include upper, lower, number, and special character)',
+                message: 'Password must be strong (include upper, lower case, number, and special character)',
             });
-        };
+        }
 
-        const existsAdmin = await Admin.countDocuments();
-        let newAdmin;
-        if (existsAdmin === 1) {
+        // Check if an admin already exists
+        const adminExists = await Admin.exists();
+        if (adminExists) {
             return res.status(409).json({
                 success: false,
-                message: "Admin already created, you can't make admin.",
+                message: "Admin already exists, cannot create another admin.",
             });
-        } else {
-            newAdmin = new Admin({
-                username, email, password
-            });
-            await newAdmin.save();
-        };
+        }
+
+        // Create and save new admin
+        const newAdmin = await new Admin({ username, email, password }).save();
 
         res.status(201).json({
             success: true,
-            message: "Admin user created successfully...",
+            message: "Admin user created successfully.",
             newAdmin,
         });
+
     } catch (error) {
-        console.log(error);
+        console.error('Error creating admin:', error);
         res.status(500).json({
             success: false,
             message: 'Internal server error',
         });
-    };
+    }
 };
 
 exports.loginAdmin = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        // Find the admin by email
         const admin = await Admin.findOne({ email });
-
-        if (!admin) {
+        if (!admin || !(await admin.comparePassword(password))) {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid email or password',
             });
-        };
+        }
 
-        const isPasswordValid = await admin.comparePassword(password);
-        if (!isPasswordValid) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid email or password',
-            });
-        };
-
+        // Generate JWT token
         const token = jwt.sign(
-            {
-                _id: admin._id,
-                role: admin.role,
-                email: admin.email,
-            },
+            { _id: admin._id, role: admin.role, email: admin.email },
             process.env.ADMIN_SECRET_KEY,
             { expiresIn: '2d' }
         );
 
+        // Set token in HTTP-only secure cookie
         res.cookie('adminToken', token, {
             httpOnly: true,
             secure: true,
-            maxAge: 1000 * 60 * 60 * 48,
+            maxAge: 1000 * 60 * 60 * 48, // 2 days
             sameSite: 'Lax',
-            path: '/',
         });
 
+        // Respond with success
         res.status(200).json({
             success: true,
             message: 'Admin logged in successfully',
@@ -93,7 +83,7 @@ exports.loginAdmin = async (req, res) => {
             success: false,
             message: 'An error occurred during login. Please try again later.',
         });
-    };
+    }
 };
 
 exports.adminProfile = async (req, res) => {
@@ -176,30 +166,32 @@ exports.updateProfile = async (req, res) => {
 
 exports.logoutAdmin = async (req, res) => {
     try {
-        const adminToken = req.cookies.adminToken;
-        if (adminToken) {
-            res.clearCookie('adminToken', {
-                httpOnly: true,
-                secure: true,
-                sameSite: 'Lax',
-                path: '/',
-            });
-            return res.status(200).json({
-                success: true,
-                message: 'Admin logged out successfully.',
-                adminToken,
-            });
-        } else {
+        const { adminToken } = req.cookies;
+
+        if (!adminToken) {
             return res.status(400).json({
                 success: false,
                 message: 'Admin is already logged out!',
             });
-        };
-    } catch (error) {
-        console.error('Logout exception:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Failed to log out due to an exception.'
+        }
+
+        res.clearCookie('adminToken', {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'Lax',
+            path: '/',
         });
-    };
+
+        res.status(200).json({
+            success: true,
+            message: 'Admin logged out successfully.',
+        });
+
+    } catch (error) {
+        console.error('Logout exception:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to log out due to an exception.',
+        });
+    }
 };

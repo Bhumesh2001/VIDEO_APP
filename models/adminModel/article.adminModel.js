@@ -12,12 +12,7 @@ const commentSchema = new mongoose.Schema({
         minlength: [1, 'Comment must be at least 1 character long'],
         maxlength: [500, 'Comment cannot exceed 500 characters']
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
-}, { timestamps: true }
-);
+}, { timestamps: true });
 
 const articleSchema = new mongoose.Schema({
     userId: {

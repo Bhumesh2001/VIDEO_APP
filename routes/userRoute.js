@@ -139,7 +139,7 @@ userRouter.get('/banners', userAuthentication, bannerAdminController.getAllBanne
 userRouter.post(
     '/create-article',
     userAuthentication,
-    validateRequiredFields(['title', 'content', 'authorName', 'publicationDate', 'topic']),
+    validateRequiredFields(['title', 'description']),
     articleUserController.createArticle
 );
 userRouter.get('/articles', userAuthentication, articleUserController.getAllArticles);
@@ -153,7 +153,7 @@ userRouter.put(
     '/update-article',
     userAuthentication,
     validateObjectIds(['articleId']),
-    validateRequiredFields(['title', 'content', 'authorName', 'publicationDate', 'topic']),
+    validateRequiredFields(['title', 'description']),
     articleUserController.updateArticle
 );
 userRouter.delete(

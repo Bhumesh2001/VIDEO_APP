@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('fs').promises
 const Mega = require('megajs');
 
 const Category = require('../../models/adminModel/category.adminModel');
@@ -22,6 +22,7 @@ exports.uploadVideoToCloudinary = async (req, res) => {
     try {
         const { title, description, category, video, thumbnail } = req.body;
 
+        // Validate required fields
         if (!title || !description || !category || (!video && !req.files?.video) || (!thumbnail && !req.files?.thumbnail)) {
             return res.status(400).json({
                 success: false,
@@ -29,38 +30,19 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             });
         }
 
+        // Check category availability
         const isCategoryAvailable = await Category.findOne({ name: category }).exec();
         if (!isCategoryAvailable) {
-            return res.status(404).json({
-                success: false,
-                message: 'Category is not available!',
-            });
+            return res.status(404).json({ success: false, message: 'Category is not available!' });
         }
 
-        let videoObj = {
-            title,
-            description,
-            category,
-        };
-
-        let videoData = {
-            video: {
-                publicId: '',
-                url: '',
-            },
-            thumbnail: {
-                publicId: '',
-                url: '',
-            },
-        };
-
-        const existingVideo = await Video.findOne({ title }).exec();
-        if (existingVideo) {
-            return res.status(409).json({
-                success: false,
-                message: 'Video already exists!',
-            });
+        // Check for existing video
+        if (await Video.findOne({ title }).exec()) {
+            return res.status(409).json({ success: false, message: 'Video already exists!' });
         }
+
+        const videoObj = { title, description, category };
+        const videoData = { video: {}, thumbnail: {} };
 
         const tempVideo = new Video(videoObj);
         const validationError = tempVideo.validateSync();
@@ -72,32 +54,28 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             });
         }
 
+        // Upload video
         if (req.files?.video) {
             const videoResult = await uploadVideo(req.files.video.tempFilePath, videoOptions);
-            videoData.video.publicId = videoResult.public_id;
-            videoData.video.url = videoResult.url;
-            fs.unlinkSync(req.files.video.tempFilePath);
+            videoData.video = { publicId: videoResult.public_id, url: videoResult.url };
+            await fs.unlink(req.files.video.tempFilePath);
         } else if (video) {
             const videoResult = await uploadVideo(video, videoOptions);
-            videoData.video.publicId = videoResult.public_id;
-            videoData.video.url = videoResult.url;
+            videoData.video = { publicId: videoResult.public_id, url: videoResult.url };
         }
 
+        // Upload thumbnail
         if (req.files?.thumbnail) {
             const thumbnailResult = await uploadImage(req.files.thumbnail.tempFilePath, thumbnailOptions);
-            videoData.thumbnail.publicId = thumbnailResult.public_id;
-            videoData.thumbnail.url = thumbnailResult.url;
-            fs.unlinkSync(req.files.thumbnail.tempFilePath);
+            videoData.thumbnail = { publicId: thumbnailResult.public_id, url: thumbnailResult.url };
+            await fs.unlink(req.files.thumbnail.tempFilePath);
         } else if (thumbnail) {
             const thumbnailResult = await uploadImage(thumbnail, thumbnailOptions);
-            videoData.thumbnail.publicId = thumbnailResult.public_id;
-            videoData.thumbnail.url = thumbnailResult.url;
+            videoData.thumbnail = { publicId: thumbnailResult.public_id, url: thumbnailResult.url };
         }
 
-        const newVideo = new Video({
-            ...videoObj,
-            ...videoData,
-        });
+        // Create and save new video
+        const newVideo = new Video({ ...videoObj, ...videoData });
         await newVideo.save();
 
         res.status(200).json({
@@ -107,26 +85,24 @@ exports.uploadVideoToCloudinary = async (req, res) => {
         });
     } catch (error) {
         console.error(error);
-        if (error.name === 'ValidationError') {
-            const validationErrors = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({
-                success: false,
-                message: 'Validation Error',
-                errors: validationErrors,
-            });
-        }
-        if (error.code === 11000) {
-            const field = Object.keys(error.keyValue);
-            return res.status(409).json({
-                success: false,
-                message: `Duplicate field value entered for ${field}: ${error.keyValue[field]}.`,
-            });
-        }
-        res.status(500).json({
+        const errorResponse = {
             success: false,
             message: 'Error occurred while uploading the video',
-            error,
-        });
+        };
+
+        if (error.name === 'ValidationError') {
+            errorResponse.message = 'Validation Error';
+            errorResponse.errors = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json(errorResponse);
+        }
+
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyValue);
+            errorResponse.message = `Duplicate field value entered for ${field}: ${error.keyValue[field]}.`;
+            return res.status(409).json(errorResponse);
+        }
+
+        res.status(500).json(errorResponse);
     }
 };
 
@@ -134,22 +110,16 @@ exports.uploadVideoToMega = async (req, res) => {
     try {
         const videoFile = req.files.video;
 
+        // Validate video file
         if (!videoFile) {
-            return res.status(400).json({
-                success: false,
-                message: 'No video file uploaded!',
-            });
-        };
+            return res.status(400).json({ success: false, message: 'No video file uploaded!' });
+        }
 
         // Mega.nz credentials
-        const email = process.env.MEGA_EMAIL;
-        const password = process.env.MEGA_PASSWORD;
+        const { MEGA_EMAIL: email, MEGA_PASSWORD: password } = process.env;
 
         // Log in to Mega.nz
-        const storage = new Mega({
-            email: email,
-            password: password
-        });
+        const storage = new Mega({ email, password });
 
         // Wait for the storage to be ready
         await new Promise((resolve, reject) => {
@@ -166,44 +136,35 @@ exports.uploadVideoToMega = async (req, res) => {
             allowUploadBuffering: true
         });
 
-        // Use fs.createReadStream to stream the file directly
-        const fileStream = fs.createReadStream(videoFile.tempFilePath, {
-            highWaterMark: 1024 * 1024 * 90 // Adjust chunk size as needed (e.g., 10MB)
-        });
-        fileStream.pipe(uploadStream);
-
-        // Handle upload complete event
-        uploadStream.on('complete', async (file) => {
-            try {
-                // Generate the public link
-                const publicLink = await file.link();
-                console.log('Public link:', publicLink);
-
-                // Send success response with the public link
-                return res.status(200).json({
-                    success: true,
-                    message: 'Video uploaded successfully!',
-                    publicLink: publicLink,
-                });
-            } catch (linkError) {
-                console.error('Error generating public link:', linkError);
+        // Stream the file directly
+        fs.createReadStream(videoFile.tempFilePath, { highWaterMark: 1024 * 1024 * 100 })
+            .pipe(uploadStream)
+            .on('error', (uploadError) => {
+                console.error('Error uploading the video:', uploadError);
                 return res.status(500).json({
                     success: false,
-                    message: 'Error occurred while generating the public link.',
-                    error: linkError.message,
+                    message: 'Error occurred during the video upload.',
+                    error: uploadError.message,
                 });
-            };
-        });
-
-        // Handle errors during upload
-        uploadStream.on('error', (uploadError) => {
-            console.error('Error uploading the video:', uploadError);
-            return res.status(500).json({
-                success: false,
-                message: 'Error occurred during the video upload.',
-                error: uploadError.message,
+            })
+            .on('complete', async (file) => {
+                try {
+                    const publicLink = await file.link();
+                    console.log('Public link:', publicLink);
+                    return res.status(200).json({
+                        success: true,
+                        message: 'Video uploaded successfully!',
+                        publicLink,
+                    });
+                } catch (linkError) {
+                    console.error('Error generating public link:', linkError);
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Error occurred while generating the public link.',
+                        error: linkError.message,
+                    });
+                }
             });
-        });
 
     } catch (error) {
         console.error('Error in uploadVideoToMega function:', error);
@@ -212,69 +173,74 @@ exports.uploadVideoToMega = async (req, res) => {
             message: 'Server error while uploading the video.',
             error: error.message,
         });
-    };
+    }
 };
 
-exports.getAllvideos = async (req, res) => {
+exports.getAllVideos = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 12;
-
+        const page = Math.max(parseInt(req.query.page) || 1, 1);
+        const limit = Math.max(parseInt(req.query.limit) || 12, 1);
         const skip = (page - 1) * limit;
 
-        const videos = await Video.find({}, { __v: 0 }).sort({ createdAt: -1 }).skip(skip).limit(limit);
-        const totalVideos = await Video.countDocuments();
+        const [videos, totalVideos] = await Promise.all([
+            Video.find({}, { __v: 0 }).sort({ createdAt: -1 }).skip(skip).limit(limit),
+            Video.countDocuments(),
+        ]);
 
         if (videos.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "Videos not found",
             });
-        };
+        }
+
         res.status(200).json({
             success: true,
-            message: 'Video fetched successfully...',
+            message: 'Videos fetched successfully...',
             totalVideos,
             totalPages: Math.ceil(totalVideos / limit),
             page,
             videos,
         });
     } catch (error) {
-        console.log(error);
+        console.error('Error fetching videos:', error);
         res.status(500).json({
             success: false,
-            message: 'error occured while fetching the video',
+            message: 'Error occurred while fetching the videos',
         });
-    };
+    }
 };
 
-exports.getAllvideosByCategory = async (req, res) => {
+exports.getAllVideosByCategory = async (req, res) => {
     try {
         const { category } = req.query;
 
         if (!category) {
             return res.status(400).json({
                 success: false,
-                message: 'category is required',
+                message: 'Category is required',
             });
-        };
+        }
+
         const videosByCategory = await Video.find({ category }, { __v: 0 });
+
         if (videosByCategory.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Videos Not Found',
+                message: 'No videos found for this category',
             });
-        };
+        }
+
         res.status(200).json({
             success: true,
-            message: 'Videos fetched successfully...',
+            message: 'Videos fetched successfully',
             videosByCategory,
         });
     } catch (error) {
-        console.log(error);
+        console.error('Error fetching videos by category:', error);
         res.status(500).json({
             success: false,
-            message: 'error occured while fetching the video',
+            message: 'Error occurred while fetching videos',
         });
-    };
+    }
 };

@@ -46,8 +46,8 @@ adminRouter.post('/logout', adminAuthentication, adminController.logoutAdmin);
 
 adminRouter.get('/contact/users', adminAuthentication, contactUserController.getAllContactUsers);
 adminRouter.get(
-    '/contact/user/:userId', 
-    adminAuthentication, 
+    '/contact/user/:userId',
+    adminAuthentication,
     validateObjectIds(['userId']),
     contactUserController.getContactUserById
 );
@@ -55,9 +55,6 @@ adminRouter.put(
     '/contact/user/update/:userId',
     adminAuthentication,
     validateObjectIds(['userId']),
-    validateRequiredFields([
-        'name', 'email', 'phone', 'city', 'district', 'state', 'country', 'pincode', 'message'
-    ]),
     contactUserController.updateContactUserById
 );
 adminRouter.delete(
@@ -75,8 +72,8 @@ adminRouter.post(
     videoController.uploadVideoToCloudinary
 );
 adminRouter.post('/mega/upload-video', adminAuthentication, videoController.uploadVideoToMega);
-adminRouter.get('/videos', videoController.getAllvideos);
-adminRouter.get('/videos-by-category', adminAuthentication, videoController.getAllvideosByCategory);
+adminRouter.get('/videos', videoController.getAllVideos);
+adminRouter.get('/videos-by-category', adminAuthentication, videoController.getAllVideosByCategory);
 
 // ******************** Category routes ********************
 
@@ -97,7 +94,6 @@ adminRouter.put(
     '/update-category',
     adminAuthentication,
     validateObjectIds(['categoryId']),
-    validateRequiredFields(['name', 'description', 'status']),
     categoryController.updateCategory
 );
 adminRouter.delete(
@@ -126,10 +122,9 @@ adminRouter.put(
     '/update-user',
     adminAuthentication,
     validateObjectIds(['userId']),
-    validateRequiredFields(['name', 'email', 'password', 'mobileNumber', 'status']),
     userAdminController.updateUserByAdmin
 );
-adminRouter.delete( 
+adminRouter.delete(
     '/delete-user',
     adminAuthentication,
     validateObjectIds(['userId']),
@@ -155,7 +150,6 @@ adminRouter.put(
     '/update-article',
     adminAuthentication,
     validateObjectIds(['articleId']),
-    validateRequiredFields(['title', 'description']),
     articleController.updateArticle
 );
 adminRouter.delete(
@@ -175,22 +169,21 @@ adminRouter.post(
 );
 adminRouter.get('/stories', storyController.getAllStoriesByAdmin);
 adminRouter.get(
-    '/story', 
-    adminAuthentication, 
-    validateObjectIds(['storyId']), 
+    '/story',
+    adminAuthentication,
+    validateObjectIds(['storyId']),
     storyController.getSingleStoryByAdmin
 );
 adminRouter.put(
     '/update-story',
     adminAuthentication,
     validateObjectIds(['storyId']),
-    validateRequiredFields(['title', 'caption', 'status']),
     storyController.updateStoryByAdmin
 );
 adminRouter.delete(
-    '/delete-story', 
-    adminAuthentication, 
-    validateObjectIds(['storyId']), 
+    '/delete-story',
+    adminAuthentication,
+    validateObjectIds(['storyId']),
     storyController.deleteStoryByAdmin
 );
 
@@ -203,16 +196,15 @@ adminRouter.post(
 );
 adminRouter.get('/banners', adminAuthentication, bannerController.getAllBanners);
 adminRouter.get(
-    '/banner', 
-    adminAuthentication, 
-    validateObjectIds(['bannerId']), 
+    '/banner',
+    adminAuthentication,
+    validateObjectIds(['bannerId']),
     bannerController.getSingleBanner
 );
 adminRouter.put(
     '/update-banner',
     adminAuthentication,
     validateObjectIds(['bannerId']),
-    validateRequiredFields(['title', 'description', 'status']),
     bannerController.updateBanner
 );
 adminRouter.delete(
@@ -227,7 +219,7 @@ adminRouter.delete(
 adminRouter.post(
     '/create-subscription',
     adminAuthentication,
-    validateRequiredFields(['planName','planType', 'price', 'features', 'status']),
+    validateRequiredFields(['planName', 'planType', 'price', 'features', 'status']),
     subscriptionController.createSubscriptionPlan
 );
 adminRouter.get('/subscriptions', subscriptionController.getSubscriptionsPlan);
@@ -241,7 +233,6 @@ adminRouter.put(
     '/update-subscription',
     adminAuthentication,
     validateObjectIds(['subscriptionId']),
-    validateRequiredFields(['planName','planType', 'price', 'features', 'status']),
     subscriptionController.updateSubscriptionPlan
 );
 adminRouter.delete(

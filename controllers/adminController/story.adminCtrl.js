@@ -14,83 +14,64 @@ const storyImageOptions = {
 };
 
 exports.createStoryByAdmin = async (req, res) => {
-    const { video, image, ...data } = req.body;
-
+    const { video, image, title, ...data } = req.body;
     const videoFile = req.files?.video;
     const imageFile = req.files?.image;
 
-    let storyData = {
-        userId: req.admin._id,
-        video: { url: '', public_id: '' },
-        image: { url: '', public_id: '' },
-        ...data
-    };
+    if (!imageFile && !image) {
+        return res.status(400).json({ success: false, message: 'Either image file or image URL is required!' });
+    }
 
     try {
-        // Validate if image or imageFile exists
-        if (!imageFile && !image) {
-            return res.status(400).json({
-                success: false,
-                message: 'Either image file or image URL is required!',
-            });
-        };
-
-        // Check if story with the same title exists
-        const existingStory = await Story.findOne({ title: data.title }).exec();
+        // Check for existing story
+        const existingStory = await Story.findOne({ title }).exec();
         if (existingStory) {
-            return res.status(409).json({
-                success: false,
-                message: 'Story already exists!',
-            });
+            return res.status(409).json({ success: false, message: 'Story already exists!' });
+        }
+
+        const storyData = {
+            userId: req.admin._id,
+            video: { url: '', public_id: '' },
+            image: { url: '', public_id: '' },
+            ...data
         };
 
-        // Video upload logic
+        // Upload video
         if (videoFile || video) {
             const videoInput = videoFile ? videoFile.tempFilePath : video;
-            const videoResult = await uploadVideo(videoInput, storyVideoOptions);
-            storyData.video.public_id = videoResult.public_id;
-            storyData.video.url = videoResult.url;
+            const { public_id, url } = await uploadVideo(videoInput, storyVideoOptions);
+            storyData.video = { public_id, url };
 
-            // Delete temp video file if uploaded from file
             if (videoFile) await fs.unlink(videoFile.tempFilePath);
-        };
+        }
 
-        // Image upload logic
+        // Upload image
         if (imageFile || image) {
             const imageInput = imageFile ? imageFile.tempFilePath : image;
-            const imageResult = await uploadImage(imageInput, storyImageOptions);
-            storyData.image.public_id = imageResult.public_id;
-            storyData.image.url = imageResult.url;
+            const { public_id, url } = await uploadImage(imageInput, storyImageOptions);
+            storyData.image = { public_id, url };
 
-            // Delete temp image file if uploaded from file
             if (imageFile) await fs.unlink(imageFile.tempFilePath);
-        };
+        }
 
-        // Save the story in the database
+        // Save the story
         const story = new Story(storyData);
         await story.save();
 
-        res.status(200).json({
-            success: true,
-            message: 'Story created successfully!',
-            story,
-        });
+        res.status(200).json({ success: true, message: 'Story created successfully!', story });
 
     } catch (error) {
         console.error('Error:', error);
 
-        // Clean up resources in case of failure
+        // Clean up uploaded resources if needed
         if (storyData.video.public_id) await deleteImageOnCloudinary(storyData.video.public_id);
         if (storyData.image.public_id) await deleteImageOnCloudinary(storyData.image.public_id);
 
         const errorMessage = error.name === 'ValidationError'
-            ? Object.values(error.errors).map(err => err.message)
-            : error.message;
+            ? Object.values(error.errors).map(err => err.message).join(', ')
+            : 'Server Error';
 
-        return res.status(500).json({
-            success: false,
-            message: errorMessage || 'Server Error',
-        });
+        res.status(500).json({ success: false, message: errorMessage });
     }
 };
 
@@ -98,22 +79,20 @@ exports.getAllStoriesByAdmin = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 12;
-
         const skip = (page - 1) * limit;
 
-        const stories = await Story.find({})
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limit);
+        const [stories, totalStories] = await Promise.all([
+            Story.find({})
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit),
+            Story.countDocuments()
+        ]);
 
-        const totalStories = await Story.countDocuments();
+        if (stories.length === 0) {
+            return res.status(404).json({ success: false, message: 'No stories found!' });
+        }
 
-        if (!stories) {
-            return res.status(404).json({
-                success: false,
-                message: 'Stories not found!',
-            });
-        };
         res.status(200).json({
             success: true,
             message: 'Stories fetched successfully...',
@@ -123,12 +102,9 @@ exports.getAllStoriesByAdmin = async (req, res) => {
             stories,
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Server Error',
-            error: error.message,
-        });
-    };
+        console.error('Error fetching stories:', error);
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
 };
 
 exports.getSingleStoryByAdmin = async (req, res) => {
@@ -161,77 +137,52 @@ exports.getSingleStoryByAdmin = async (req, res) => {
 exports.updateStoryByAdmin = async (req, res) => {
     const { storyId } = req.query;
     const { video, image, ...data } = req.body;
-
-    const videoFile = req.files.video;
-    const imageFile = req.files.image;
-
-    let storyData = {
-        video: { url: '', public_id: '' },
-        image: { url: '', public_id: '' },
-        ...data
-    };
+    const videoFile = req.files?.video;
+    const imageFile = req.files?.image;
 
     try {
-        const story_ = await Story.findOne({ _id: storyId, userId: req.admin._id });
-        if (!story_) {
-            return res.status(404).json({
-                success: false,
-                message: "Story not found!",
-            });
-        };
+        const story = await Story.findById(storyId);
+        if (!story) {
+            return res.status(404).json({ success: false, message: "Story not found!" });
+        }
 
+        const storyData = { ...data };
+
+        // Handle video upload
         if (videoFile || video) {
-            if (story_.video.public_id) deleteImageOnCloudinary(story_.video.public_id);
-            const videoInput = videoFile.tempFilePath ? videoFile.tempFilePath : video;
+            if (story.video.public_id) await deleteImageOnCloudinary(story.video.public_id);
+            const videoInput = videoFile?.tempFilePath || video;
             const videoResult = await uploadVideo(videoInput, storyVideoOptions);
-
-            storyData.video.public_id = videoResult.public_id;
-            storyData.video.url = videoResult.url;
-
+            storyData.video = { public_id: videoResult.public_id, url: videoResult.url };
             if (videoFile) await fs.unlink(videoFile.tempFilePath);
-        };
+        } else {
+            // Keep existing video data if no new video is provided
+            storyData.video = { public_id: story.video.public_id, url: story.video.url };
+        }
 
+        // Handle image upload
         if (imageFile || image) {
-            if (story_.image.public_id) deleteImageOnCloudinary(story_.image.public_id);
-
-            const imageInput = imageFile.tempFilePath ? imageFile.tempFilePath : image;
+            if (story.image.public_id) await deleteImageOnCloudinary(story.image.public_id);
+            const imageInput = imageFile?.tempFilePath || image;
             const imageResult = await uploadImage(imageInput, storyImageOptions);
-
-            storyData.image.public_id = imageResult.public_id
-            storyData.image.url = imageResult.url;
-
+            storyData.image = { public_id: imageResult.public_id, url: imageResult.url };
             if (imageFile) await fs.unlink(imageFile.tempFilePath);
-        };
+        } else {
+            // Keep existing image data if no new image is provided
+            storyData.image = { public_id: story.image.public_id, url: story.image.url };
+        }
 
-        const story = await Story.findOneAndUpdate(
-            { _id: storyId, userId: req.admin._id },
-            storyData,
-            { new: true, runValidators: true, }
-        );
+        const updatedStory = await Story.findByIdAndUpdate(storyId, storyData, { new: true, runValidators: true });
 
         res.status(200).json({
-            success: false,
+            success: true,
             message: 'Story updated successfully...',
-            story,
+            story: updatedStory,
         });
-
     } catch (error) {
-        console.log(error);
-
-        const deleteFileIfExists = (file, publicId) => {
-            if (file && publicId) {
-                deleteImageOnCloudinary(publicId);
-            };
-        };
-        deleteFileIfExists(imageFile, storyData.video.public_id);
-        deleteFileIfExists(videoFile, storyData.image.public_id);
-
-        res.status(500).json({
-            success: false,
-            message: 'Error occured during updating the story',
-            error: error.message,
-        });
-    };
+        console.error('Error updating story:', error);
+        res.status(500).json({ success: false, message: 'Error occurred while updating the story', error: error.message });
+    }
 };
 
 exports.deleteStoryByAdmin = async (req, res) => {

@@ -53,15 +53,19 @@ exports.createCoupon = async (req, res) => {
 // Get all coupons
 exports.getCoupons = async (req, res) => {
     try {
-        const coupons = await Coupon.find({}).sort({ createdAt: -1 });
-        const totalCoupons = await Coupon.countDocuments();
+        // Fetch coupons and total count in parallel for efficiency
+        const [coupons, totalCoupons] = await Promise.all([
+            Coupon.find({}).sort({ createdAt: -1 }),
+            Coupon.countDocuments()
+        ]);
 
-        if (!coupons) {
+        // Check if no coupons were found
+        if (coupons.length === 0) {
             return res.status(404).json({
-                success: true,
-                message: 'Coupan not found!',
+                success: false,
+                message: 'Coupons not found!',
             });
-        };
+        }
 
         res.status(200).json({
             success: true,
@@ -69,10 +73,11 @@ exports.getCoupons = async (req, res) => {
             coupons
         });
     } catch (error) {
-        console.error(error);
+        console.error('Error retrieving coupons:', error);
         res.status(500).json({
             success: false,
             message: 'Error occurred while retrieving coupons.',
+            error: error.message,
         });
     }
 };
@@ -108,27 +113,22 @@ exports.getCouponById = async (req, res) => {
 exports.updateCoupon = async (req, res) => {
     try {
         const { couponId } = req.query;
-        const { couponCode, discountPercentage, expirationDate, maxUsage, status } = req.body;
+        const updateData = req.body;
 
+        // Find and update the coupon with validation and return the updated coupon
         const coupon = await Coupon.findByIdAndUpdate(
             couponId,
-            { 
-                couponCode, 
-                discountPercentage, 
-                expirationDate, 
-                maxUsage, 
-                status, 
-                updatedAt: Date.now() 
-            },
+            { ...updateData, updatedAt: Date.now() },
             { new: true, runValidators: true }
         );
 
+        // If coupon not found
         if (!coupon) {
             return res.status(404).json({
                 success: false,
                 message: 'Coupon not found.',
             });
-        };
+        }
 
         res.status(200).json({
             success: true,
@@ -136,12 +136,13 @@ exports.updateCoupon = async (req, res) => {
             coupon
         });
     } catch (error) {
-        console.error(error);
+        console.error('Error updating coupon:', error);
         res.status(500).json({
             success: false,
             message: 'Error occurred while updating the coupon.',
+            error: error.message
         });
-    };
+    }
 };
 
 // Delete a coupon by ID

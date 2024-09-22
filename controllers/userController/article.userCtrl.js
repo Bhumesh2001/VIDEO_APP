@@ -1,19 +1,26 @@
 const Article = require('../../models/adminModel/article.adminModel');
 const {
-    uploadImageToCloudinary,
     deleteImageAndUploadToCloudinary,
+    deleteImageOnCloudinary,
 } = require('../../utils/uploadImage');
-const { convertToMongooseDate } = require('../../utils/subs.userUtil');
-const cloudinary = require('cloudinary').v2;
 
+const { uploadImage } = require('../../utils/uploadUtil');
+const fs = require('fs').promises;
+
+const articleOptions = {
+    folder: 'Articles',
+    transformation: [
+        { width: 1200, height: 1200, crop: 'fill' }
+    ]
+};
 
 exports.createArticle = async (req, res) => {
-    const { publicationDate, title, image: imageUrl, ...data } = req.body;
-    let imageData;
+    const { title, description, image } = req.body;
+    let imageData = { public_id: '', url: '' };
+
     try {
-
+        // Check if the article with the same title already exists
         const existingArticle = await Article.findOne({ title });
-
         if (existingArticle) {
             return res.status(409).json({
                 success: false,
@@ -21,34 +28,33 @@ exports.createArticle = async (req, res) => {
             });
         };
 
-        let imagePath = imageUrl;
-
+        // Handle file-based image upload
         if (req.files && req.files.image) {
-            imagePath = req.files.image.tempFilePath;
-        } else if (!imageUrl || !/^(https?:\/\/.*\.(?:jpg|jpeg|png|gif|webp|bmp|tiff))$/i.test(imageUrl)) {
+            const imageFilePath = req.files.image.tempFilePath;
+            imageData = await uploadImage(imageFilePath, articleOptions);
+
+            // Delete temp file after upload
+            await fs.unlink(req.files.image.tempFilePath);
+        }
+        // Handle URL-based image upload
+        else if (image && /^(https?:\/\/.*\.(?:jpg|jpeg|png|gif|webp|bmp|tiff))$/i.test(image)) {
+            imageData.url = image;  // Use the image URL directly
+        }
+        // Invalid image input
+        else {
             return res.status(400).json({
                 success: false,
                 message: 'Valid image file or URL is required!',
             });
-        };
+        }
 
-        try {
-            imageData = await uploadImageToCloudinary(imagePath);
-        } catch (err) {
-            return res.status(500).json({
-                success: false,
-                message: 'Image upload failed!',
-                error: err.message,
-            });
-        };
-
+        // Create the new article
         const articleData = {
             userId: req.user._id,
             title,
-            publicationDate: convertToMongooseDate(publicationDate),
+            description,
             public_id: imageData.public_id,
             image: imageData.url,
-            ...data,
         };
 
         const article = new Article(articleData);
@@ -63,16 +69,12 @@ exports.createArticle = async (req, res) => {
     } catch (error) {
         console.error(error);
 
+        // Cleanup: Remove the image from Cloudinary if article creation fails
         if (imageData.public_id) {
-            try {
-                await cloudinary.uploader.destroy(imageData.public_id, {
-                    resource_type: 'image',
-                });
-            } catch (cleanupError) {
-                console.error('Error deleting video from Cloudinary:', cleanupError);
-            };
-        };
+            await deleteImageOnCloudinary(imageData.public_id);
+        }
 
+        // Validation error handling
         if (error.name === 'ValidationError') {
             const validationErrors = Object.values(error.errors).map(err => err.message);
             return res.status(400).json({
@@ -80,21 +82,23 @@ exports.createArticle = async (req, res) => {
                 message: 'Validation Error',
                 errors: validationErrors,
             });
-        };
+        }
 
+        // Handle unique constraint violation (duplicate title)
         if (error.code === 11000) {
             return res.status(409).json({
                 success: false,
                 message: 'Article with this title already exists!',
             });
-        };
+        }
 
+        // Server error
         return res.status(500).json({
             success: false,
             message: 'Server error occurred while creating the article.',
             error: error.message,
         });
-    };
+    }
 };
 
 exports.getAllArticles = async (req, res) => {
@@ -103,20 +107,20 @@ exports.getAllArticles = async (req, res) => {
             {
                 $project: {
                     userId: 1,
-                    title: 1,           
-                    authorName: 1,            
+                    title: 1,
+                    authorName: 1,
                     publicationDate: 1,
                     content: 1,
                     topic: 1,
                     image: 1,
-                    TotalLikes: { $size: "$likes" }, 
-                    TotalComments: { $size: "$comments" }, 
+                    TotalLikes: { $size: "$likes" },
+                    TotalComments: { $size: "$comments" },
                     likes: 1,
                     comments: 1,
                 }
             }
         ]);
-        
+
         const totalArticles = await Article.countDocuments();
         if (articles.length === 0) {
             return res.status(404).json({
@@ -170,10 +174,10 @@ exports.getSingleArticle = async (req, res) => {
 };
 
 exports.updateArticle = async (req, res) => {
-    try {
-        const { articleId } = req.query;
-        let { image, publicationDate, ...data } = req.body;
+    const { articleId } = req.query;
+    let { title, description, image, } = req.body;
 
+    try {
         const article_ = await Article.findById(articleId);
         if (!article_) {
             return res.status(404).json({
@@ -204,10 +208,10 @@ exports.updateArticle = async (req, res) => {
         const imageData = await deleteImageAndUploadToCloudinary(public_id, image);
 
         const updates = {
+            title,
+            description,
             public_id: imageData.public_id,
             image: imageData.url,
-            publicationDate: convertToMongooseDate(publicationDate),
-            ...data,
         };
 
         const article = await Article.findOneAndUpdate(
