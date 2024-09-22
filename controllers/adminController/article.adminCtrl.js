@@ -1,12 +1,17 @@
 const Article = require('../../models/adminModel/article.adminModel');
-const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
 const {
-    deleteImageAndUploadToCloudinary,
     deleteImageOnCloudinary,
-    imageToBuffer,
-    uploadArticleImageToCloudinary,
-    resizeImage,
 } = require('../../utils/uploadImage');
+
+const { uploadImage } = require('../../utils/uploadUtil');
+
+const articleOptions = {
+    folder: 'Articles',
+    transformation: [
+        { width: 1200, height: 1200, crop: 'fill' }
+    ]
+};
 
 exports.createArticle = async (req, res) => {
     let imageData = null;
@@ -42,17 +47,10 @@ exports.createArticle = async (req, res) => {
 
         // Upload image to Cloudinary
         if (image) {
-            const aspect_ratio = {
-                height: 1200,
-                width: 1200
+            imageData = await uploadImage(image, articleOptions);
+            if(req.files.image){
+                fs.unlinkSync(req.files.image.tempFilePath);  
             };
-            const folderName = 'Articles';
-            const format = req.files.image.mimetype.split('/')[1];
-
-            const imageBuffer = await imageToBuffer(image);
-            const resizedBuffer = await resizeImage(imageBuffer, aspect_ratio.width, aspect_ratio.height);
-
-            imageData = await uploadArticleImageToCloudinary(resizedBuffer, format, aspect_ratio, folderName);
         };
 
         const articleData = {
@@ -76,13 +74,7 @@ exports.createArticle = async (req, res) => {
         console.error(error);
 
         if (imageData && imageData.public_id) {
-            try {
-                await cloudinary.uploader.destroy(imageData.public_id, {
-                    resource_type: 'image',
-                });
-            } catch (cleanupError) {
-                console.error('Error deleting image from Cloudinary:', cleanupError);
-            };
+            deleteImageOnCloudinary(imageData.public_id);
         };
 
         if (error.name === 'ValidationError') {
@@ -209,22 +201,15 @@ exports.updateArticle = async (req, res) => {
         };
 
         if(image){
-            const aspect_ratio = {
-                height: 1200,
-                width: 1200
-            };
-            const folderName = 'Articles';
-            const format = req.files.image.mimetype.split('/')[1];
-    
-            const imageBuffer = await imageToBuffer(image);
-            const resizedBuffer = await resizeImage(imageBuffer, aspect_ratio.width, aspect_ratio.height);
-    
-            const public_id = articleData.public_id;
-            const updateData = { resizedBuffer, format, aspect_ratio, folderName, public_id }
-            const imageData = await deleteImageAndUploadToCloudinary(updateData);
+            deleteImageOnCloudinary(articleData.public_id);
 
+            const imageData = await uploadImage(image, articleOptions);
             dataToUpdate['image'] = imageData.url;
             dataToUpdate['public_id'] = imageData.public_id;
+            
+            if(req.files.image){
+                fs.unlinkSync(req.files.image.tempFilePath);
+            };
         };
 
         const article = await Article.findByIdAndUpdate(

@@ -11,9 +11,8 @@ const commentSchema = new mongoose.Schema({
         required: [true, 'Comment content is required'],
         minlength: [1, 'Comment must be at least 1 character long'],
         maxlength: [500, 'Comment cannot exceed 500 characters']
-    },
-}, { timestamps: true }
-);
+    }
+}, { _id: false });
 
 const videoSchema = new mongoose.Schema({
     title: {
@@ -21,44 +20,41 @@ const videoSchema = new mongoose.Schema({
         unique: true,
         required: [true, 'Title is required'],
         minlength: [5, 'Title must be at least 5 characters long'],
+        trim: true
     },
     description: {
         type: String,
         required: [true, 'Description is required'],
-        minlength: [10, 'Description must be at least 10 characters long']
+        minlength: [10, 'Description must be at least 10 characters long'],
+        trim: true
     },
     category: {
         type: String,
-        required: [true, 'Category is required'],
+        required: [true, 'Category is required']
     },
     thumbnail: {
         type: {
             publicId: {
-                type: String,
-                unique: true,
+                type: String
             },
             url: {
                 type: String,
-                trim: true,
                 validate: {
                     validator: function (v) {
-                        return /^https?:\/\/.+\.(jpg|jpeg|png|webp|gif)$/.test(v);
+                        return /^https?:\/\/.+/.test(v);
                     },
                     message: props => `${props.value} is not a valid URL for a thumbnail image!`
                 }
             }
-        },
-        unique: true,
+        }
     },
     video: {
         type: {
             publicId: {
-                type: String,
-                unique: true,
+                type: String
             },
             url: {
                 type: String,
-                unique: true,
                 validate: {
                     validator: function (v) {
                         return /^(ftp|http|https):\/\/[^ "]+$/.test(v);
@@ -66,8 +62,7 @@ const videoSchema = new mongoose.Schema({
                     message: props => `${props.value} is not a valid URL!`
                 }
             }
-        },
-        unique: true,
+        }
     },
     likes: {
         type: [mongoose.Schema.Types.ObjectId],
@@ -75,12 +70,12 @@ const videoSchema = new mongoose.Schema({
         default: []
     },
     comments: [commentSchema],
-}, { timestamps: true });
+}, {
+    timestamps: true,
+});
 
 videoSchema.index({ title: 1 }, { unique: true });
 videoSchema.index({ category: 1 });
-videoSchema.index({ 'comments.userId': 1 });
-videoSchema.index({ timestamps: 1 });
 
 const Video = mongoose.model('Video', videoSchema);
 

@@ -134,7 +134,7 @@ async function loadUserData(page = 1, limit = 10) {
             const button = document.createElement('button');
             button.innerText = action;
             button.setAttribute('data-id', user._id);
-            button.setAttribute('class', `btn btn-sm btn-${action === 'Edit' ? 'primary' : 'danger'}`);
+            button.setAttribute('class', `btn btn-sm btn-${action === 'Edit' ? 'success' : 'danger'}`);
             div.appendChild(button);
         });
 
@@ -229,7 +229,7 @@ async function loadArticleData(page = 1, limit = 12) {
         h5.innerText = article.title;
         cardBodyDiv.classList.add('card-body');
         btnDiv.classList.add('d-flex', 'justify-content-end');
-        editBtn.classList.add('btn', 'btn-sm', 'btn-primary', 'me-2');
+        editBtn.classList.add('btn', 'btn-sm', 'btn-success', 'me-2');
         deleteBtn.classList.add('btn', 'btn-sm', 'btn-danger');
         editBtn.setAttribute('data-id', article._id);
         deleteBtn.setAttribute('data-id', article._id);
@@ -276,12 +276,12 @@ async function loadStoryData(page = 1, limit = 12) {
         storyCard.classList.add('card', 'story_card');
         storyImg.classList.add('img-fluid', 'rounded-top');
         storyImg.setAttribute('alt', 'story-image');
-        storyImg.src = story.image;
+        storyImg.src = story.image.url;
         storyCardBody.classList.add('card-body');
         h5.classList.add('card-title', 'mb-3');
         h5.innerText = story.title;
         storyBtnDiv.classList.add('d-flex', 'justify-content-between');
-        storyEditBtn.classList.add('btn', 'btn-primary', 'btn-sm', 'me-1');
+        storyEditBtn.classList.add('btn', 'btn-success', 'btn-sm', 'me-1');
         storyDeleteBtn.classList.add('btn', 'btn-danger', 'btn-sm');
         storyEditBtn.setAttribute('data-id', story._id);
         storyDeleteBtn.setAttribute('data-id', story._id);
@@ -332,8 +332,8 @@ async function loadCategoryData(page = 1, limit = 12) {
         h5.classList.add('card-title', 'mb-3');
         h5.innerText = category.name;
         categoryBtnDiv.classList.add('d-flex', 'justify-content-between');
-        categoryEditBtn.classList.add('btn', 'btn-primary');
-        categoryDeleteBtn.classList.add('btn', 'btn-danger');
+        categoryEditBtn.classList.add('btn', 'btn-success', 'btn-sm');
+        categoryDeleteBtn.classList.add('btn', 'btn-danger', 'btn-sm');
         categoryEditBtn.setAttribute('data-id', category._id);
         categoryDeleteBtn.setAttribute('data-id', category._id);
         categoryEditBtn.innerText = 'Edit';
@@ -458,8 +458,8 @@ async function laodCouponData() {
 };
 
 // function to load the banner data and display it on banner section
-async function laodBannerData() {
-    const data = await fetchData('/admin/banners');
+async function laodBannerData(page = 1, limit = 12) {
+    const data = await fetchData(`/admin/banners?page=${page}&limit=${limit}`);
 
     if (!data) return;
 
@@ -470,8 +470,8 @@ async function laodBannerData() {
                     <img src="${banner.image}" class="img-fluid rounded" alt="${banner.title}" />
                     <div class="card-body">
                         <h5 class="card-title mb-3">${banner.title}</h5>
-                        <button class="btn btn-success" data-id="${banner._id}">Edit</button>
-                        <button class="btn btn-danger" data-id="${banner._id}">Delete</button>
+                        <button class="btn btn-success btn-sm" data-id="${banner._id}">Edit</button>
+                        <button class="btn btn-danger btn-sm" data-id="${banner._id}">Delete</button>
                     </div>
                 </div>
             </div>

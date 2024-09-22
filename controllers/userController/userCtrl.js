@@ -35,7 +35,7 @@ exports.registerUser = async (req, res) => {
             });
         };
 
-        const existingUser = await userModel.findOne({ email });
+        const existingUser = await userModel.findOne({ email }).exec();
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'User already exists' });
         };
@@ -47,6 +47,7 @@ exports.registerUser = async (req, res) => {
             password,
             mobileNumber,
             Code,
+            isVerified: false,
         };
         temporaryStorage.set(email, userData);
 
@@ -67,7 +68,7 @@ exports.registerUser = async (req, res) => {
             message: 'Please verify your email',
         });
 
-        let expireTime = 30 * 60 * 1000;
+        let expireTime = 15 * 60 * 1000;
         setTimeout(() => {
             if (temporaryStorage.has(email)) {
                 temporaryStorage.delete(email);
@@ -114,7 +115,7 @@ exports.verifyUser = async (req, res) => {
         } else {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid or expired code!'
+                message: 'Invalid or expired verification code!'
             });
         };
 
@@ -137,9 +138,8 @@ exports.verifyUser = async (req, res) => {
             email: userData.email,
             password: userData.password,
             mobileNumber: userData.mobileNumber,
+            isVerified: true,
         });
-
-        user.isVerified = true;
         await user.save();
 
         temporaryStorage.delete(email);
@@ -150,7 +150,13 @@ exports.verifyUser = async (req, res) => {
             { expiresIn: '2d' },
         );
 
-        req.session.userToken = token;
+        res.cookie('userToken', token, {
+            httpOnly: true,
+            secure: true,
+            maxAge: 1000 * 60 * 60 * 48,
+            sameSite: 'Lax',
+            path: '/',
+        });
 
         res.status(200).json({
             success: true,
@@ -265,6 +271,58 @@ exports.resendOtp = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error occurred while resending OTP',
+        });
+    };
+};
+
+// -------------- Resend verification code --------------------
+exports.resendVerificationCode = async (req, res) => {
+    const { email } = req.body;
+    try {
+        const user = await temporaryStorage.get(email);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        };
+
+        // Check if the user is already verified
+        if (user.isVerified) {
+            return res.status(400).json({
+                success: false,
+                message: "User is already verified",
+            });
+        };
+
+        // Generate a new verification code
+        const verificationCode = generateCode();
+
+        user.Code = verificationCode;
+        temporaryStorage.delete(email);
+        temporaryStorage.set(email, user);
+
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: email,
+            subject: 'Account Verification',
+            text: `Your verification code is: ${Code}`,
+        };
+
+        transporter.sendMail(mailOptions, (err, info) => {
+            if (err) return console.error(err);
+            console.log('Verification email sent: ' + info.response);
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Verification code resent successfully",
+        });
+    } catch (error) {
+        console.error("Error resending verification code:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error while resending verification code",
         });
     };
 };

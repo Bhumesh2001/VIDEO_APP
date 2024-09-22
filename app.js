@@ -40,6 +40,11 @@ app.use(express.json());
 app.use(fileUpload({
     useTempFiles: true,
     tempFileDir: '/tmp/',
+    limits: { fileSize: 1024 * 1024 * 1024 * 1024 },  // 1TB
+    abortOnLimit: true,
+    limitHandler: (req, res) => {
+        res.status(413).send('File is too large.');
+    }
 }));
 
 cloudinary.config({

@@ -16,7 +16,7 @@ exports.getAllVideos = async (req, res) => {
         const subscribedCategoryName = userSubscription?.name || '';
 
         // Fetch all videos from DB
-        let videos = await Video.find({}, { __v: 0 }).lean();
+        let videos = await Video.find({}, { __v: 0 }).sort({ createdAt: -1 }).lean();
 
         // If user has 'all' in categoryId, mark all videos as paid
         if (subscribedCategoryName === 'all' || subscribedCategoryName === 'All') {
@@ -101,7 +101,7 @@ exports.getAllVideosByCategory = async (req, res) => {
                 video: video.video.url,
                 paid: true,  // User has paid for all categories
             }));
-        } 
+        }
         else {
             // For specific category subscriptions
             videosByCategory = videosByCategory.map(video => ({
@@ -183,11 +183,12 @@ exports.getAllComments = async (req, res) => {
                 message: 'Video not found',
             });
         };
+        const sortedComments = video.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         res.status(200).json({
             success: true,
             message: 'Comment fetched successfully...',
-            comments: video.comments,
+            comments: sortedComments,
         });
     } catch (error) {
         console.error('Error fetching comments:', error);

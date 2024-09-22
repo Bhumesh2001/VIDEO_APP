@@ -1,9 +1,17 @@
 const Category = require('../../models/adminModel/category.adminModel');
+const fs = require('fs');
 const {
     deleteImageOnCloudinary,
-    uploadImageToCloudinary,
-    deleteImageAndUploadToCloudinary
 } = require('../../utils/uploadImage');
+
+const { uploadImage } = require('../../utils/uploadUtil');
+
+const categoryOptions = {
+    folder: 'Categories',
+    transformation: [
+        { width: 1080, height: 1080, crop: 'fill' }
+    ],
+};
 
 exports.createCategory = async (req, res) => {
     try {
@@ -49,11 +57,12 @@ exports.createCategory = async (req, res) => {
         let public_id = '';
         let image_url = '';
         if (req.files && req.files.image) {
-            const imageData = await uploadImageToCloudinary(image);
+            const imageData = await uploadImage(req.files.image.tempFilePath, categoryOptions);
             public_id = imageData.public_id;
             image_url = imageData.url;
+            fs.unlinkSync(req.files.image.tempFilePath);
         } else if (image) {
-            const imageData = await uploadImageToCloudinary(image);
+            const imageData = await uploadImage(image, categoryOptions);
             public_id = imageData.public_id;
             image_url = imageData.url;
         };
@@ -175,7 +184,9 @@ exports.updateCategory = async (req, res) => {
         };
 
         const public_id = categoryData.public_id;
-        const imageData = await deleteImageAndUploadToCloudinary(public_id, image);
+        deleteImageOnCloudinary(public_id);
+
+        const imageData = await uploadImage(image, categoryOptions);
 
         const updates = {
             name,

@@ -1,35 +1,41 @@
-const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
 const Mega = require('megajs');
 
 const Category = require('../../models/adminModel/category.adminModel');
 const Video = require('../../models/adminModel/video.adminModel');
 
+const { uploadImage, uploadVideo } = require('../../utils/uploadUtil');
+
 // ------------- upload video -----------------
+
+const videoOptions = {
+    folder: 'Videos',
+};
+const thumbnailOptions = {
+    folder: 'thumbnails',
+    transformation: [
+        { width: 1280, height: 720, crop: 'fill' }
+    ],
+};
 
 exports.uploadVideoToCloudinary = async (req, res) => {
     try {
         const { title, description, category, video, thumbnail } = req.body;
 
-        const videoFile = req.files?.video;
-        const thumbnailFile = req.files?.thumbnail;
-
-        if (!title || !description || !category || (!video && !videoFile) ||
-            (!thumbnail && !thumbnailFile)
-        ) {
+        if (!title || !description || !category || (!video && !req.files?.video) || (!thumbnail && !req.files?.thumbnail)) {
             return res.status(400).json({
                 success: false,
                 message: 'Title, description, category, video, and thumbnail are required.',
             });
-        };
+        }
 
-        const isCategoryAvailabel = await Category.findOne({ name: category }).exec();
-        if (!isCategoryAvailabel) {
+        const isCategoryAvailable = await Category.findOne({ name: category }).exec();
+        if (!isCategoryAvailable) {
             return res.status(404).json({
                 success: false,
-                message: 'Category is not availabe!',
+                message: 'Category is not available!',
             });
-        };
+        }
 
         let videoObj = {
             title,
@@ -48,16 +54,15 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             },
         };
 
-        const existingVideo = await Video.findOne({ title });
+        const existingVideo = await Video.findOne({ title }).exec();
         if (existingVideo) {
             return res.status(409).json({
                 success: false,
-                message: 'Video already eixists!',
+                message: 'Video already exists!',
             });
-        };
+        }
 
         const tempVideo = new Video(videoObj);
-
         const validationError = tempVideo.validateSync();
         if (validationError) {
             return res.status(400).json({
@@ -65,76 +70,29 @@ exports.uploadVideoToCloudinary = async (req, res) => {
                 message: 'Validation Error',
                 errors: Object.values(validationError.errors).map(err => err.message),
             });
-        };
-
-        if (videoFile) {
-            try {
-                const videoResult = await cloudinary.uploader.upload(videoFile.tempFilePath, {
-                    folder: 'Videos',
-                    resource_type: 'video',
-                    chunk_size: 90000000,
-                });
-
-                videoData.video.publicId = videoResult.public_id;
-                videoData.video.url = videoResult.secure_url;
-
-                fs.unlinkSync(videoFile.tempFilePath);
-
-            } catch (error) {
-                console.error('Error uploading video file:', error);
-            };
         }
-        else if (video) {
-            try {
-                const videoResult = await cloudinary.uploader.upload(video, {
-                    folder: 'Videos',
-                    resource_type: 'video',
-                });
 
-                videoData.video.publicId = videoResult.public_id;
-                videoData.video.url = videoResult.secure_url;
-
-            } catch (error) {
-                console.error('Error uploading video URL:', error);
-            };
-        };
-
-        if (thumbnailFile) {
-            try {
-                const thumbnailResult = await cloudinary.uploader.upload(thumbnailFile.tempFilePath, {
-                    folder: 'thumbnails',
-                    resource_type: 'image',
-                    transformation: [
-                        { width: 1280, height: 720, crop: "fill" }
-                    ]
-                });
-
-                videoData.video.publicId = thumbnailResult.public_id;
-                videoData.video.url = thumbnailResult.secure_url;
-
-                fs.unlinkSync(thumbnailFile.tempFilePath);
-
-            } catch (error) {
-                console.error('Error uploading thumbnail file:', error);
-            };
+        if (req.files?.video) {
+            const videoResult = await uploadVideo(req.files.video.tempFilePath, videoOptions);
+            videoData.video.publicId = videoResult.public_id;
+            videoData.video.url = videoResult.url;
+            fs.unlinkSync(req.files.video.tempFilePath);
+        } else if (video) {
+            const videoResult = await uploadVideo(video, videoOptions);
+            videoData.video.publicId = videoResult.public_id;
+            videoData.video.url = videoResult.url;
         }
-        else if (thumbnail) {
-            try {
-                const thumbnailResult = await cloudinary.uploader.upload(thumbnail, {
-                    folder: 'thumbnails',
-                    resource_type: 'image',
-                    transformation: [
-                        { width: 1280, height: 720, crop: "fill" }
-                    ]
-                });
 
-                videoData.thumbnail.publicId = thumbnailResult.public_id;
-                videoData.thumbnail.url = thumbnailResult.url;
-
-            } catch (error) {
-                console.error('Error uploading thumbnail URL:', error);
-            };
-        };
+        if (req.files?.thumbnail) {
+            const thumbnailResult = await uploadImage(req.files.thumbnail.tempFilePath, thumbnailOptions);
+            videoData.thumbnail.publicId = thumbnailResult.public_id;
+            videoData.thumbnail.url = thumbnailResult.url;
+            fs.unlinkSync(req.files.thumbnail.tempFilePath);
+        } else if (thumbnail) {
+            const thumbnailResult = await uploadImage(thumbnail, thumbnailOptions);
+            videoData.thumbnail.publicId = thumbnailResult.public_id;
+            videoData.thumbnail.url = thumbnailResult.url;
+        }
 
         const newVideo = new Video({
             ...videoObj,
@@ -147,10 +105,8 @@ exports.uploadVideoToCloudinary = async (req, res) => {
             message: 'Video uploaded successfully!',
             video: newVideo,
         });
-
     } catch (error) {
         console.error(error);
-
         if (error.name === 'ValidationError') {
             const validationErrors = Object.values(error.errors).map(err => err.message);
             return res.status(400).json({
@@ -158,22 +114,20 @@ exports.uploadVideoToCloudinary = async (req, res) => {
                 message: 'Validation Error',
                 errors: validationErrors,
             });
-        };
-
+        }
         if (error.code === 11000) {
             const field = Object.keys(error.keyValue);
             return res.status(409).json({
                 success: false,
                 message: `Duplicate field value entered for ${field}: ${error.keyValue[field]}.`,
             });
-        };
-
+        }
         res.status(500).json({
             success: false,
             message: 'Error occurred while uploading the video',
             error,
         });
-    };
+    }
 };
 
 exports.uploadVideoToMega = async (req, res) => {

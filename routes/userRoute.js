@@ -63,6 +63,11 @@ userRouter.post(
     validateRequiredFields(['email']),
     userController.resendOtp
 );
+userRouter.post(
+    '/resend-code',
+    validateRequiredFields(['email']),
+    userController.resendVerificationCode
+)
 
 // ******************** User profile routes ******************
 
@@ -163,7 +168,7 @@ userRouter.delete(
 userRouter.post(
     '/create-story',
     userAuthentication,
-    validateRequiredFields(['title', 'caption', 'duration']),
+    validateRequiredFields(['title', 'caption',]),
     storyUserController.createStory
 );
 userRouter.get(
@@ -181,7 +186,7 @@ userRouter.put(
     '/update-story',
     userAuthentication,
     validateObjectIds(['storyId']),
-    validateRequiredFields(['title', 'caption', 'duration']),
+    validateRequiredFields(['title', 'caption']),
     storyUserController.updateStory
 );
 userRouter.delete(

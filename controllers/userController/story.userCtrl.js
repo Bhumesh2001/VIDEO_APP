@@ -1,76 +1,76 @@
 const Story = require('../../models/adminModel/story.adminModel');
-const { checkUrl } = require('../../utils/uploadImage');
-const cloudinary = require('cloudinary').v2;
-const fs = require('fs');
+const fs = require('fs').promises;
+const { deleteImageOnCloudinary } = require('../../utils/uploadImage');
+const { uploadImage, uploadVideo } = require('../../utils/uploadUtil');
+
+const storyVideoOptions = {
+    folder: 'Stories',
+};
+
+const storyImageOptions = {
+    folder: 'Stories',
+    transformation: [
+        { width: 1080, height: 720, crop: 'fill' }
+    ]
+};
 
 exports.createStory = async (req, res) => {
-    const { video, ...data } = req.body;
+    const { video, image, ...data } = req.body;
+
+    const videoFile = req.files?.video;
+    const imageFile = req.files?.image;
 
     let storyData = {
         userId: req.user._id,
-        public_id: '',
-        video: '',
-        ...data,
+        video: { url: '', public_id: '' },
+        image: { url: '', public_id: '' },
+        ...data
     };
 
     try {
-        const videoFile = req.files?.video;  // Check if video file exists
-
-        if (!videoFile && !video) {
+        // Validate if image or imageFile exists
+        if (!imageFile && !image) {
             return res.status(400).json({
                 success: false,
-                message: 'A video file or valid video URL must be provided',
+                message: 'Either image file or image URL is required!',
             });
-        }
-
-        // If video URL is provided, validate it
-        if (!videoFile && !checkUrl(video)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid URL format',
-            });
-        }
+        };
 
         // Check if the story title already exists
         const existingStory = await Story.findOne({ title: data.title });
         if (existingStory) {
             return res.status(409).json({
                 success: false,
-                message: 'Story with this title already exists!',
+                message: 'Story already exists!',
             });
-        }
+        };
 
         // If video file exists, upload it to Cloudinary
-        if (videoFile) {
-            try {
-                const videoResult = await cloudinary.uploader.upload(videoFile.tempFilePath, {
-                    resource_type: 'video',
-                    chunk_size: 6000000,
-                });
+        if (videoFile || video) {
+            const videoInput = videoFile ? videoFile.tempFilePath : video;
+            const videoResult = await uploadVideo(videoInput, storyVideoOptions);
+            storyData.video.public_id = videoResult.public_id;
+            storyData.video.url = videoResult.url;
 
-                storyData.public_id = videoResult.public_id;
-                storyData.video = videoResult.secure_url;
+            // Delete temp video file if uploaded from file
+            if (videoFile) await fs.unlink(videoFile.tempFilePath);
+        };
 
-                fs.unlinkSync(videoFile.tempFilePath);  // Remove temp file
-            } catch (error) {
-                console.error('Error uploading video file:', error);
-                return res.status(500).json({
-                    success: false,
-                    message: 'Error uploading video file',
-                    error: error.message,
-                });
-            }
-        }
-        // If video URL is provided, use the URL directly (no need to re-upload to Cloudinary)
-        else if (video) {
-            storyData.video = video;
+        if (imageFile || image) {
+            const imageInput = imageFile ? imageFile.tempFilePath : image;
+            const imageResult = await uploadImage(imageInput, storyImageOptions);
+            storyData.image.public_id = imageResult.public_id;
+            storyData.image.url = imageResult.url;
+
+            // Delete temp image file if uploaded from file
+            if (imageFile) await fs.unlink(imageFile.tempFilePath);
         };
 
         // Create and save the story in the database
         const story = new Story(storyData);
         await story.save();
 
-        return res.status(200).json({
+        res.status(200).json({
             success: true,
             message: 'Story created successfully',
             story,
@@ -79,14 +79,8 @@ exports.createStory = async (req, res) => {
     } catch (error) {
         console.error(error);
 
-        // If a video was uploaded to Cloudinary but there's an error, delete the video from Cloudinary
-        if (storyData.public_id) {
-            try {
-                await cloudinary.uploader.destroy(storyData.public_id, { resource_type: 'video' });
-            } catch (cleanupError) {
-                console.error('Error deleting video from Cloudinary:', cleanupError);
-            }
-        }
+        if (storyData.image.public_id) deleteImageOnCloudinary(storyData.image.public_id);
+        if (storyData.video.public_id) deleteImageOnCloudinary(storyData.video.public_id);
 
         // Validation error handling
         if (error.name === 'ValidationError') {
@@ -99,7 +93,7 @@ exports.createStory = async (req, res) => {
         };
 
         // Server error handling
-        return res.status(500).json({
+        res.status(500).json({
             success: false,
             message: 'Server Error',
             error: error.message,
@@ -122,7 +116,11 @@ exports.getAllStories = async (req, res) => {
                     TotalViews: { $size: "$likes" },
                     duration: 1,
                     expirationTime: 1,
+                    createdAt: 1,
                 }
+            },
+            {
+                $sort: { createdAt: -1 }
             }
         ]);
         const totalStories = await Story.countDocuments();
@@ -151,18 +149,24 @@ exports.getSingleStory = async (req, res) => {
     try {
         const { storyId } = req.query;
 
-        const story = await Story.findById(storyId);
+        const story = await Story.findById(storyId).select(
+            '_id title caption video.url image.url views likes duration status expirationTime'
+        );
         if (!story) {
             return res.status(404).json({
                 success: false,
                 message: 'story not found',
             });
         };
+        const plainStory = story.toObject();
+
+        plainStory.video = plainStory.video.url;
+        plainStory.image = plainStory.image.url;
 
         res.status(200).json({
             success: true,
             message: 'Story fetched successfully...',
-            story,
+            story: plainStory,
         });
 
     } catch (error) {
@@ -176,91 +180,56 @@ exports.getSingleStory = async (req, res) => {
 
 exports.updateStory = async (req, res) => {
     const { storyId } = req.query;
-    const { video, ...data } = req.body;
+    const { video, image, ...data } = req.body;
+
+    const videoFile = req.files?.video;
+    const imageFile = req.files?.image;
+
+    let storyData = { ...data };
 
     try {
         // Fetch the story with the given ID and user ID
-        const story_ = await Story.findOne({ _id: storyId, userId: req.user._id });
+        const story_ = await Story.findOne({ _id: storyId, userId: req.user._id }).exec();
         if (!story_) {
             return res.status(404).json({
                 success: false,
                 message: 'Story not found!',
             });
-        }
-
-        // Prepare the story data with existing values
-        let storyData = {
-            public_id: story_.public_id,
-            video: story_.video,
-            ...data
         };
 
-        const videoFile = req.files?.video;
+        // Helper function to handle file upload and cleanup
+        const handleUpload = async (file, url, uploadFunc, currentFilePublicId, options) => {
+            if (file || url) {
+                // Delete the old file from Cloudinary if a new one is provided
+                if (currentFilePublicId) await deleteImageOnCloudinary(currentFilePublicId);
 
-        // Only attempt to destroy the old video if a new one (file or URL) is provided
-        if (videoFile || video) {
-            try {
-                await cloudinary.uploader.destroy(story_.public_id, {
-                    resource_type: 'video',
-                });
-            } catch (cleanupError) {
-                console.error('Error deleting video from Cloudinary:', cleanupError);
+                const input = file ? file.tempFilePath : url;
+                const result = await uploadFunc(input, options);
+
+                if (file) await fs.unlink(file.tempFilePath); // Delete the temp file asynchronously
+
+                return {
+                    url: result.url,
+                    public_id: result.public_id
+                };
             }
+            return null;
+        };
 
-            if (videoFile) {
-                try {
-                    const videoResult = await cloudinary.uploader.upload(videoFile.tempFilePath, {
-                        resource_type: 'video',
-                        chunk_size: 6000000,
-                    });
+        // Handle video upload if provided
+        const newVideoData = await handleUpload(videoFile, video, uploadVideo, story_.video.public_id, storyVideoOptions);
+        if (newVideoData) storyData.video = newVideoData;
 
-                    storyData.public_id = videoResult.public_id;
-                    storyData.video = videoResult.secure_url;
+        // Handle image upload if provided
+        const newImageData = await handleUpload(imageFile, image, uploadImage, story_.image.public_id, storyImageOptions);
+        if (newImageData) storyData.image = newImageData;
 
-                    // Remove temp file
-                    fs.unlinkSync(videoFile.tempFilePath);
-
-                } catch (error) {
-                    console.error('Error uploading video file:', error);
-                    return res.status(500).json({
-                        success: false,
-                        message: 'Error uploading video file',
-                        error: error.message,
-                    });
-                }
-            } else if (video) {
-                try {
-                    const videoResult = await cloudinary.uploader.upload(video, {
-                        resource_type: 'video',
-                    });
-
-                    storyData.public_id = videoResult.public_id;
-                    storyData.video = videoResult.secure_url;
-
-                } catch (error) {
-                    console.error('Error uploading video URL:', error);
-                    return res.status(500).json({
-                        success: false,
-                        message: 'Error uploading video URL',
-                        error: error.message,
-                    });
-                }
-            }
-        }
-
-        // Update the story with new data
+        // Update the story with the new data
         const updatedStory = await Story.findOneAndUpdate(
             { _id: storyId, userId: req.user._id },
             storyData,
             { new: true, runValidators: true }
         );
-
-        if (!updatedStory) {
-            return res.status(404).json({
-                success: false,
-                message: 'Story not found!',
-            });
-        }
 
         res.status(200).json({
             success: true,
@@ -269,7 +238,15 @@ exports.updateStory = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
+        console.error(error);
+
+        // Cleanup uploaded files in case of error
+        const deleteFileIfExists = async (publicId) => {
+            if (publicId) await deleteImageOnCloudinary(publicId);
+        };
+
+        if (storyData.image?.public_id) await deleteFileIfExists(storyData.image.public_id);
+        if (storyData.video?.public_id) await deleteFileIfExists(storyData.video.public_id);
 
         res.status(500).json({
             success: false,
@@ -281,7 +258,7 @@ exports.updateStory = async (req, res) => {
 
 exports.deleteStory = async (req, res) => {
     try {
-        const { storyId } = req.query || req.body;
+        const { storyId } = req.query;
 
         const story = await Story.findOneAndDelete({ userId: req.user._id, _id: storyId });
         if (!story) {
@@ -291,13 +268,8 @@ exports.deleteStory = async (req, res) => {
             });
         };
 
-        try {
-            await cloudinary.uploader.destroy(story.public_id, {
-                resource_type: 'video',
-            });
-        } catch (cleanupError) {
-            console.error('Error deleting video from Cloudinary:', cleanupError);
-        };
+        if (story.image.public_id) await deleteImageOnCloudinary(story.image.public_id);
+        if (story.video.public_id) await deleteImageOnCloudinary(story.video.public_id);
 
         res.status(200).json({
             success: false,

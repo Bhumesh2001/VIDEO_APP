@@ -170,7 +170,7 @@ adminRouter.delete(
 adminRouter.post(
     '/create-story',
     adminAuthentication,
-    validateRequiredFields(['title', 'caption', 'duration']),
+    validateRequiredFields(['title', 'caption']),
     storyController.createStoryByAdmin
 );
 adminRouter.get('/stories', storyController.getAllStoriesByAdmin);
@@ -184,7 +184,7 @@ adminRouter.put(
     '/update-story',
     adminAuthentication,
     validateObjectIds(['storyId']),
-    validateRequiredFields(['title', 'caption', 'duration', 'status']),
+    validateRequiredFields(['title', 'caption', 'status']),
     storyController.updateStoryByAdmin
 );
 adminRouter.delete(

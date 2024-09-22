@@ -1,13 +1,17 @@
-const cloudinary = require('cloudinary').v2
 const Banner = require('../../models/adminModel/banner.adminModlel');
 const {
-    deleteImageAndUploadToCloudinary,
     deleteImageOnCloudinary,
-    imageToBuffer,
-    uploadArticleImageToCloudinary,
-    resizeImage,
 } = require('../../utils/uploadImage');
+const fs = require('fs').promises;
 
+const { uploadImage } = require('../../utils/uploadUtil');
+
+const bannerOptions = {
+    folder: 'Banners',
+    transformation: [
+        { width: 1280, height: 720, crop: 'fill' }
+    ],
+};
 
 exports.createBanner = async (req, res) => {
     let { title, description, image, status } = req.body;
@@ -45,19 +49,9 @@ exports.createBanner = async (req, res) => {
             };
         };
 
-        if (image) {
-            const aspect_ratio = {
-                width: 1280,
-                height: 720,
-            };
-            const folderName = 'Banners';
-            const format = req.files.image.mimetype.split('/')[1];
+        if (image) imageData = await uploadImage(image, bannerOptions);
 
-            const imageBuffer = await imageToBuffer(image);
-            const resizedBuffer = await resizeImage(imageBuffer, aspect_ratio.width, aspect_ratio.height);
-
-            imageData = await uploadArticleImageToCloudinary(resizedBuffer, format, aspect_ratio, folderName);
-        };
+        if (req.files.image) await fs.unlink(req.files.image.tempFilePath);
 
         const bannerObj = {
             title,
@@ -77,17 +71,12 @@ exports.createBanner = async (req, res) => {
             message: 'Banner created successfully',
             banner: newBanner,
         });
+
     } catch (error) {
         console.error('Error creating banner:', error);
 
         // Cleanup the image from Cloudinary if it was uploaded but there was a failure
-        if (imageData && imageData.public_id) {
-            try {
-                await cloudinary.uploader.destroy(imageData.public_id, { resource_type: 'image' });
-            } catch (cleanupError) {
-                console.error('Error deleting image from Cloudinary during cleanup:', cleanupError);
-            };
-        };
+        if (imageData && imageData.public_id) deleteImageOnCloudinary(imageData.public_id);
 
         // Handle validation errors
         if (error.name === 'ValidationError') {
@@ -150,7 +139,7 @@ exports.getSingleBanner = async (req, res) => {
     const { bannerId } = req.query;
 
     try {
-        const banner = await Banner.findById(bannerId);
+        const banner = await Banner.findById(bannerId).exec();
         if (!banner) {
             return res.status(404).json({
                 success: false,
@@ -174,6 +163,8 @@ exports.getSingleBanner = async (req, res) => {
 exports.updateBanner = async (req, res) => {
     const { bannerId } = req.query;
     let { title, description, image, status } = req.body;
+
+    let imageData = null;
 
     try {
         if (!(req.files && req.files.image) && !req.body.image) {
@@ -210,22 +201,11 @@ exports.updateBanner = async (req, res) => {
         };
 
         if (image) {
-            const aspect_ratio = {
-                width: 1280,
-                height: 720,
-            };
-            const folderName = 'Banners';
-            const format = req.files.image.mimetype.split('/')[1];
-
-            const imageBuffer = await imageToBuffer(image);
-            const resizedBuffer = await resizeImage(imageBuffer, aspect_ratio.width, aspect_ratio.height);
-
-            const public_id = bannerData.public_id;
-            const updateData = { resizedBuffer, format, aspect_ratio, folderName, public_id }
-            const imageData = await deleteImageAndUploadToCloudinary(updateData);
-
+            deleteImageOnCloudinary(bannerData.public_id);
+            imageData = await uploadImage(image, bannerOptions);
             bannerUpdates['image'] = imageData.url;
             bannerUpdates['public_id'] = imageData.public_id;
+            if (req.files.image) await fs.unlink(req.files.image.tempFilePath);
         };
 
         const banner = await Banner.findByIdAndUpdate(
@@ -249,6 +229,8 @@ exports.updateBanner = async (req, res) => {
     } catch (error) {
         console.log(error);
 
+        if (req.files.image) if (imageData.public_id) await deleteImageOnCloudinary(imageData.public_id);
+
         res.status(500).json({
             success: false,
             message: 'Server error',
@@ -270,7 +252,7 @@ exports.deleteBanner = async (req, res) => {
         };
 
         const public_id = banner.public_id;
-        deleteImageOnCloudinary(public_id);
+        if (public_id) await deleteImageOnCloudinary(public_id);
 
         res.status(200).json({
             success: true,
