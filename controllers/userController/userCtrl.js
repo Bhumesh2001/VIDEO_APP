@@ -27,151 +27,147 @@ exports.registerUser = async (req, res) => {
     try {
         const { name, email, password, mobileNumber } = req.body;
 
+        // Validate strong password
         const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
         if (!strongPasswordRegex.test(password)) {
             return res.status(400).json({
                 success: false,
                 message: 'Password must be strong (include upper, lower, number, and special character)',
             });
-        };
+        }
 
+        // Check for existing user
         const existingUser = await userModel.findOne({ email }).exec();
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'User already exists' });
-        };
+        }
 
-        const Code = generateCode();
-        const userData = {
-            name,
-            email,
-            password,
-            mobileNumber,
-            Code,
-            isVerified: false,
-        };
-        temporaryStorage.set(email, userData);
+        // Create and store user data
+        const verificationCode = generateCode();
+        const userData = { name, email, password, mobileNumber, verificationCode, isVerified: false };
+        temporaryStorage.set(email, userData); // Store temporary data
 
-        const mailOptions = {
+        // Send verification email
+        transporter.sendMail({
             from: process.env.EMAIL,
             to: email,
             subject: 'Account Verification',
-            text: `Your verification code is: ${Code}`,
-        };
-
-        transporter.sendMail(mailOptions, (err, info) => {
-            if (err) return console.error(err);
-            console.log('Verification email sent: ' + info.response);
+            text: `Your verification code is: ${verificationCode}`,
+        }, (err, info) => {
+            if (err) console.error('Error sending email:', err);
+            else console.log('Verification email sent:', info.response);
         });
 
+        // Respond with success
         res.status(201).json({
             success: true,
             message: 'Please verify your email',
         });
 
-        let expireTime = 15 * 60 * 1000;
+        // Set timeout for temporary data expiration (15 minutes)
         setTimeout(() => {
             if (temporaryStorage.has(email)) {
                 temporaryStorage.delete(email);
-                console.log(`Data for user "${email}" has expired and been removed.`);
-            };
-        }, expireTime);
+                console.log(`Temporary data for user "${email}" has expired and been removed.`);
+            }
+        }, 15 * 60 * 1000);  // 15 minutes
 
     } catch (error) {
-        console.log(error);
+        console.error('Error during user registration:', error);
 
+        // Handle validation errors
         if (error.name === 'ValidationError') {
-            const validationErrors = Object.values(error.errors).map(err => err.message);
             return res.status(400).json({
                 success: false,
                 message: 'Validation Error',
-                errors: validationErrors,
+                errors: Object.values(error.errors).map(err => err.message),
             });
-        };
+        }
 
+        // Handle duplicate errors (email already exists)
         if (error.code === 11000) {
-            const field = Object.keys(error.keyValue);
+            const field = Object.keys(error.keyValue)[0];
             return res.status(409).json({
                 success: false,
-                message: `Duplicate field value entered for ${field}: ${error.keyValue[field]}. 
-                Please use another value!`,
+                message: `Duplicate field value entered for ${field}: ${error.keyValue[field]}. Please use another value!`,
             });
-        };
+        }
 
+        // General server error
         res.status(500).json({
             success: false,
             message: 'Server Error',
             error: error.message,
         });
-    };
+    }
 };
 
 // -------------- Verify User -------------------
 exports.verifyUser = async (req, res) => {
     const { email, code } = req.body;
-    try {
-        let user_data;
-        if (temporaryStorage.has(email)) {
-            user_data = temporaryStorage.get(email);
-        } else {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid or expired verification code!'
-            });
-        };
 
+    try {
+        // Check if temporary storage has user data
+        const user_data = temporaryStorage.get(email);
         if (!user_data) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid or expired verification code.'
+                message: 'Invalid or expired verification code!',
             });
-        };
-        const { Code, ...userData } = user_data;
+        }
 
+        const { Code, ...userDetails } = user_data;
+
+        // Check if the verification code matches
         if (parseInt(code) !== Code) {
             return res.status(400).json({
                 success: false,
-                message: 'Incorrect verification code.'
+                message: 'Incorrect verification code.',
             });
-        };
+        }
+
+        // Create new user and save
         const user = new userModel({
-            name: userData.name,
-            email: userData.email,
-            password: userData.password,
-            mobileNumber: userData.mobileNumber,
+            ...userDetails,
             isVerified: true,
         });
         await user.save();
 
+        // Delete temporary user data after successful verification
         temporaryStorage.delete(email);
 
+        // Generate JWT token
         const token = jwt.sign(
             { email: user.email, role: user.role, _id: user._id },
             process.env.USER_SECRET_KEY,
-            { expiresIn: '2d' },
+            { expiresIn: '2d' }
         );
 
+        // Set secure cookie for token
         res.cookie('userToken', token, {
             httpOnly: true,
             secure: true,
-            maxAge: 1000 * 60 * 60 * 48,
+            maxAge: 1000 * 60 * 60 * 48,  // 2 days
             sameSite: 'Lax',
             path: '/',
         });
 
+        // Respond with success
         res.status(200).json({
             success: true,
-            message: 'Logged in successful...',
+            message: 'Logged in successfully.',
             userId: user._id,
             token,
         });
+
     } catch (error) {
-        console.log(error);
+        console.error('Error verifying user:', error);
         res.status(500).json({
             success: false,
-            message: 'error occured during verify the user',
-            error,
+            message: 'Error occurred during user verification',
+            error: error.message,
         });
-    };
+    }
 };
 
 // -------------- Forget password -----------------
@@ -179,7 +175,7 @@ exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
 
     try {
-        const user = await userModel.findOne({ email });
+        const user = await userModel.findOne({ email }).exec();
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found!' });
         };
@@ -210,7 +206,7 @@ exports.resetPassword = async (req, res) => {
     const { email, otp, newPassword } = req.body;
 
     try {
-        const user = await userModel.findOne({ email, otp, otpExpiration: { $gt: Date.now() } });
+        const user = await userModel.findOne({ email, otp, otpExpiration: { $gt: Date.now() } }).exec();
         if (!user) {
             return res.status(400).json({ success: false, message: 'Invalid OTP or OTP has expired!' });
         };
@@ -232,7 +228,7 @@ exports.resendOtp = async (req, res) => {
     const { email } = req.body;
 
     try {
-        const user = await userModel.findOne({ email });
+        const user = await userModel.findOne({ email }).exec();
 
         if (!user) {
             return res.status(404).json({
@@ -332,7 +328,7 @@ exports.loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const user = await userModel.findOne({ email });
+        const user = await userModel.findOne({ email }).exec();
 
         if (!user || !(await user.comparePassword(password))) {
             return res.status(401).json({
@@ -373,32 +369,38 @@ exports.loginUser = async (req, res) => {
 // ------------- Logout User -----------------
 exports.logoutUser = async (req, res) => {
     try {
-        const userToken = req.cookies.userToken;
-        if (userToken) {
-            res.clearCookie('userToken', {
-                httpOnly: true,
-                secure: true,
-                sameSite: 'Lax',
-                path: '/',
-            });
-            return res.status(200).json({
-                success: true,
-                message: 'User logged out successfully.',
-                userToken,
-            });
-        } else {
+        const userToken = req.cookies?.userToken;
+
+        // Check if userToken exists in cookies
+        if (!userToken) {
             return res.status(400).json({
                 success: false,
-                message: 'User is already logged out!'
+                message: 'User is already logged out!',
             });
-        };
+        }
+
+        // Clear the userToken cookie
+        res.clearCookie('userToken', {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'Lax',
+            path: '/',
+        });
+
+        // Send success response
+        return res.status(200).json({
+            success: true,
+            message: 'User logged out successfully.',
+        });
+
     } catch (error) {
         console.error('Logout exception:', error);
         return res.status(500).json({
             success: false,
-            message: 'Failed to log out due to an exception.'
+            message: 'Failed to log out due to a server error.',
+            error: error.message,
         });
-    };
+    }
 };
 
 // ---------------- login with google ----------------- 
@@ -537,31 +539,23 @@ exports.getFacebookProfile = async (req, res) => {
     };
 };
 
-// -------------------- update user ---------------------
+// -------------------- user profile ---------------------
 
 exports.userProfile = async (req, res) => {
     try {
         const profile = await userModel.findById(req.user._id, {
             __v: 0, createdAt: 0, updatedAt: 0, isVerified: 0, role: 0, password: 0,
         });
+
         if (!profile) {
-            return res.status(404).json({
-                success: false,
-                message: 'profile not found',
-            });
-        };
-        res.status(200).json({
-            success: true,
-            message: 'Profile fetched successfully...',
-            profile,
-        });
+            return res.status(404).json({ success: false, message: 'Profile not found.' });
+        }
+
+        res.status(200).json({ success: true, message: 'Profile fetched successfully.', profile });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'error occured while fetching the user profile',
-        });
-    };
+        console.error('Error fetching user profile:', error);
+        res.status(500).json({ success: false, message: 'Error occurred while fetching the user profile.' });
+    }
 };
 
 exports.updateUser = async (req, res) => {

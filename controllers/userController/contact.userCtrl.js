@@ -4,15 +4,17 @@ const ContactUseModel = require('../../models/userModel/contact.userModel');
 exports.createContactUser = async (req, res) => {
     try {
         const { name, email, phone, city, district, state, country, pincode, message } = req.body;
-        const contact_user = {
+
+        // Create contact user object with nested address
+        const contactUser = new ContactUseModel({
             userId: req.user._id,
-            name, email, phone,
-            address: {
-                city, district, state, country, pincode,
-            },
-            message,
-        };
-        const contactUser = new ContactUseModel(contact_user);
+            name,
+            email,
+            phone,
+            address: { city, district, state, country, pincode },
+            message
+        });
+
         await contactUser.save();
 
         res.status(201).json({
@@ -21,21 +23,23 @@ exports.createContactUser = async (req, res) => {
             contactUser,
         });
     } catch (error) {
-        console.log(error);
+        console.error('Error creating contact user:', error);
 
+        // Handle validation errors explicitly
         if (error.name === 'ValidationError') {
             return res.status(400).json({
                 success: false,
                 message: 'Validation Error',
                 errors: Object.values(error.errors).map(err => err.message),
             });
-        };
+        }
+
         res.status(500).json({
             success: false,
             message: 'Server error, failed to create contact user',
             error: error.message,
         });
-    };
+    }
 };
 
 // Get all constact users
@@ -65,7 +69,7 @@ exports.getAllContactUsers = async (req, res) => {
 // Get a contact user by ID
 exports.getContactUserById = async (req, res) => {
     try {
-        const contactUser = await ContactUseModel.findOne({ userId: req.params.userId });
+        const contactUser = await ContactUseModel.findOne({ userId: req.params.userId }).exec();
         if (!contactUser) {
             return res.status(404).json({
                 success: false,

@@ -1,11 +1,6 @@
-const Article = require('../../models/adminModel/article.adminModel');
-const {
-    deleteImageAndUploadToCloudinary,
-    deleteImageOnCloudinary,
-} = require('../../utils/uploadImage');
-
-const { uploadImage } = require('../../utils/uploadUtil');
 const fs = require('fs').promises;
+const Article = require('../../models/adminModel/article.adminModel');
+const { uploadImage, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
 
 const articleOptions = {
     folder: 'Articles',
@@ -108,10 +103,6 @@ exports.getAllArticles = async (req, res) => {
                 $project: {
                     userId: 1,
                     title: 1,
-                    authorName: 1,
-                    publicationDate: 1,
-                    content: 1,
-                    topic: 1,
                     image: 1,
                     TotalLikes: { $size: "$likes" },
                     TotalComments: { $size: "$comments" },
@@ -175,95 +166,113 @@ exports.getSingleArticle = async (req, res) => {
 
 exports.updateArticle = async (req, res) => {
     const { articleId } = req.query;
-    let { title, description, image, } = req.body;
+    const { title, description, image } = req.body;
 
     try {
-        const article_ = await Article.findById(articleId);
-        if (!article_) {
+        // Check if article exists
+        const article = await Article.findOne({ userId: req.user._id, articleId }).exec();
+        if (!article) {
             return res.status(404).json({
                 success: false,
                 message: 'Article not found',
             });
-        };
+        }
 
-        if (!(req.files && req.files.image) && !req.body.image) {
-            return res.status(400).json({
-                success: false,
-                message: 'Image file or image URL is required!',
-            });
-        };
+        // Handle image upload (either URL or file)
+        let imageData = { url: article.image, public_id: article.public_id }; // Default to existing image
+        if (req.files?.image || image) {
+            const imageInput = req.files?.image?.tempFilePath || image;
 
-        if (req.files && req.files.image) {
-            image = req.files.image.tempFilePath;
-        } else {
-            if (!/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
+            // Validate image URL if provided
+            if (typeof imageInput === 'string' && !/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(imageInput)) {
                 return res.status(400).json({
                     success: false,
                     message: 'Invalid image URL!',
                 });
-            };
-        };
+            }
 
-        const public_id = article_.public_id;
-        const imageData = await deleteImageAndUploadToCloudinary(public_id, image);
+            // Delete old image and upload the new one
+            if (article.public_id) await deleteImageOnCloudinary(article.public_id);
+            imageData = await uploadImage(imageInput, articleOptions);
 
+            // Clean up temporary file if applicable
+            if (req.files?.image) await fs.unlink(req.files.image.tempFilePath);
+        }
+
+        // Build update object dynamically
         const updates = {
-            title,
-            description,
-            public_id: imageData.public_id,
+            title: title || article.title,
+            description: description || article.description,
             image: imageData.url,
+            public_id: imageData.public_id,
         };
 
-        const article = await Article.findOneAndUpdate(
+        // Update article
+        const updatedArticle = await Article.findOneAndUpdate(
             { userId: req.user._id, _id: articleId },
             updates,
             { new: true, runValidators: true }
         );
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
-            message: 'Article updated successfully...',
-            article,
+            message: 'Article updated successfully',
+            article: updatedArticle,
         });
 
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
+        console.error('Error updating article:', error);
+        return res.status(500).json({
             success: false,
-            message: 'error occured while fetching the articles',
+            message: 'Error occurred while updating the article',
             error: error.message,
         });
-    };
+    }
 };
 
 exports.deleteArticle = async (req, res) => {
     try {
         const { articleId } = req.query;
 
+        // Ensure articleId is provided
+        if (!articleId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Article ID is required',
+            });
+        }
+
+        // Find and delete the article
         const article = await Article.findOneAndDelete({ userId: req.user._id, _id: articleId });
         if (!article) {
             return res.status(404).json({
-                success: true,
+                success: false,
                 message: 'Article not found!',
             });
-        };
+        }
 
-        const public_id = article.public_id;
-        deleteImageOnCloudinary(public_id);
+        // If the article has a public_id, delete the image on Cloudinary
+        if (article.public_id) {
+            try {
+                await deleteImageOnCloudinary(article.public_id);
+            } catch (err) {
+                console.error('Error deleting image from Cloudinary:', err);
+            }
+        }
 
         res.status(200).json({
             success: true,
-            message: 'Article delete successfully...',
+            message: 'Article deleted successfully',
             article,
         });
     } catch (error) {
-        console.log(error);
+        console.error('Error deleting article:', error);
         res.status(500).json({
             success: false,
-            message: 'error occured while deleting the articles',
+            message: 'An error occurred while deleting the article',
             error: error.message,
         });
-    };
+    }
 };
 
 // like an article
@@ -436,4 +445,3 @@ exports.deleteComment = async (req, res) => {
         });
     };
 };
-

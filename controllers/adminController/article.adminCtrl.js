@@ -1,7 +1,6 @@
-const Article = require('../../models/adminModel/article.adminModel');
-const { deleteImageOnCloudinary } = require('../../utils/uploadImage');
-const { uploadImage } = require('../../utils/uploadUtil');
 const fs = require('fs').promises;
+const Article = require('../../models/adminModel/article.adminModel');
+const { uploadImage, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
 
 const articleOptions = {
     folder: 'Articles',

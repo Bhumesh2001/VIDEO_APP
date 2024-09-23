@@ -1,8 +1,6 @@
-const Category = require('../../models/adminModel/category.adminModel');
 const fs = require('fs').promises;
-
-const { deleteImageOnCloudinary } = require('../../utils/uploadImage');
-const { uploadImage } = require('../../utils/uploadUtil');
+const Category = require('../../models/adminModel/category.adminModel');
+const { uploadImage, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
 
 const categoryOptions = {
     folder: 'Categories',

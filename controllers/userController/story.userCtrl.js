@@ -1,7 +1,6 @@
-const Story = require('../../models/adminModel/story.adminModel');
 const fs = require('fs').promises;
-const { deleteImageOnCloudinary } = require('../../utils/uploadImage');
-const { uploadImage, uploadVideo } = require('../../utils/uploadUtil');
+const Story = require('../../models/adminModel/story.adminModel');
+const { uploadImage, uploadVideo, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
 
 const storyVideoOptions = {
     folder: 'Stories',

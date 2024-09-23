@@ -153,7 +153,6 @@ userRouter.put(
     '/update-article',
     userAuthentication,
     validateObjectIds(['articleId']),
-    validateRequiredFields(['title', 'description']),
     articleUserController.updateArticle
 );
 userRouter.delete(
@@ -186,7 +185,6 @@ userRouter.put(
     '/update-story',
     userAuthentication,
     validateObjectIds(['storyId']),
-    validateRequiredFields(['title', 'caption']),
     storyUserController.updateStory
 );
 userRouter.delete(

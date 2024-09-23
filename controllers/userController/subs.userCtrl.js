@@ -233,38 +233,41 @@ exports.mySubscription = async (req, res) => {
 
 exports.getHistory = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user?._id;
         if (!userId) {
-            return res.status(404).json({
-                success: true,
-                message: "userId not found",
+            return res.status(400).json({
+                success: false,
+                message: "User ID not found",
             });
-        };
+        }
 
-        const [SingleSubscriptions, AllSubscriptions] = await Promise.all([
-            SingleCategorySubscriptionModel.find({ userId }).exec(),
-            AllCategorySubscriptionModel.find({ userId }).exec()
+        const [singleSubscriptions, allSubscriptions] = await Promise.all([
+            SingleCategorySubscriptionModel.find({ userId }),
+            AllCategorySubscriptionModel.find({ userId })
         ]);
 
-        if (SingleSubscriptions.length === 0 || AllSubscriptions.length === 0) {
+        // Check if both subscriptions are empty
+        if (!singleSubscriptions.length && !allSubscriptions.length) {
             return res.status(404).json({
-                success: true,
-                message: "History not found!"
+                success: false,
+                message: "History not found!",
             });
-        };
+        }
+
         res.status(200).json({
             success: true,
-            message: "History fetched successfully...",
-            History: [...SingleSubscriptions, ...AllSubscriptions],
+            message: "History fetched successfully",
+            history: [...singleSubscriptions, ...allSubscriptions],
         });
 
     } catch (error) {
-        console.log(error);
+        console.error('Error fetching history:', error);  // Improved error logging
         res.status(500).json({
             success: false,
-            message: "Error occured while fetching the History",
+            message: "Error occurred while fetching the history",
+            error: error.message,  // Added more detailed error message
         });
-    };
+    }
 };
 
 exports.getSingleHistory = async (req, res) => {

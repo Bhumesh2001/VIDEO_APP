@@ -1,11 +1,12 @@
 const Coupon = require('../../models/adminModel/coupan.adminModel');
 const { generateCouponCode } = require('../../utils/coupanCode');
+const { convertToMongooseDate } = require('../../utils/subs.userUtil');
 
 // Create a new coupon
 exports.createCoupon = async (req, res) => {
     try {
         const { coupon_Code, discountPercentage, expirationDate, maxUsage, status } = req.body;
-     
+
         if (!discountPercentage || !expirationDate || !maxUsage) {
             return res.status(400).json({
                 success: false,
@@ -17,7 +18,7 @@ exports.createCoupon = async (req, res) => {
         const coupon = new Coupon({
             couponCode,
             discountPercentage,
-            expirationDate,
+            expirationDate: convertToMongooseDate(expirationDate),
             maxUsage,
             status
         });
@@ -111,37 +112,26 @@ exports.getCouponById = async (req, res) => {
 
 // Update a coupon by ID
 exports.updateCoupon = async (req, res) => {
+    const { couponId } = req.query;
+    const { expirationDate, ...couponData } = req.body;
+
     try {
-        const { couponId } = req.query;
-        const updateData = req.body;
+        const updateData = {
+            expirationDate: convertToMongooseDate(expirationDate),
+            ...couponData,
+            updatedAt: Date.now(),
+        };
 
-        // Find and update the coupon with validation and return the updated coupon
-        const coupon = await Coupon.findByIdAndUpdate(
-            couponId,
-            { ...updateData, updatedAt: Date.now() },
-            { new: true, runValidators: true }
-        );
+        const coupon = await Coupon.findByIdAndUpdate(couponId, updateData, { new: true, runValidators: true });
 
-        // If coupon not found
         if (!coupon) {
-            return res.status(404).json({
-                success: false,
-                message: 'Coupon not found.',
-            });
+            return res.status(404).json({ success: false, message: 'Coupon not found.' });
         }
 
-        res.status(200).json({
-            success: true,
-            message: 'Coupon updated successfully.',
-            coupon
-        });
+        res.status(200).json({ success: true, message: 'Coupon updated successfully.', coupon });
     } catch (error) {
         console.error('Error updating coupon:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while updating the coupon.',
-            error: error.message
-        });
+        res.status(500).json({ success: false, message: 'Error occurred while updating the coupon.', error: error.message });
     }
 };
 

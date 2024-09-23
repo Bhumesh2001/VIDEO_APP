@@ -98,3 +98,11 @@ async function uploadFromUrl(url, uploadOptions) {
         pipeline(data, uploadStream).catch(reject);
     });
 };
+
+exports.deleteImageOnCloudinary = async (publicId) => {
+    try {
+        await cloudinary.uploader.destroy(publicId);
+    } catch (error) {
+        throw new Error(`Error deleting image: ${error.message}`);
+    };
+};

@@ -1,8 +1,6 @@
-const Banner = require('../../models/adminModel/banner.adminModlel');
-const { deleteImageOnCloudinary } = require('../../utils/uploadImage');
 const fs = require('fs').promises;
-
-const { uploadImage } = require('../../utils/uploadUtil');
+const Banner = require('../../models/adminModel/banner.adminModlel');
+const { uploadImage, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
 
 const bannerOptions = {
     folder: 'Banners',

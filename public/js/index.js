@@ -206,7 +206,7 @@ async function loadArticleData(page = 1, limit = 12) {
 
     articleRow.innerHTML = '';
 
-    data.articls.forEach(article => {
+    data.articles.forEach(article => {
         // Create elements
         const colDiv = document.createElement('div');
         const articleCard = document.createElement('div');
