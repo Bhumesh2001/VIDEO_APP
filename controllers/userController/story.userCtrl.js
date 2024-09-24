@@ -1,4 +1,5 @@
 const fs = require('fs').promises;
+const { faker } = require('@faker-js/faker');
 const Story = require('../../models/adminModel/story.adminModel');
 const { uploadImage, uploadVideo, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
 
@@ -14,7 +15,7 @@ const storyImageOptions = {
 };
 
 exports.createStory = async (req, res) => {
-    const { video, image, ...data } = req.body;
+    const { video, image, title, caption, ...data } = req.body;
 
     const videoFile = req.files?.video;
     const imageFile = req.files?.image;
@@ -23,6 +24,8 @@ exports.createStory = async (req, res) => {
         userId: req.user._id,
         video: { url: '', public_id: '' },
         image: { url: '', public_id: '' },
+        title: title ? title : faker.lorem.sentence(),
+        caption: caption ? caption : faker.lorem.paragraph(),
         ...data
     };
 

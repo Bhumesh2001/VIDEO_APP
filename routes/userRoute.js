@@ -172,7 +172,6 @@ userRouter.delete(
 userRouter.post(
     '/create-story',
     userAuthentication,
-    // validateRequiredFields(['title', 'caption',]),
     storyUserController.createStory
 );
 userRouter.get(
