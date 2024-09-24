@@ -46,8 +46,8 @@ exports.registerUser = async (req, res) => {
 
         // Create and store user data
         const verificationCode = generateCode();
-        const userData = { name, email, password, mobileNumber, verificationCode, isVerified: false };
-        temporaryStorage.set(email, userData); // Store temporary data
+        const userData = { name, email, password, mobileNumber, Code: verificationCode, isVerified: false };
+        temporaryStorage.set(email, userData);
 
         // Send verification email
         transporter.sendMail({
@@ -119,24 +119,43 @@ exports.registerUserWithEmail = async (req, res) => {
                 userId: user._id,
                 token,
             });
-        }
+        };
 
-        const newUser = await new userModel({
+        const verificationCode = generateCode();
+        const userData = {
             name: name ? name : `User_${crypto.randomBytes(4).toString('hex')}`,
             email,
             password,
-            isVerified: true,
             mobileNumber: mobileNumber ? mobileNumber : `${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-        }).save();
+            Code: verificationCode,
+            isVerified: false
+        };
+        temporaryStorage.set(email, userData);
 
-        const token = generateTokenAndSetCookie(newUser, res);
+        transporter.sendMail({
+            from: process.env.EMAIL,
+            to: email,
+            subject: 'Account Verification',
+            text: `Your verification code is: ${verificationCode}`,
+        }, (err, info) => {
+            if (err) console.error('Error sending email:', err);
+            else console.log('Verification email sent:', info.response);
+        });
 
+        // Respond with success
         res.status(201).json({
             success: true,
-            message: 'User registered successfully',
-            userId: newUser._id,
-            token,
+            message: 'Please verify your email',
         });
+
+        // Set timeout for temporary data expiration (15 minutes)
+        setTimeout(() => {
+            if (temporaryStorage.has(email)) {
+                temporaryStorage.delete(email);
+                console.log(`Temporary data for user "${email}" has expired and been removed.`);
+            }
+        }, 15 * 60 * 1000);  // 15 minutes
+
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: 'Server error' });
