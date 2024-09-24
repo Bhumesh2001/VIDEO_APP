@@ -125,6 +125,7 @@ exports.registerUserWithEmail = async (req, res) => {
             name: name ? name : `User_${crypto.randomBytes(4).toString('hex')}`,
             email,
             password,
+            isVerified: true,
             mobileNumber: mobileNumber ? mobileNumber : `${Math.floor(1000000000 + Math.random() * 9000000000)}`,
         }).save();
 
