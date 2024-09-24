@@ -111,6 +111,7 @@ exports.getAllStories = async (req, res) => {
                     caption: 1,
                     views: 1,
                     likes: 1,
+                    image: "$image.url",
                     TotalViews: { $size: "$views" },
                     TotalViews: { $size: "$likes" },
                     duration: 1,

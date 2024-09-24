@@ -1,9 +1,11 @@
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
+const crypto = require('crypto');
 
 const userModel = require('../../models/userModel/userModel');
 const { generateCode } = require('../../utils/resendOtp.userUtil');
+const { generateTokenAndSetCookie } = require('../../utils/token');
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(
@@ -99,6 +101,44 @@ exports.registerUser = async (req, res) => {
             message: 'Server Error',
             error: error.message,
         });
+    }
+};
+
+// ---------------- Register with email -----------------
+exports.registerUserWithEmail = async (req, res) => {
+    try {
+        const { name, email, password, mobileNumber } = req.body;
+
+        let user = await userModel.findOne({ email });
+
+        if (user) {
+            const token = generateTokenAndSetCookie(user, res);
+            return res.status(200).json({
+                success: true,
+                message: 'User logged in successfully',
+                userId: user._id,
+                token,
+            });
+        }
+
+        const newUser = await new userModel({
+            name: name ? name : `User_${crypto.randomBytes(4).toString('hex')}`,
+            email,
+            password,
+            mobileNumber: mobileNumber ? mobileNumber : `${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+        }).save();
+
+        const token = generateTokenAndSetCookie(newUser, res);
+
+        res.status(201).json({
+            success: true,
+            message: 'User registered successfully',
+            userId: newUser._id,
+            token,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
     }
 };
 

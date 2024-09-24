@@ -1,4 +1,85 @@
 const navBar = document.getElementById('nav-bar_');
+const uploadMethodRadios = document.querySelectorAll('input[name="uploadMethod"]');
+const videoUploadField = document.getElementById("videoUploadField");
+const videoUrlField = document.getElementById("videoUrlField");
+
+// Sample data for the chart
+const labels = [
+    "User123",
+    "User456",
+    "User789",
+    "User101",
+    "User202",
+    "User303",
+    "User404",
+];
+const data = {
+    labels: labels,
+    datasets: [
+        {
+            label: "Revenue Amount ($)",
+            data: [100, 200, 150, 250, 300, 180, 400],
+            backgroundColor: "#3f37c9",
+            borderColor: "#6162dc", // Darker blue
+            borderWidth: 1,
+        },
+        {
+            label: "Projected Revenue ($)",
+            data: [120, 180, 220, 300, 250, 320, 380],
+            backgroundColor: "#e9c46a",
+            borderColor: "#e9c46a",
+            borderWidth: 1,
+        },
+        {
+            label: "Potential Revenue ($)",
+            data: [150, 250, 300, 400, 350, 420, 450],
+            backgroundColor: "#db3545",
+            borderColor: "#db3545",
+            borderWidth: 1,
+        },
+    ],
+};
+const config = {
+    type: "bar",
+    data: data,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: "rgba(255, 255, 255, 0.1)",
+                },
+                title: {
+                    display: true,
+                    text: "Revenue ($)",
+                    color: "#ffffff",
+                },
+            },
+            x: {
+                grid: {
+                    color: "rgba(255, 255, 255, 0.1)",
+                },
+                title: {
+                    display: true,
+                    text: "Users",
+                    color: "#ffffff",
+                },
+            },
+        },
+        plugins: {
+            legend: {
+                labels: {
+                    color: "#ffffff",
+                },
+            },
+        },
+    },
+};
+
+// Render the chart
+const revenueChart = new Chart(document.getElementById("revenueChart"), config);
 
 document.querySelector('.toggle-btn').addEventListener('click', () => {
     const sideBar = document.querySelector('.sidebar');
@@ -498,6 +579,55 @@ async function laodBannerData(page = 1, limit = 12) {
     };
 };
 
+// function to laod the setting data and display it in setting sections
+async function loadSettingData() {
+    try {
+        const endpoints = [
+            '/admin/setting/general',
+            '/admin/setting/smtp',
+            '/admin/setting/social-media',
+            '/admin/setting/menu',
+            '/admin/setting/re-captcha',
+            '/admin/setting/banner-ads',
+            '/admin/setting/maintenance-mode'
+        ];
+
+        const responses = await Promise.all(endpoints.map(url => fetch(url)));
+        const settingsData = await Promise.all(responses.map(res => res.json()));
+
+        settingsData.forEach(data => populateFormFields(data.settings));
+
+    } catch (error) {
+        console.error('Error loading settings:', error);
+    }
+};
+
+function populateFormFields(settings) {
+    Object.entries(settings).forEach(([key, value]) => {
+        console.log(`key=${key}: value=${typeof value === 'object' ? JSON.stringify(value) : value}`);
+
+        if (key === 'siteLogo' && typeof value === 'object' && value.url) {
+            document.getElementById('logo-preview').src = JSON.stringify(value).url;
+        }
+        else if (key === 'siteFavicon' && typeof value === 'object' && value.url) {
+            document.getElementById('favicon-preview').src = JSON.stringify(value).url;
+        }
+        else if (key === 'socialMediaLinks' && typeof value === 'object' && value.socialMediaLinks) {
+            document.getElementById(key).value = JSON.stringify(value).facebook;
+        }
+        else if (key === 'appDownloadLinks' && typeof value === 'object' && value.appDownloadLinks) {
+            document.getElementById(key).value = JSON.stringify(value).googlePlay;
+        }
+        else if (document.getElementById(key)) {
+            if (typeof value === 'object') {
+                document.getElementById(key).value = JSON.stringify(value);
+            } else {
+                document.getElementById(key).value = value;
+            }
+        }
+    });
+};
+
 // Function to update DOM elements with fetched data
 async function updateDashboardElement(url, Data) {
     const data = await fetchData(url);
@@ -519,7 +649,7 @@ loadCategoryData();
 loadSubscriptionData();
 laodCouponData();
 laodBannerData();
-
+loadSettingData();
 const url = "/admin/dashboard-count";
 const Data = {
     "total_user": "totalUser",
@@ -669,6 +799,7 @@ function toggleProcessBtn(submitBtnId, processBtnId, isLoading) {
 };
 
 // Event listeners for form submissions
+
 document.querySelector("#video-form").addEventListener("submit", function (e) {
     e.preventDefault();
     handleFormSubmission(
@@ -799,10 +930,6 @@ document.querySelector(".custom-file-input").addEventListener("change", function
     this.nextElementSibling.innerHTML = fileName;
 });
 
-const uploadMethodRadios = document.querySelectorAll('input[name="uploadMethod"]');
-const videoUploadField = document.getElementById("videoUploadField");
-const videoUrlField = document.getElementById("videoUrlField");
-
 uploadMethodRadios.forEach((radio) => {
     radio.addEventListener("change", function () {
         if (document.getElementById("uploadVideo").checked) {
@@ -835,85 +962,106 @@ document.getElementById('logout-btn').addEventListener('click', function (e) {
     adminLogout();
 });
 
+// setting submission 
+async function submitSettingForm(form, url) {
+    const formData = new FormData(form);
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData,
+        });
 
-// Sample data for the chart
-const labels = [
-    "User123",
-    "User456",
-    "User789",
-    "User101",
-    "User202",
-    "User303",
-    "User404",
-];
-const data = {
-    labels: labels,
-    datasets: [
-        {
-            label: "Revenue Amount ($)",
-            data: [100, 200, 150, 250, 300, 180, 400],
-            backgroundColor: "#3f37c9",
-            borderColor: "#6162dc", // Darker blue
-            borderWidth: 1,
-        },
-        {
-            label: "Projected Revenue ($)",
-            data: [120, 180, 220, 300, 250, 320, 380],
-            backgroundColor: "#e9c46a",
-            borderColor: "#e9c46a",
-            borderWidth: 1,
-        },
-        {
-            label: "Potential Revenue ($)",
-            data: [150, 250, 300, 400, 350, 420, 450],
-            backgroundColor: "#db3545",
-            borderColor: "#db3545",
-            borderWidth: 1,
-        },
-    ],
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log(result);
+        saveSettings();
+
+    } catch (error) {
+        console.error('Error submitting form:', error);
+        alert('Failed to save settings. Please try again.');
+    }
 };
 
-const config = {
-    type: "bar",
-    data: data,
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            y: {
-                beginAtZero: true,
-                grid: {
-                    color: "rgba(255, 255, 255, 0.1)",
-                },
-                title: {
-                    display: true,
-                    text: "Revenue ($)",
-                    color: "#ffffff",
-                },
-            },
-            x: {
-                grid: {
-                    color: "rgba(255, 255, 255, 0.1)",
-                },
-                title: {
-                    display: true,
-                    text: "Users",
-                    color: "#ffffff",
-                },
-            },
-        },
-        plugins: {
-            legend: {
-                labels: {
-                    color: "#ffffff",
-                },
-            },
-        },
-    },
+// event listener for setting form submission
+
+document.getElementById('siteConfigForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitSettingForm(
+        e.target,
+        '/admin/setting/general',
+    );
+});
+
+document.getElementById('smtp-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitSettingForm(
+        e.target,
+        '/admin/setting/smtp',
+    );
+});
+
+document.getElementById('settingsForm_social').addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitSettingForm(
+        e.target,
+        '/admin/setting/social-media',
+    );
+});
+
+document.getElementById('settingsForm_menu').addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitSettingForm(
+        e.target,
+        '/admin/setting/menu',
+    );
+});
+
+document.getElementById('recaptchaSettingsForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitSettingForm(
+        e.target,
+        '/admin/setting/re-captcha',
+    );
+});
+
+document.getElementById('bannerAdsForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitSettingForm(
+        e.target,
+        '/admin/setting/banner-ads',
+    );
+});
+
+document.getElementById('mentenence_settings_form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitSettingForm(
+        e.target,
+        '/admin/setting/maintenance-mode',
+    );
+});
+
+// setting notification 
+
+function triggerNotification() {
+    const notification = document.getElementById("notification");
+    notification.style.display = "block";
+    setTimeout(closeNotification, 5000);
 };
 
-// Render the chart
-const revenueChart = new Chart(
-    document.getElementById("revenueChart"),
-    config
-);
+function closeNotification() {
+    const notification = document.getElementById("notification");
+    notification.style.display = "none";
+};
+
+// Simulating settings save functionality
+function saveSettings() {
+    console.log("Settings have been saved!");
+    triggerNotification();
+};
+
+document.getElementById('close-notify-btn').addEventListener('click', () => {
+    closeNotification();
+})

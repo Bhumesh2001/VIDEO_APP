@@ -14,6 +14,7 @@ const subscriptionController = require('../controllers/adminController/subs.admi
 const dashboardController = require('../controllers/adminController/dashboard.adminCtrl');
 const couponController = require('../controllers/adminController/coupan.adminCtrl');
 const contactUserController = require('../controllers/userController/contact.userCtrl');
+const settingController = require('../controllers/adminController/settingCtrl');
 
 // ****************** admin middlewares ******************
 
@@ -273,5 +274,35 @@ adminRouter.delete(
     adminAuthentication,
     couponController.deleteCoupon
 );
+
+// ******************** setting routes ******************
+
+adminRouter.route('/setting/general')
+    .post(adminAuthentication, settingController.saveGeneralSettings)
+    .get(adminAuthentication, settingController.getGeneralSettings)
+
+adminRouter.route('/setting/smtp')
+    .post(adminAuthentication, settingController.saveSmtpSettings)
+    .get(adminAuthentication, settingController.getSmtpSettings)
+
+adminRouter.route('/setting/social-media')
+    .post(adminAuthentication, settingController.saveSocialMediaSettings)
+    .get(adminAuthentication, settingController.getSocialMediaSettings)
+
+adminRouter.route('/setting/menu')
+    .post(adminAuthentication, settingController.saveMenuSettings)
+    .get(adminAuthentication, settingController.getMenuSettings)
+
+adminRouter.route('/setting/re-captcha')
+    .post(adminAuthentication, settingController.saveRecaptchaSettings)
+    .get(adminAuthentication, settingController.getRecaptchaSettings)
+
+adminRouter.route('/setting/banner-ads')
+    .post(adminAuthentication, settingController.saveBannerAdsSettings)
+    .get(adminAuthentication, settingController.getBannerAdsSettings)
+
+adminRouter.route('/setting/maintenance-mode')
+    .post(adminAuthentication, settingController.saveMaintenanceModeSettings)
+    .get(adminAuthentication, settingController.getMaintenanceModeSettings)
 
 module.exports = adminRouter;

@@ -31,6 +31,11 @@ userRouter.post(
     userController.registerUser
 );
 userRouter.post(
+    '/register/email',
+    validateRequiredFields(['email']),
+    userController.registerUserWithEmail
+);
+userRouter.post(
     '/verify',
     validateRequiredFields(['email', 'code']),
     userController.verifyUser
@@ -167,7 +172,7 @@ userRouter.delete(
 userRouter.post(
     '/create-story',
     userAuthentication,
-    validateRequiredFields(['title', 'caption',]),
+    // validateRequiredFields(['title', 'caption',]),
     storyUserController.createStory
 );
 userRouter.get(

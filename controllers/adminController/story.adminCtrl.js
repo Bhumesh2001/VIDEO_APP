@@ -13,9 +13,16 @@ const storyImageOptions = {
 };
 
 exports.createStoryByAdmin = async (req, res) => {
-    const { video, image, title, ...data } = req.body;
+    let { video, image, title, ...data } = req.body;
     const videoFile = req.files?.video;
     const imageFile = req.files?.image;
+
+    let storyData = {
+        userId: req.admin._id,
+        video: { url: '', public_id: '' },
+        image: { url: '', public_id: '' },
+        ...data
+    };
 
     if (!imageFile && !image) {
         return res.status(400).json({ success: false, message: 'Either image file or image URL is required!' });
@@ -27,14 +34,7 @@ exports.createStoryByAdmin = async (req, res) => {
         if (existingStory) {
             return res.status(409).json({ success: false, message: 'Story already exists!' });
         }
-
-        const storyData = {
-            userId: req.admin._id,
-            video: { url: '', public_id: '' },
-            image: { url: '', public_id: '' },
-            ...data
-        };
-
+        
         // Upload video
         if (videoFile || video) {
             const videoInput = videoFile ? videoFile.tempFilePath : video;

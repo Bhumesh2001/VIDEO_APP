@@ -164,6 +164,7 @@
               draggable="false"
               data-target="#settings"
               class="nav-link sidebar-link"
+              id="setting"
               href="#"
               ><i class="fas fa-cogs"></i> Settings</a
             >
@@ -185,6 +186,7 @@
 
           <!-- content -->
           <div class="col-lg-10 offset-lg-2 px-3 content">
+            <!-- dashboard -->
             <section id="dashboard" class="dashboard">
               <div class="main-content p-2 w-100">
                 <div class="row pt-3">
@@ -682,7 +684,9 @@
                       </div>
 
                       <div class="mb-3">
-                        <label for="content_" class="form-label">Description</label>
+                        <label for="content_" class="form-label"
+                          >Description</label
+                        >
                         <textarea
                           class="form-control"
                           id="content_"
@@ -695,9 +699,7 @@
                       </div>
 
                       <div class="mb-3">
-                        <label for="image_" class="form-label"
-                          >Image</label
-                        >
+                        <label for="image_" class="form-label">Image</label>
                         <input
                           type="file"
                           class="form-control"
@@ -1097,30 +1099,19 @@
                         autocomplete="off"
                       ></textarea>
                     </div>
+                    
                     <div class="mb-3">
-                      <label for="video" class="form-label">Video URL</label>
+                      <label for="image" class="form-label">Image</label>
                       <input
-                        type="url"
+                        type="file"
                         class="form-control"
-                        id="video_"
-                        placeholder="Enter video URL"
+                        id="image__"
+                        accept="image/*"
                         required
-                        name="video"
-                        autocomplete="off"
+                        name="image"
                       />
                     </div>
-                    <div class="mb-3">
-                      <label for="duration" class="form-label">Duration</label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="duration"
-                        placeholder="Enter video duration in sec (e.g., 30,60)"
-                        required
-                        name="duration"
-                        autocomplete="off"
-                      />
-                    </div>
+
                     <div class="d-flex justify-content-between">
                       <a href="#" id="back-story-btn" class="btn btn-danger"
                         >Back</a
@@ -1641,7 +1632,7 @@
                   </ul>
 
                   <!-- Tab Content -->
-                  <div class="tab-content" id="myTabContent">
+                  <div class="tab-content mb-4" id="myTabContent">
                     <!-- General Settings Section -->
                     <div
                       class="tab-pane fade show active content-box"
@@ -1650,6 +1641,7 @@
                       aria-labelledby="general-tab"
                     >
                       <form id="siteConfigForm">
+
                         <div class="row">
                           <div class="col-md-6">
                             <div class="mb-3">
@@ -1663,6 +1655,7 @@
                                 placeholder="Enter site name"
                                 required
                                 aria-required="true"
+                                name="siteName"
                               />
                             </div>
 
@@ -1678,6 +1671,7 @@
                                 required
                                 onchange="previewThumbnail(event)"
                                 aria-required="true"
+                                name="siteLogo"
                               />
                               <img
                                 id="logo-preview"
@@ -1688,16 +1682,17 @@
                             </div>
 
                             <div class="mb-3">
-                              <label for="keywords" class="form-label"
+                              <label for="siteKeywords" class="form-label"
                                 >Site Keywords</label
                               >
                               <input
                                 type="text"
                                 class="form-control"
-                                id="keywords"
+                                id="siteKeywords"
                                 placeholder="Enter site keywords"
                                 required
                                 aria-required="true"
+                                name="siteKeywords"
                               />
                             </div>
 
@@ -1713,6 +1708,7 @@
                                 required
                                 onchange="previewThumbnail(event)"
                                 aria-required="true"
+                                name="siteFavicon"
                               />
                               <img
                                 id="favicon-preview"
@@ -1733,6 +1729,7 @@
                                 placeholder="Enter email"
                                 required
                                 aria-required="true"
+                                name="email"
                               />
                             </div>
 
@@ -1747,6 +1744,7 @@
                                 placeholder="write description"
                                 required
                                 aria-required="true"
+                                name="_description"
                               ></textarea>
                             </div>
                           </div>
@@ -1763,6 +1761,7 @@
                                 placeholder="Enter header code"
                                 required
                                 aria-required="true"
+                                name="headerCode"
                               ></textarea>
                             </div>
 
@@ -1777,6 +1776,7 @@
                                 placeholder="Enter footer code"
                                 required
                                 aria-required="true"
+                                name="footerCode"
                               ></textarea>
                             </div>
 
@@ -1791,32 +1791,35 @@
                                 placeholder="Enter copyright text"
                                 required
                                 aria-required="true"
+                                name="copyrightText"
                               />
                             </div>
 
                             <h5>Social Media Links</h5>
                             <div class="mb-3">
-                              <label for="facebookURL" class="form-label"
+                              <label for="facebook" class="form-label"
                                 >Facebook URL</label
                               >
                               <input
                                 type="url"
                                 class="form-control"
-                                id="facebookURL"
+                                id="facebook"
                                 placeholder="Enter facebook url"
+                                name="facebook"
                               />
                             </div>
 
                             <h5>App Download Links</h5>
                             <div class="mb-3">
-                              <label for="googlePlayURL" class="form-label"
+                              <label for="googlePlay" class="form-label"
                                 >Google Play URL</label
                               >
                               <input
                                 type="url"
                                 class="form-control"
-                                id="googlePlayURL"
+                                id="googlePlay"
                                 placeholder="Enter google play url"
+                                name="googlePlay"
                               />
                             </div>
                           </div>
@@ -1824,11 +1827,12 @@
 
                         <div class="row">
                           <div class="col-12 text-start mt-2">
-                            <button type="submit" class="btn btn-danger">
+                            <button type="submit" class="btn btn-danger btn-sm">
                               Save Settings
                             </button>
                           </div>
                         </div>
+
                       </form>
                     </div>
 
@@ -1839,7 +1843,7 @@
                       role="tabpanel"
                       aria-labelledby="smtp-tab"
                     >
-                      <form>
+                      <form id="smtp-form">
                         <div class="mb-3">
                           <label for="smtpHost" class="form-label"
                             >SMTP Host</label
@@ -1850,6 +1854,7 @@
                             id="smtpHost"
                             placeholder="Enter SMTP host"
                             required
+                            name="smtpHost"
                           />
                         </div>
                         <div class="mb-3">
@@ -1862,43 +1867,50 @@
                             id="smtpPort"
                             placeholder="Enter SMTP port"
                             required
+                            name="smtpPort"
                           />
                         </div>
                         <div class="mb-3">
-                          <label for="smtpUser" class="form-label"
+                          <label for="smtpEmail" class="form-label"
                             >SMTP Email</label
                           >
                           <input
                             type="text"
                             class="form-control"
-                            id="smtpUser"
+                            id="smtpEmail"
                             placeholder="Enter SMTP email"
                             required
+                            name="smtpEmail"
                           />
                         </div>
                         <div class="mb-3">
-                          <label for="smtpPass" class="form-label"
+                          <label for="smtpPassword" class="form-label"
                             >SMTP Password</label
                           >
                           <input
                             type="password"
                             class="form-control"
-                            id="smtpPass"
+                            id="smtpPassword"
                             placeholder="Enter SMTP password"
                             required
+                            name="smtpPassword"
                           />
                         </div>
                         <div class="mb-3">
                           <label for="encryptionType" class="form-label"
                             >Encryption Type</label
                           >
-                          <select class="form-control" id="encryptionType">
+                          <select
+                            class="form-control"
+                            name="encryptionType"
+                            id="encryptionType"
+                          >
                             <option value="">Select Encryption Type</option>
                             <option value="ssl">SSL</option>
                             <option value="tls">TLS</option>
                           </select>
                         </div>
-                        <button type="submit" class="btn btn-danger">
+                        <button type="submit" class="btn btn-danger btn-sm">
                           Save Settings
                         </button>
                       </form>
@@ -1921,6 +1933,7 @@
                             class="form-control"
                             id="googleLogin"
                             required
+                            name="googleLogin"
                           >
                             <option value="on">ON</option>
                             <option value="off">OFF</option>
@@ -1937,6 +1950,7 @@
                             id="googleClientId"
                             placeholder="Enter Google Client ID"
                             required
+                            name="googleClientId"
                           />
                         </div>
 
@@ -1950,6 +1964,7 @@
                             id="googleSecret"
                             placeholder="Enter Google Secret"
                             required
+                            name="googleSecret"
                           />
                         </div>
 
@@ -1964,6 +1979,7 @@
                             class="form-control"
                             id="facebookLogin"
                             required
+                            name="facebookLogin"
                           >
                             <option value="off">OFF</option>
                             <option value="on">ON</option>
@@ -1980,41 +1996,26 @@
                             id="facebookAppId"
                             placeholder="Enter Facebook App ID"
                             required
+                            name="facebookAppId"
                           />
                         </div>
 
                         <div class="mb-3">
-                          <label for="facebookSecret" class="form-label"
+                          <label for="facebookClientSecret" class="form-label"
                             >Facebook Client Secret</label
                           >
                           <input
                             type="text"
                             class="form-control"
-                            id="facebookSecret"
+                            id="facebookClientSecret"
                             placeholder="Enter Facebook Client Secret"
                             required
-                          />
-                        </div>
-
-                        <hr class="my-4" />
-
-                        <!-- Copyright Section -->
-                        <h5>Copyright Information</h5>
-                        <div class="mb-3">
-                          <label for="copyrightText" class="form-label"
-                            >Copyright Text</label
-                          >
-                          <input
-                            type="text"
-                            class="form-control"
-                            id="copyrightText_"
-                            placeholder="Copyright © 2024 www.viaviweb.com All Rights Reserved."
-                            required
+                            name="facebookClientSecret"
                           />
                         </div>
 
                         <!-- Submit Button -->
-                        <button type="submit" class="btn btn-danger">
+                        <button type="submit" class="btn btn-danger btn-sm">
                           Save Settings
                         </button>
                       </form>
@@ -2029,34 +2030,49 @@
                     >
                       <form id="settingsForm_menu">
                         <div class="mb-3">
-                          <label for="storyToggle" class="form-label"
+                          <label for="story" class="form-label"
                             >Story</label
                           >
-                          <select class="form-select" id="storyToggle" required>
-                            <option value="on">On</option>
+                          <select
+                            class="form-select"
+                            name="story"
+                            id="story"
+                            required
+                          >
+                            <option value="on">ON</option>
                             <option value="off">Off</option>
                           </select>
                         </div>
 
                         <div class="mb-3">
-                          <label for="articles__" class="form-label"
+                          <label for="article" class="form-label"
                             >Article</label
                           >
-                          <select class="form-select" id="articles__" required>
-                            <option value="on">On</option>
-                            <option value="off">Off</option>
+                          <select
+                            class="form-select"
+                            name="article"
+                            id="article"
+                            required
+                          >
+                            <option value="on">ON</option>
+                            <option value="off">OFF</option>
                           </select>
                         </div>
 
                         <div class="mb-3">
                           <label for="video__" class="form-label">Video</label>
-                          <select class="form-select" id="video__" required>
-                            <option value="on">On</option>
-                            <option value="off">Off</option>
+                          <select
+                            class="form-select"
+                            name="video__"
+                            id="video__"
+                            required
+                          >
+                            <option value="on">ON</option>
+                            <option value="off">OFF</option>
                           </select>
                         </div>
 
-                        <button type="submit" class="btn btn-danger">
+                        <button type="submit" class="btn btn-danger btn-sm">
                           Save Settings
                         </button>
                       </form>
@@ -2069,32 +2085,97 @@
                       role="tabpanel"
                       aria-labelledby="recaptcha-tab"
                     >
-                      <form id="settingsForm_recatcha">
+                      <form id="recaptchaSettingsForm">
                         <div class="mb-3">
-                          <label for="recaptchaSiteKey" class="form-label"
-                            >reCAPTCHA Site Key</label
+                          <label for="siteKey" class="form-label"
+                            >Site Key</label
                           >
                           <input
                             type="text"
                             class="form-control"
-                            id="recaptchaSiteKey"
-                            placeholder="Enter reCAPTCHA site key"
+                            id="siteKey"
+                            placeholder="Enter site Key"
                             required
+                            name="siteKey"
                           />
                         </div>
+
                         <div class="mb-3">
-                          <label for="recaptchaSecretKey" class="form-label"
-                            >reCAPTCHA Secret Key</label
+                          <label for="secretKey" class="form-label"
+                            >Secret Key</label
                           >
                           <input
                             type="text"
                             class="form-control"
-                            id="recaptchaSecretKey"
-                            placeholder="Enter reCAPTCHA secret key"
+                            id="secretKey"
+                            placeholder="Enter secret Key"
                             required
+                            name="secretKey"
                           />
                         </div>
-                        <button type="submit" class="btn btn-danger">
+
+                        <div class="mb-3">
+                          <label for="enableOnLogin" class="form-label"
+                            >Enable on Login</label
+                          >
+                          <select
+                            class="form-select"
+                            name="enableOnLogin"
+                            id="enableOnLogin"
+                            required
+                          >
+                            <option value="off">OFF</option>
+                            <option value="on">ON</option>
+                          </select>
+                        </div>
+
+                        <div class="mb-3">
+                          <label for="enableOnSignup" class="form-label"
+                            >Enable on Signup</label
+                          >
+                          <select
+                            class="form-select"
+                            id="enableOnSignup"
+                            required
+                            name="enableOnSignup"
+                          >
+                            <option value="off">OFF</option>
+                            <option value="on">ON</option>
+                          </select>
+                        </div>
+
+                        <div class="mb-3">
+                          <label for="enableOnForgotPassword" class="form-label"
+                            >Enable on Forgot Password</label
+                          >
+                          <select
+                            class="form-select"
+                            id="enableOnForgotPassword"
+                            required
+                            name="enableOnForgotPassword"
+                          >
+                            <option value="off">OFF</option>
+                            <option value="on">ON</option>
+                          </select>
+                        </div>
+
+                        <div class="mb-3">
+                          <label for="enableOnContactUs" class="form-label"
+                            >Enable on Contact Us</label
+                          >
+                          <select
+                            class="form-select"
+                            id="enableOnContactUs"
+                            required
+                            name="enableOnContactUs"
+                          >
+                            <option value="off">OFF</option>
+                            <option value="on">ON</option>
+                          </select>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-danger btn-sm">
                           Save Settings
                         </button>
                       </form>
@@ -2107,21 +2188,178 @@
                       role="tabpanel"
                       aria-labelledby="banner-tab"
                     >
-                      <form id="settingsForm_banner">
-                        <div class="mb-3">
-                          <label for="bannerAdCode" class="form-label"
-                            >Banner Ad Code</label
-                          >
-                          <textarea
-                            class="form-control"
-                            id="bannerAdCode"
-                            rows="3"
-                            placeholder="Enter banner ad code"
-                            required
-                          ></textarea>
+                      <form id="bannerAdsForm">
+                        <div class="row">
+                          <div class="col-md-6">
+                            <!-- Home Top -->
+                            <div class="mb-4">
+                              <label class="form-label">Home Top</label>
+                              <div class="banner-ad">
+                                <a
+                                  href="https://1.envato.market/JakrN"
+                                  target="_blank"
+                                >
+                                </a>
+                              </div>
+                              <textarea
+                                class="form-control"
+                                placeholder="Enter text for Home Top ad"
+                                rows="3"
+                                required
+                                name="homeTop"
+                                id="homeTop"
+                              ></textarea>
+                            </div>
+
+                            <!-- List Top -->
+                            <div class="mb-4">
+                              <label class="form-label">List Top</label>
+                              <div class="banner-ad">
+                                <a
+                                  href="https://1.envato.market/JakrN"
+                                  target="_blank"
+                                >
+                                </a>
+                              </div>
+                              <textarea
+                                class="form-control"
+                                placeholder="Enter text for List Top ad"
+                                rows="3"
+                                required
+                                name="listTop"
+                                id="listTop"
+                              ></textarea>
+                            </div>
+
+                            <!-- Details Top -->
+                            <div class="mb-4">
+                              <label class="form-label">Details Top</label>
+                              <div class="banner-ad">
+                                <a
+                                  href="https://1.envato.market/JakrN"
+                                  target="_blank"
+                                >
+                                </a>
+                              </div>
+                              <textarea
+                                class="form-control"
+                                placeholder="Enter text for Details Top ad"
+                                rows="3"
+                                required
+                                name="detailsTop"
+                                id="detailsTop"
+                              ></textarea>
+                            </div>
+
+                            <!-- Other Pages Top -->
+                            <div class="mb-4">
+                              <label class="form-label">Other Pages Top</label>
+                              <div class="banner-ad">
+                                <a
+                                  href="https://1.envato.market/JakrN"
+                                  target="_blank"
+                                >
+                                </a>
+                              </div>
+                              <textarea
+                                class="form-control"
+                                placeholder="Enter text for Other Pages Top ad"
+                                rows="3"
+                                required
+                                id="otherPagesTop"
+                                name="otherPagesTop"
+                              ></textarea>
+                            </div>
+                          </div>
+
+                          <div class="col-md-6">
+                            <!-- Home Bottom -->
+                            <div class="mb-4">
+                              <label class="form-label">Home Bottom</label>
+                              <div class="banner-ad">
+                                <a
+                                  href="https://1.envato.market/JakrN"
+                                  target="_blank"
+                                >
+                                </a>
+                              </div>
+                              <textarea
+                                class="form-control"
+                                placeholder="Enter text for Home Bottom ad"
+                                rows="3"
+                                required
+                                name="homeBottom"
+                                id="homeBottom"
+                              ></textarea>
+                            </div>
+
+                            <!-- List Bottom -->
+                            <div class="mb-4">
+                              <label class="form-label">List Bottom</label>
+                              <div class="banner-ad">
+                                <a
+                                  href="https://1.envato.market/JakrN"
+                                  target="_blank"
+                                >
+                                </a>
+                              </div>
+                              <textarea
+                                class="form-control"
+                                placeholder="Enter text for List Bottom ad"
+                                rows="3"
+                                required
+                                name="listBottom"
+                                id="listBottom"
+                              ></textarea>
+                            </div>
+
+                            <!-- Details Bottom -->
+                            <div class="mb-4">
+                              <label class="form-label">Details Bottom</label>
+                              <div class="banner-ad">
+                                <a
+                                  href="https://1.envato.market/JakrN"
+                                  target="_blank"
+                                >
+                                </a>
+                              </div>
+                              <textarea
+                                class="form-control"
+                                placeholder="Enter text for Details Bottom ad"
+                                rows="3"
+                                required
+                                name="detailsBottom"
+                                id="detailsBottom"
+                              ></textarea>
+                            </div>
+
+                            <!-- Other Pages Bottom -->
+                            <div class="mb-4">
+                              <label for="otherPagesBottom" class="form-label"
+                                >Other Pages Bottom</label
+                              >
+                              <div class="banner-ad">
+                                <a
+                                  href="https://1.envato.market/JakrN"
+                                  target="_blank"
+                                >
+                                </a>
+                              </div>
+                              <textarea
+                                class="form-control"
+                                placeholder="Enter text for Other Pages Bottom ad"
+                                rows="3"
+                                required
+                                name="otherPagesBottom"
+                                id="otherPagesBottom"
+                              ></textarea>
+                            </div>
+                          </div>
                         </div>
-                        <button type="submit" class="btn btn-danger">
-                          Save Ads
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-danger btn-sm">
+                          Save Settings
                         </button>
                       </form>
                     </div>
@@ -2133,33 +2371,36 @@
                       role="tabpanel"
                       aria-labelledby="maintenance-tab"
                     >
-                      <form id="settingsFrom_site">
+                      <form id="mentenence_settings_form">
                         <div class="mb-3">
-                          <label for="maintenanceMode" class="form-label"
+                          <label for="enabled" class="form-label"
                             >Maintenance Mode</label
                           >
                           <select
                             class="form-select"
-                            id="maintenanceMode"
+                            id="enabled"
                             required
+                            name="enabled"
                           >
                             <option value="enabled">Enabled</option>
                             <option value="disabled">Disabled</option>
                           </select>
                         </div>
                         <div class="mb-3">
-                          <label for="maintenanceMessage" class="form-label"
+                          <label for="message" class="form-label"
                             >Maintenance Message</label
                           >
                           <textarea
                             class="form-control"
-                            id="maintenanceMessage"
+                            id="message"
                             rows="3"
+                            required
                             placeholder="Enter maintenance message"
                             required
+                            name="message"
                           ></textarea>
                         </div>
-                        <button type="submit" class="btn btn-danger">
+                        <button type="submit" class="btn btn-danger btn-sm">
                           Save Settings
                         </button>
                       </form>
@@ -2466,6 +2707,17 @@
           </div>
         </div>
       </div>
+
+      <!-- failure model -->
+
+      <!-- setting notification -->
+      <div class="notification" id="notification">
+        <h2 class="setting-title">🎉 Settings Saved!</h2>
+        <p class="setting-message">Your changes have been saved.</p>
+        <button class="setting_close_btn btn-sm" id="close-notify-btn">
+          Okay
+        </button>
+      </div>
     </main>
 
     <!-- footer -->
@@ -2480,6 +2732,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/index.js"></script>
 
+    <!-- image preview js -->
     <script>
       function previewThumbnail(event) {
         const input = event.target;

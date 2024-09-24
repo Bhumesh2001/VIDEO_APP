@@ -7,10 +7,7 @@ const storySchema = new mongoose.Schema({
     },
     title: {
         type: String,
-        unique: true,
-        required: [true, 'Title is required'],
-        minlength: [5, 'Title must be at least 5 characters long'],
-        maxlength: [100, 'Title cannot exceed 100 characters'],
+        default: "",
     },
     video: {
         type: {
@@ -50,10 +47,7 @@ const storySchema = new mongoose.Schema({
     },
     caption: {
         type: String,
-        trim: true,
-        unique: true,
-        minlength: [5, 'Caption should be 5 charaters long'],
-        maxlength: [300, 'Caption cannot exceed 300 characters'],
+        default: "",
     },
     views: [{
         type: mongoose.Schema.Types.ObjectId,

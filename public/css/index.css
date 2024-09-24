@@ -260,26 +260,6 @@ body {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* .card-img-top {
-  width: 100%;
-  height: auto;
-  max-width: 1080px;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-} */
-
-/* .article-card-img-top,
-.category-card-img-top,
-.story-card-img-top {
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
-  width: 100%;
-  height: auto;
-  max-width: 1080px;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-} */
-
 .card-title {
   font-weight: bold;
   font-size: 1.2rem;
@@ -711,14 +691,13 @@ body {
 /*  menu css */
 
 .form-select {
-  background-color: #3a3a3a; /* Dark background */
-  border: 1px solid #444444; /* Dark border */
-  color: #ffffff; /* White text */
+  background-color: #3a3a3a;
+  border: 1px solid #444444;
+  color: #ffffff; 
   font-weight: bold;
 }
 
 .form-select:focus {
-  /* border-color: #007bff; */
   box-shadow: none;
   outline: none;
 }
@@ -734,4 +713,52 @@ body {
 .form-select:focus,
 .btn:focus {
   border-color: #fa042d;
+}
+
+/* setting save btn notification  */
+
+.notification {
+  position: fixed;
+  top: 85px;
+  right: 20px;
+  background: linear-gradient(to bottom, #1e1e1e, #2a2a2a);
+  border: 2px solid #bb86fc;
+  border-radius: 8px;
+  padding: 10px 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  display: none;
+  animation: slideIn 0.5s ease;
+  width: 300px;
+}
+.setting-title {
+  font-size: 22px;
+  font-weight: bold;
+  color: #bb86fc;
+  margin: 0;
+}
+.setting-message {
+  font-size: 18px;
+  margin: 5px 0;
+}
+.setting_close_btn {
+  background-color: #03dac6;
+  color: black;
+  border: none;
+  border-radius: 5px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.setting_close_btn:hover {
+  transform: scale(1.05);
+}
+@keyframes slideIn {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
