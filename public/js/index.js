@@ -2,6 +2,7 @@ const navBar = document.getElementById('nav-bar_');
 const uploadMethodRadios = document.querySelectorAll('input[name="uploadMethod"]');
 const videoUploadField = document.getElementById("videoUploadField");
 const videoUrlField = document.getElementById("videoUrlField");
+const successModal = new bootstrap.Modal(document.getElementById('successModal'));
 
 // Sample data for the chart
 const labels = [
@@ -579,8 +580,8 @@ async function laodBannerData(page = 1, limit = 12) {
     };
 };
 
-// function to laod the setting data and display it in setting sections
-async function loadSettingData() {
+// function to fetch the setting data frome db
+async function fetchSettingData() {
     try {
         const endpoints = [
             '/admin/setting/general',
@@ -595,35 +596,55 @@ async function loadSettingData() {
         const responses = await Promise.all(endpoints.map(url => fetch(url)));
         const settingsData = await Promise.all(responses.map(res => res.json()));
 
-        settingsData.forEach(data => populateFormFields(data.settings));
+        function cleanSettingsData(data) {
+            const { createdAt, updatedAt, __v, ...cleanedData } = data;
+            return cleanedData;
+        };
+        
+        // Clean the settings data and populate form fields
+        settingsData.forEach(data => {
+            const cleanedData = cleanSettingsData(data.settings);
+            populateFormFields(cleanedData);
+        });
 
     } catch (error) {
         console.error('Error loading settings:', error);
     }
 };
 
+// function to load the setting data and display it on setting sections
 function populateFormFields(settings) {
     Object.entries(settings).forEach(([key, value]) => {
-        console.log(`key=${key}: value=${typeof value === 'object' ? JSON.stringify(value) : value}`);
-
-        if (key === 'siteLogo' && typeof value === 'object' && value.url) {
-            document.getElementById('logo-preview').src = JSON.stringify(value).url;
-        }
-        else if (key === 'siteFavicon' && typeof value === 'object' && value.url) {
-            document.getElementById('favicon-preview').src = JSON.stringify(value).url;
-        }
-        else if (key === 'socialMediaLinks' && typeof value === 'object' && value.socialMediaLinks) {
-            document.getElementById(key).value = JSON.stringify(value).facebook;
-        }
-        else if (key === 'appDownloadLinks' && typeof value === 'object' && value.appDownloadLinks) {
-            document.getElementById(key).value = JSON.stringify(value).googlePlay;
-        }
-        else if (document.getElementById(key)) {
-            if (typeof value === 'object') {
-                document.getElementById(key).value = JSON.stringify(value);
-            } else {
-                document.getElementById(key).value = value;
+        if (typeof value === 'boolean') {
+            const element = document.getElementById(key);    
+            if (element) {
+                element.value = value ? 'ON' : 'OFF';
             }
+        }
+
+        // If value is an object, handle nested fields (e.g., socialMediaLinks, appDownloadLinks)
+        if (typeof value === 'object' && value !== null) {
+            Object.entries(value).forEach(([subKey, subValue]) => {
+                const element = document.getElementById(`${subKey}-link`) || document.getElementById(subKey);
+                if (element) element.value = subValue;
+            });
+
+            // Handle specific cases for preview images
+            if (value.url && key === 'siteLogo') {  
+                const previewElement = document.getElementById(`logo-preview`);
+                if (previewElement) previewElement.src = value.url;
+                console.log(value.url,'=====');
+                
+            }
+            if(value.url && key === 'siteFavicon'){
+                const previewElement = document.getElementById(`favicon-preview`);
+                if (previewElement) previewElement.src = value.url;
+            }
+        }
+
+        // Handle basic form fields
+        else if (document.getElementById(key)) {
+            document.getElementById(key).value = value;
         }
     });
 };
@@ -649,7 +670,8 @@ loadCategoryData();
 loadSubscriptionData();
 laodCouponData();
 laodBannerData();
-loadSettingData();
+fetchSettingData();
+
 const url = "/admin/dashboard-count";
 const Data = {
     "total_user": "totalUser",
@@ -727,8 +749,6 @@ const banner = document.getElementById('banners');
 const newBanner = document.getElementById('add-new_banner');
 document.getElementById('banner-btn').addEventListener('click', () => toggleVisibility(banner, newBanner));
 document.getElementById('back-bnner-btn').addEventListener('click', () => goBack(banner, newBanner));
-
-const successModal = new bootstrap.Modal(document.getElementById('successModal'));
 
 function showModalWithMessage(message) {
     document.getElementById('modalMessage').textContent = message;

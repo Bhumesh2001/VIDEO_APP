@@ -69,42 +69,33 @@ const sendExpiryReminder = async () => {
 // Schedule cron job to run daily at midnight
 cron.schedule('0 0 * * *', sendExpiryReminder);
 
-// convert the normal into the mongoose data
-exports.convertToMongooseDate = (dateString) => {
-    // Determine the date separator used
-    const separator = dateString.includes('/') ? '/' : '-';
-    const parts = dateString.split(separator);
+// convert to iso date format
+exports.convertToISODate = (dateString) => {
+    // Use a regex to identify the date format
+    const regexFormats = [
+        { regex: /(\d{1,2})\/(\d{1,2})\/(\d{4})/, parse: (d, m, y) => new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`) }, // DD/MM/YYYY
+        { regex: /(\d{1,2})-(\d{1,2})-(\d{4})/, parse: (d, m, y) => new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`) }, // DD-MM-YYYY
+        { regex: /(\d{1,2})\/(\d{1,2})\/(\d{2})/, parse: (d, m, y) => new Date(`20${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`) }, // DD/MM/YY
+        { regex: /(\d{1,2})-(\d{1,2})-(\d{2})/, parse: (d, m, y) => new Date(`20${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`) }, // DD-MM-YY
+        { regex: /(\d{1,2})\/(\d{1,2})\/(\d{4})/, parse: (m, d, y) => new Date(`${y}-${d.padStart(2, '0')}-${m.padStart(2, '0')}`) }, // MM/DD/YYYY
+        { regex: /(\d{1,2})-(\d{1,2})-(\d{4})/, parse: (m, d, y) => new Date(`${y}-${d.padStart(2, '0')}-${m.padStart(2, '0')}`) }, // MM-DD-YYYY
+        // You can add more formats as necessary
+    ];
 
-    if (parts.length !== 3) {
-        throw new Error('Invalid date format');
+    for (const { regex, parse } of regexFormats) {
+        const match = dateString.match(regex);
+        if (match) {
+            const date = parse(...match.slice(1));
+            // Validate the date
+            if (!isNaN(date.getTime())) {
+                return date;
+            } else {
+                throw new Error('Invalid date');
+            }
+        }
     }
 
-    let [first, second, third] = parts.map(part => part.trim());
-
-    // Determine if the first part is a day or month
-    let day, month, year;
-    if (parseInt(first, 10) > 12) {
-        // Format is DD/MM/YYYY or DD-MM-YYYY
-        day = first;
-        month = second;
-        year = third;
-    } else {
-        // Format is MM/DD/YYYY or MM-DD-YYYY
-        month = first;
-        day = second;
-        year = third;
-    }
-
-    // Create a date string in the format YYYY-MM-DD
-    const formattedDateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    const formattedDate = new Date(formattedDateString);
-
-    // Check if the date is valid
-    if (isNaN(formattedDate.getTime())) {
-        throw new Error('Invalid date');
-    }
-
-    return formattedDate;
+    throw new Error('Invalid date format');
 };
 
 // fetch and return the userSubscription 

@@ -1,3 +1,4 @@
+const fs = require('fs').promises;
 const {
     GeneralSettings,
     SmtpEmailSettings,
@@ -8,7 +9,7 @@ const {
     MaintenanceModeSettings,
 } = require('../../models/adminModel/settingModel');
 
-const { uploadImage } = require('../../utils/uploadUtil');
+const { uploadImage, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
 
 // ****************** General settings ******************
 
@@ -34,6 +35,12 @@ exports.saveGeneralSettings = async (req, res) => {
 
         // Helper function to process both image files and URLs and upload to the cloud
         const processImage = async (file, url, options) => {
+            if (existingSettings.siteLogo.public_id) {
+                await deleteImageOnCloudinary(existingSettings.siteLogo.public_id);
+            }
+            if (existingSettings.siteFavicon.public_id) {
+                await deleteImageOnCloudinary(existingSettings.siteFavicon.public_id);
+            }
             if (file) {
                 const uploadedImage = await uploadImage(file.tempFilePath, options);
                 return { url: uploadedImage.url, public_id: uploadedImage.public_id };
@@ -42,6 +49,7 @@ exports.saveGeneralSettings = async (req, res) => {
                 return { url: uploadedImage.url, public_id: uploadedImage.public_id };
             }
             return { url: '', public_id: '' };
+
         };
 
         // Check for file or URL for logo and favicon, process and upload them
@@ -49,6 +57,9 @@ exports.saveGeneralSettings = async (req, res) => {
             siteLogo: await processImage(req.files?.siteLogo, siteLogo, siteLogoOptions),
             siteFavicon: await processImage(req.files?.siteFavicon, siteFavicon, siteFaviconOptions)
         };
+
+        if(req.files.siteFavicon) await fs.unlink(req.files.siteFavicon.tempFilePath);
+        if(req.files.siteLogo) await fs.unlink(req.files.siteLogo.tempFilePath);
 
         // Prepare data for updating or creating settings
         const settingsData = {

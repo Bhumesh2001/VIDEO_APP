@@ -683,9 +683,10 @@ body {
 /* thumbnail preview  */
 
 .thumbnail-preview {
-  max-width: 200px;
+  max-width: 150px;
   margin-top: 10px;
-  display: none;
+  border: 3px solid white;
+  border-radius: 5px;
 }
 
 /*  menu css */
@@ -693,7 +694,7 @@ body {
 .form-select {
   background-color: #3a3a3a;
   border: 1px solid #444444;
-  color: #ffffff; 
+  color: #ffffff;
   font-weight: bold;
 }
 
@@ -710,8 +711,7 @@ body {
 }
 
 .form-control:focus,
-.form-select:focus,
-.btn:focus {
+.form-select:focus {
   border-color: #fa042d;
 }
 

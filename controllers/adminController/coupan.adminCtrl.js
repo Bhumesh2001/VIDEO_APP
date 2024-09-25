@@ -1,24 +1,25 @@
 const Coupon = require('../../models/adminModel/coupan.adminModel');
 const { generateCouponCode } = require('../../utils/coupanCode');
-const { convertToMongooseDate } = require('../../utils/subs.userUtil');
+const { convertToISODate } = require('../../utils/subs.userUtil');
 
 // Create a new coupon
 exports.createCoupon = async (req, res) => {
     try {
         const { coupon_Code, discountPercentage, expirationDate, maxUsage, status } = req.body;
 
-        if (!discountPercentage || !expirationDate || !maxUsage) {
-            return res.status(400).json({
+        const existingCoupon = await Coupon.findOne({ couponCode: coupon_Code });
+        if (existingCoupon) {
+            return res.status(409).json({
                 success: false,
-                message: 'discountPercentage, and expirationDate are required.'
-            });
-        };
+                message: "Coupon already exists!",
+            })
+        }
         const couponCode = coupon_Code ? coupon_Code : generateCouponCode();
 
         const coupon = new Coupon({
             couponCode,
             discountPercentage,
-            expirationDate: convertToMongooseDate(expirationDate),
+            expirationDate: new Date(convertToISODate(expirationDate)),
             maxUsage,
             status
         });
@@ -117,7 +118,7 @@ exports.updateCoupon = async (req, res) => {
 
     try {
         const updateData = {
-            expirationDate: convertToMongooseDate(expirationDate),
+            expirationDate: new Date(convertToISODate(expirationDate)),
             ...couponData,
             updatedAt: Date.now(),
         };
