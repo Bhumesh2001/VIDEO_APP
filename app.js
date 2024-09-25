@@ -1,5 +1,7 @@
 require('dotenv').config();
 require('./utils/subs.userUtil');
+require('./utils/coupanCode');
+require('./utils/storyUtil');
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -17,10 +19,7 @@ const { adminAuthentication } = require('./middlewares/adminMiddleware/auth.admi
 
 // CORS configuration
 const allowedOrigins = [
-    'https://web-digital-vle.netlify.app',
-    'https://digital-vle-admin-login.netlify.app',
     'http://localhost:3001',
-    'http://127.0.0.1:5500',
     'https://video-app-0i3v.onrender.com',
 ];
 

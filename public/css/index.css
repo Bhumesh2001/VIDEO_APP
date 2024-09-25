@@ -258,6 +258,7 @@ body {
   border: none;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #495057;
 }
 
 .card-title {
@@ -510,6 +511,7 @@ body {
   border: none;
   border-radius: 10px;
   transition: transform 0.3s, box-shadow 0.3s;
+  border: 1px solid #495057;
 }
 
 .category-card:hover {
@@ -533,6 +535,7 @@ body {
   border: none;
   border-radius: 10px;
   transition: transform 0.3s, box-shadow 0.3s;
+  border: 1px solid #495057;
 }
 
 .story_card:hover {
