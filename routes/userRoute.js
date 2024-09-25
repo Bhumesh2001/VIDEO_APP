@@ -104,10 +104,15 @@ userRouter.post(
     validateRequiredFields(['categoryId', 'planId']),
     subscriptionUserController.subscribeToCategoryOrAll
 );
-
+userRouter.post(
+    '/subscription/update',
+    userAuthentication,
+    subscriptionUserController.updateSubscriptionStatus  
+);
 userRouter.get(
     '/my-subscription',
     userAuthentication,
+    validateRequiredFields(['categoryId', 'planId']),
     subscriptionUserController.mySubscription
 );
 
