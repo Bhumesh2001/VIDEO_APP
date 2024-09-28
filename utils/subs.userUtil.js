@@ -7,7 +7,7 @@ const AllCategorySubscriptionModel = require('../models/userModel/allSubs.userMo
 const Category = require('../models/adminModel/category.adminModel');
 
 // Cron job that runs every day at midnight
-cron.schedule('0 0 * * *', async () => {
+cron.schedule('0 * * * *', async () => {
     const now = moment().toDate();  // Get the current date
 
     try {
@@ -67,7 +67,7 @@ const sendExpiryReminder = async () => {
 };
 
 // Schedule cron job to run daily at midnight
-cron.schedule('0 0 * * *', sendExpiryReminder);
+cron.schedule('0 * * * *', sendExpiryReminder);
 
 // convert to iso date format
 exports.convertToISODate = (dateString) => {

@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const Coupon = require('../models/adminModel/coupan.adminModel');
 
-cron.schedule('0 0 * * *', async () => {
+cron.schedule('0 * * * *', async () => {
     try {
         const result = await Coupon.deleteMany({ expirationDate: { $lt: new Date() } });
         console.log(`Deleted ${result.deletedCount} expired coupons.`);

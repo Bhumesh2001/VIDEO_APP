@@ -104,6 +104,7 @@ exports.getAllArticles = async (req, res) => {
                     userId: 1,
                     title: 1,
                     image: 1,
+                    description: 1,
                     TotalLikes: { $size: "$likes" },
                     TotalComments: { $size: "$comments" },
                     likes: 1,

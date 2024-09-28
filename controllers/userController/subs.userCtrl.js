@@ -197,40 +197,43 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
 
 exports.updateSubscriptionStatus = async (req, res) => {
     try {
-        const { paymentStatus } = req.body;
+        const { paymentStatus = 'completed' } = req.body;
         const userId = req.user._id;
 
         // Find subscription in both models
-        const existingSubscription = await Promise.any([
+        const [singleSubscription, allSubscription] = await Promise.all([
             SingleCategorySubscriptionModel.findOne({ userId }),
-            AllCategorySubscriptionModel.findOne({ userId }),
+            AllCategorySubscriptionModel.findOne({ userId })
         ]);
 
+        // Combine both subscriptions and find the one that exists
+        const existingSubscription = singleSubscription || allSubscription;
+
+        if (!existingSubscription) {
+            return res.status(404).json({
+                success: false,
+                message: 'Subscription not found!',
+            });
+        }
+
+        // Check if payment status is already completed
         if (existingSubscription.paymentStatus === "completed") {
             return res.status(409).json({
                 success: false,
-                message: 'already updated!',
+                message: 'Subscription already updated!',
                 existingSubscription,
             });
         }
 
-        // If subscription found, update its payment status
-        if (existingSubscription) {
-            existingSubscription.paymentStatus = paymentStatus || 'completed';
-            await existingSubscription.save();
-            return res.status(200).json({
-                success: true,
-                message: 'Subscription status updated successfully...',
-                subscription: existingSubscription,
-            });
-        }
+        // Update subscription payment status
+        existingSubscription.paymentStatus = paymentStatus;
+        await existingSubscription.save();
 
-        // If no subscription found
-        return res.status(404).json({
-            success: false,
-            message: 'Subscription not found!',
+        return res.status(200).json({
+            success: true,
+            message: 'Subscription status updated successfully.',
+            subscription: existingSubscription,
         });
-
     } catch (error) {
         console.error(error);
         return res.status(500).json({

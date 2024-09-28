@@ -107,12 +107,12 @@ userRouter.post(
 userRouter.post(
     '/subscription/update',
     userAuthentication,
+    validateRequiredFields(['paymentStatus']),
     subscriptionUserController.updateSubscriptionStatus  
 );
 userRouter.get(
     '/my-subscription',
     userAuthentication,
-    validateRequiredFields(['categoryId', 'planId']),
     subscriptionUserController.mySubscription
 );
 

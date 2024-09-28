@@ -7,7 +7,6 @@ const storySchema = new mongoose.Schema({
     },
     title: {
         type: String,
-        default: "",
     },
     video: {
         type: {
@@ -66,7 +65,7 @@ const storySchema = new mongoose.Schema({
     expirationTime: {
         type: Date,
         required: true,
-        default: () => new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from creation
+        default: () => new Date(Date.now() + 24 * 60 * 60 * 1000),
     },
     status: {
         type: String,
