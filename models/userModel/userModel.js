@@ -22,6 +22,22 @@ const userSchema = new Schema({
         type: String,
         default: "",
     },
+    username: {
+        type: String,
+        required: [true, 'Username is required'],
+        unique: true,
+        trim: true,
+        minlength: [3, 'Username must be at least 3 characters long'],
+        maxlength: [30, 'Username cannot exceed 30 characters'],
+        match: [/^[a-zA-Z0-9_.]+$/, 'Username can only contain letters, numbers, underscores, or periods'],
+        validate: {
+            validator: async function (value) {
+                const usernameCount = await mongoose.models.User.countDocuments({ username: value });
+                return usernameCount === 0;
+            },
+            message: 'Username is already taken'
+        }
+    },
     mobileNumber: {
         type: String,
         required: [true, 'Mobile number is required'],

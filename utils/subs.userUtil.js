@@ -12,8 +12,9 @@ cron.schedule('* * * * *', async () => {
         const models = [SingleCategorySubscriptionModel, AllCategorySubscriptionModel];
 
         // Loop through both models and delete pending subscriptions
-        await Promise.all(models.map(model => model.deleteMany({ paymentStatus: 'pending' })));
-
+        await Promise.all(models.map(async (model) => {
+            await model.deleteMany({ paymentStatus: 'pending' });
+        }));
     } catch (error) {
         console.error('Error deleting pending subscriptions:', error);
     }

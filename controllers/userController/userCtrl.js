@@ -8,6 +8,7 @@ const path = require('path');
 const userModel = require('../../models/userModel/userModel');
 const { generateCode } = require('../../utils/resendOtp.userUtil');
 const { generateTokenAndSetCookie } = require('../../utils/token');
+const { validateUsername } = require('../../utils/usernameUtil');
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(
@@ -29,7 +30,15 @@ let transporter = nodemailer.createTransport({
 // --------------- Register User -----------------
 exports.registerUser = async (req, res) => {
     try {
-        const { name, email, password, mobileNumber } = req.body;
+        const { name, email, username, password, mobileNumber } = req.body;
+
+        const { valid, message } = await validateUsername(username);
+        if (!valid) {
+            return {
+                success: false,
+                message,
+            };
+        }
 
         // Validate strong password
         const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
@@ -48,7 +57,11 @@ exports.registerUser = async (req, res) => {
 
         // Create and store user data
         const verificationCode = generateCode();
-        const userData = { name, email, password, mobileNumber, Code: verificationCode, isVerified: false };
+        const userData = {
+            name, email, password, username,
+            mobileNumber, Code: verificationCode,
+            isVerified: false
+        };
         temporaryStorage.set(email, userData);
 
         const filePath = path.join(__dirname, '../../pages/mail.html');
@@ -113,7 +126,7 @@ exports.registerUser = async (req, res) => {
 // ---------------- Register with email -----------------
 exports.registerUserWithEmail = async (req, res) => {
     try {
-        const { name, email, password, mobileNumber } = req.body;
+        const { name, email, username, password, mobileNumber } = req.body;
 
         let user = await userModel.findOne({ email }).lean().lean().exec();
 
@@ -132,10 +145,16 @@ exports.registerUserWithEmail = async (req, res) => {
             name: name ? name : `User_${crypto.randomBytes(4).toString('hex')}`,
             email,
             password,
-            mobileNumber: mobileNumber ? mobileNumber : `${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+            username: username
+                ? username
+                : `${name ? name.split(' ').join('_') : 'User'}_${crypto.randomBytes(2).toString('hex')}`,
+            mobileNumber: mobileNumber
+                ? mobileNumber
+                : `${Math.floor(1000000000 + Math.random() * 9000000000)}`,
             Code: verificationCode,
             isVerified: false
         };
+
         temporaryStorage.set(email, userData);
 
         const filePath = path.join(__dirname, '../../pages/mail.html');

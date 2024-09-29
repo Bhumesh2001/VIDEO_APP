@@ -1,4 +1,5 @@
 const userModel = require('../../models/userModel/userModel');
+const { updateUsernames } = require('../../utils/usernameUtil');
 
 exports.createUserByAdmin = async (req, res) => {
     try {
@@ -179,4 +180,18 @@ exports.deleteUserByAdmin = async (req, res) => {
             error,
         });
     };
+};
+
+exports.updateAllUser = async (req, res) => {
+    try {
+        await updateUsernames();
+        res.status(200).json({ message: 'API call successful, usernames updated.' });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal serve error',
+            error: error.message,
+        })
+    }
 };

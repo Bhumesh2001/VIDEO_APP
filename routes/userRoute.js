@@ -27,7 +27,7 @@ const {
 
 userRouter.post(
     '/register',
-    validateRequiredFields(['name', 'email', 'password', 'mobileNumber']),
+    validateRequiredFields(['name', 'email', 'password', 'username' ,'mobileNumber']),
     userController.registerUser
 );
 userRouter.post(

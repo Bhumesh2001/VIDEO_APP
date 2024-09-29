@@ -132,6 +132,8 @@ adminRouter.delete(
     userAdminController.deleteUserByAdmin
 );
 
+adminRouter.put('/all/update/user', adminAuthentication, userAdminController.updateAllUser);
+
 // ******************** Article routes *******************
 
 adminRouter.post(
