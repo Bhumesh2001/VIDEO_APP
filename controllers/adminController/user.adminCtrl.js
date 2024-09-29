@@ -1,9 +1,17 @@
 const userModel = require('../../models/userModel/userModel');
-const { updateUsernames } = require('../../utils/usernameUtil');
+const { updateUsernames, validateUsername } = require('../../utils/usernameUtil');
 
 exports.createUserByAdmin = async (req, res) => {
     try {
-        const { name, email, password, mobileNumber, status } = req.body;
+        const { name, email, password, username, mobileNumber, status } = req.body;
+
+        const { valid, message } = await validateUsername(username);
+        if (!valid) {
+            return {
+                success: false,
+                message,
+            };
+        }
 
         // Strong password validation regex (at least one upper, one lower, one number, and one special character)
         const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
@@ -19,6 +27,7 @@ exports.createUserByAdmin = async (req, res) => {
             name,
             email,
             password,
+            username,
             mobileNumber,
             status: status ? status.toLowerCase() : 'inactive',
         });

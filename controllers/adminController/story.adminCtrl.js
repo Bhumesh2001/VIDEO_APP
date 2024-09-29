@@ -1,4 +1,5 @@
 const fs = require('fs').promises;
+const { faker } = require('@faker-js/faker');
 const Story = require('../../models/adminModel/story.adminModel');
 const { uploadImage, uploadVideo, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
 
@@ -13,12 +14,14 @@ const storyImageOptions = {
 };
 
 exports.createStoryByAdmin = async (req, res) => {
-    let { video, image, title, ...data } = req.body;
+    let { video, image, title, caption, ...data } = req.body;
     const videoFile = req.files?.video;
     const imageFile = req.files?.image;
 
     let storyData = {
         userId: req.admin._id,
+        title: title ? title : faker.lorem.sentence(),
+        caption: caption ? caption : faker.lorem.paragraph(),
         video: { url: '', public_id: '' },
         image: { url: '', public_id: '' },
         ...data
@@ -34,7 +37,7 @@ exports.createStoryByAdmin = async (req, res) => {
         if (existingStory) {
             return res.status(409).json({ success: false, message: 'Story already exists!' });
         }
-        
+
         // Upload video
         if (videoFile || video) {
             const videoInput = videoFile ? videoFile.tempFilePath : video;

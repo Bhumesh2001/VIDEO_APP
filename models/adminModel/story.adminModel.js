@@ -7,6 +7,7 @@ const storySchema = new mongoose.Schema({
     },
     title: {
         type: String,
+        default: "",
     },
     video: {
         type: {

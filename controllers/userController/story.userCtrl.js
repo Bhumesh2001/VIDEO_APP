@@ -2,6 +2,8 @@ const fs = require('fs').promises;
 const { faker } = require('@faker-js/faker');
 const Story = require('../../models/adminModel/story.adminModel');
 const { uploadImage, uploadVideo, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
+const userModel = require('../../models/userModel/userModel');
+const Admin = require('../../models/adminModel/adminModel');
 
 const storyVideoOptions = {
     folder: 'Stories',
@@ -105,47 +107,57 @@ exports.createStory = async (req, res) => {
 
 exports.getAllStories = async (req, res) => {
     try {
-        const stories = await Story.aggregate([
-            {
-                $project: {
-                    userId: 1,
-                    title: 1,
-                    vide: 1,
-                    caption: 1,
-                    views: 1,
-                    likes: 1,
-                    image: "$image.url",
-                    TotalViews: { $size: "$views" },
-                    TotalViews: { $size: "$likes" },
-                    duration: 1,
-                    expirationTime: 1,
-                    createdAt: 1,
-                }
-            },
-            {
-                $sort: { createdAt: -1 }
-            }
-        ]);
-        const totalStories = await Story.countDocuments();
-        if (stories.length === 0) {
+        // Fetch all stories
+        const stories = await Story.find()
+            .sort({ createdAt: -1 })
+            .select('_id userId title video caption views likes image createdAt');
+
+        if (!stories.length) {
             return res.status(404).json({
                 success: false,
                 message: 'Stories not found!',
             });
-        };
+        }
+
+        // Fetch corresponding usernames for each story
+        const storyPromises = stories.map(async (story) => {
+
+            const user = await userModel.findById(story.userId).select('username');
+            const admin = await Admin.findById(story.userId).select('username');
+
+            const User = user || admin;
+
+            return {
+                _id: story._id,
+                userId: story.userId,
+                username: User ? User.username : 'Unknown',
+                title: story.title,
+                video: story.video?.url || '',
+                caption: story.caption,
+                views: story.views?.length || 0,
+                likes: story.likes?.length || 0,
+                image: story.image?.url || '',
+                createdAt: story.createdAt,
+            };
+        });
+
+        // Resolve all the promises for user data
+        const storiesWithUsernames = await Promise.all(storyPromises);
+
+        // Send the transformed stories as a response
         res.status(200).json({
             success: true,
             message: 'Stories fetched successfully...',
-            totalStories,
-            stories,
+            stories: storiesWithUsernames,
         });
     } catch (error) {
+        console.error('Error fetching stories:', error);
         res.status(500).json({
             success: false,
             message: 'Server Error',
             error: error.message,
         });
-    };
+    }
 };
 
 exports.getSingleStory = async (req, res) => {
@@ -153,7 +165,7 @@ exports.getSingleStory = async (req, res) => {
         const { storyId } = req.query;
 
         const story = await Story.findById(storyId).select(
-            '_id title caption video.url image.url views likes duration status expirationTime'
+            '_id userId title caption video.url image.url views likes duration status expirationTime'
         );
         if (!story) {
             return res.status(404).json({
