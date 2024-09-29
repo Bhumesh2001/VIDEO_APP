@@ -8,7 +8,6 @@ const path = require('path');
 const userModel = require('../../models/userModel/userModel');
 const { generateCode } = require('../../utils/resendOtp.userUtil');
 const { generateTokenAndSetCookie } = require('../../utils/token');
-const { validateUsername } = require('../../utils/usernameUtil');
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(
@@ -32,14 +31,6 @@ exports.registerUser = async (req, res) => {
     try {
         const { name, email, username, password, mobileNumber } = req.body;
 
-        const { valid, message } = await validateUsername(username);
-        if (!valid) {
-            return {
-                success: false,
-                message,
-            };
-        }
-
         // Validate strong password
         const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
         if (!strongPasswordRegex.test(password)) {
@@ -58,8 +49,12 @@ exports.registerUser = async (req, res) => {
         // Create and store user data
         const verificationCode = generateCode();
         const userData = {
-            name, email, password, username,
-            mobileNumber, Code: verificationCode,
+            name,
+            email,
+            password,
+            username: username ? username : `User_${crypto.randomBytes(2).toString('hex')}`,
+            mobileNumber,
+            Code: verificationCode,
             isVerified: false
         };
         temporaryStorage.set(email, userData);
