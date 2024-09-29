@@ -13,8 +13,7 @@ cron.schedule('* * * * *', async () => {  // Runs every minute
 
         // Loop through both models and delete pending subscriptions
         await Promise.all(models.map(model => model.deleteMany({ paymentStatus: 'pending' })));
-
-        console.log('Pending subscriptions deleted successfully.');
+        
     } catch (error) {
         console.error('Error deleting pending subscriptions:', error);
     }
@@ -36,8 +35,7 @@ cron.schedule('0 * * * *', async () => {
             { expiryDate: { $lt: now }, status: 'active' },
             { $set: { status: 'expired' } }
         );
-
-        console.log('Subscription expiration check completed successfully.');
+        
     } catch (error) {
         console.error('Error updating subscription statuses:', error);
     };
