@@ -412,7 +412,7 @@ exports.loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const user = await userModel.findOne({ email }).lean().exec();
+        const user = await userModel.findOne({ email });
 
         if (!user || !(await user.comparePassword(password))) {
             return res.status(401).json({
@@ -475,6 +475,7 @@ exports.logoutUser = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: 'User logged out successfully.',
+            token: userToken,
         });
 
     } catch (error) {
