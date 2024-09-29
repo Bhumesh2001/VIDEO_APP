@@ -6,7 +6,21 @@ const SingleCategorySubscriptionModel = require('../models/userModel/subs.user.M
 const AllCategorySubscriptionModel = require('../models/userModel/allSubs.userModel');
 const Category = require('../models/adminModel/category.adminModel');
 
-// Cron job that runs every day at midnight
+// Corn job that runs every minute
+cron.schedule('* * * * *', async () => {  // Runs every minute
+    try {
+        const models = [SingleCategorySubscriptionModel, AllCategorySubscriptionModel];
+
+        // Loop through both models and delete pending subscriptions
+        await Promise.all(models.map(model => model.deleteMany({ paymentStatus: 'pending' })));
+
+        console.log('Pending subscriptions deleted successfully.');
+    } catch (error) {
+        console.error('Error deleting pending subscriptions:', error);
+    }
+});
+
+// Cron job that runs every day at hourly
 cron.schedule('0 * * * *', async () => {
     const now = moment().toDate();  // Get the current date
 
@@ -106,8 +120,16 @@ exports.UserSubscription = async (userId) => {
         };
 
         const [singleSubscription, allSubscription] = await Promise.all([
-            SingleCategorySubscriptionModel.findOne({ userId }).select('categoryId').lean().exec(),
-            AllCategorySubscriptionModel.findOne({ userId }).select('categoryId').lean().exec()
+            SingleCategorySubscriptionModel.findOne({
+                userId,
+                paymentStatus: 'completed',
+                status: 'active'
+            }).select('categoryId').lean().exec(),
+            AllCategorySubscriptionModel.findOne({
+                userId,
+                paymentStatus: 'completed',
+                status: 'active'
+            }).select('categoryId').lean().exec()
         ]);
 
         const userSubscription = singleSubscription || allSubscription;

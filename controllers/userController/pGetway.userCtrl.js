@@ -15,10 +15,10 @@ exports.createOrder = async (req, res) => {
         const receipt = `receipt_${crypto.randomBytes(4).toString('hex')}_${Date.now()}`;
 
         const options = {
-            amount: amount * 100, // Amount is in smallest currency unit, so convert to paise
+            amount: amount * 100,
             currency,
             receipt, 
-            payment_capture: 1, // Automatically capture payment after order is created
+            payment_capture: 1, 
         };
 
         const order = await razorpay.orders.create(options);     

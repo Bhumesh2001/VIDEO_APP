@@ -75,8 +75,16 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
 
         // Check for existing subscriptions for the user
         const [existingSingleSubscription, existingAllSubscription] = await Promise.all([
-            SingleCategorySubscriptionModel.findOne({ userId }).exec(),
-            AllCategorySubscriptionModel.findOne({ userId }).exec()
+            SingleCategorySubscriptionModel.findOne({
+                userId,
+                paymentStatus: 'completed',
+                status: 'active'
+            }).exec(),
+            AllCategorySubscriptionModel.findOne({
+                userId,
+                paymentStatus: 'completed',
+                status: 'active'
+            }).exec()
         ]);
 
         if (existingSingleSubscription || existingAllSubscription) {
@@ -249,8 +257,16 @@ exports.mySubscription = async (req, res) => {
         const userId = req.user._id;
 
         const [singleCategorySubscription, allCategorySubscription] = await Promise.all([
-            SingleCategorySubscriptionModel.findOne({ userId }),
-            AllCategorySubscriptionModel.findOne({ userId })
+            SingleCategorySubscriptionModel.findOne({
+                userId,
+                paymentStatus: 'completed',
+                status: 'active'
+            }),
+            AllCategorySubscriptionModel.findOne({
+                userId,
+                paymentStatus: 'completed',
+                status: 'active'
+            })
         ]);
 
         if (!singleCategorySubscription && !allCategorySubscription) {

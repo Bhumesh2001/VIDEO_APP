@@ -9,6 +9,8 @@ exports.getCoupon = async (req, res) => {
                     couponCode: 1,
                     discountPercentage: 1,
                     expirationDate: 1,
+                    maxUsage: 1,
+                    usageCount: 1,
                     status: 1,
                 }
             }
@@ -31,4 +33,36 @@ exports.getCoupon = async (req, res) => {
             message: 'error occured while fetching the coupon',
         });
     };
+};
+
+exports.checkCoupon = async (req, res) => {
+    try {
+        const { couponCode } = req.body;
+
+        const coupon = await Coupon.findOne({
+            couponCode,
+            status: 'Active',
+            expirationDate: { $gt: Date.now() }
+        }).lean().exec();
+
+        if (!coupon) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired coupon'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Coupon is valid',
+            coupon
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
 };

@@ -17,6 +17,11 @@ exports.getAllVideos = async (req, res) => {
 
         // Fetch all videos from DB
         let videos = await Video.find({}, { __v: 0 }).sort({ createdAt: -1 }).lean();
+        
+        videos.map(video => {
+            console.log(subscribedCategoryName, video.category,'=======>');  
+        })
+        
 
         // If user has 'all' in categoryId, mark all videos as paid
         if (subscribedCategoryName === 'all' || subscribedCategoryName === 'All') {

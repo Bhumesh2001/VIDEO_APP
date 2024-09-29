@@ -131,6 +131,12 @@ userRouter.get(
 // ****************** coupans routes *****************
 
 userRouter.get('/coupon', userAuthentication, couponUserController.getCoupon);
+userRouter.post(
+    '/valid-coupon', 
+    userAuthentication,
+    validateRequiredFields(['couponCode']),
+    couponUserController.checkCoupon
+);
 
 // ********************* category routes ********************
 
