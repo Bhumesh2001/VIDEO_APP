@@ -7,13 +7,13 @@ const AllCategorySubscriptionModel = require('../models/userModel/allSubs.userMo
 const Category = require('../models/adminModel/category.adminModel');
 
 // Corn job that runs every minute
-cron.schedule('* * * * *', async () => {  // Runs every minute
+cron.schedule('* * * * *', async () => {
     try {
         const models = [SingleCategorySubscriptionModel, AllCategorySubscriptionModel];
 
         // Loop through both models and delete pending subscriptions
         await Promise.all(models.map(model => model.deleteMany({ paymentStatus: 'pending' })));
-        
+
     } catch (error) {
         console.error('Error deleting pending subscriptions:', error);
     }
@@ -22,7 +22,6 @@ cron.schedule('* * * * *', async () => {  // Runs every minute
 // Cron job that runs every day at hourly
 cron.schedule('0 * * * *', async () => {
     const now = moment().toDate();  // Get the current date
-
     try {
         // Find and expire single-category subscriptions
         await SingleCategorySubscriptionModel.updateMany(
@@ -35,7 +34,6 @@ cron.schedule('0 * * * *', async () => {
             { expiryDate: { $lt: now }, status: 'active' },
             { $set: { status: 'expired' } }
         );
-        
     } catch (error) {
         console.error('Error updating subscription statuses:', error);
     };

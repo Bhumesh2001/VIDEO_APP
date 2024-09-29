@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 const userModel = require('../../models/userModel/userModel');
 const { generateCode } = require('../../utils/resendOtp.userUtil');
@@ -39,7 +41,7 @@ exports.registerUser = async (req, res) => {
         }
 
         // Check for existing user
-        const existingUser = await userModel.findOne({ email }).exec();
+        const existingUser = await userModel.findOne({ email }).lean().lean().exec();
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'User already exists' });
         }
@@ -49,12 +51,16 @@ exports.registerUser = async (req, res) => {
         const userData = { name, email, password, mobileNumber, Code: verificationCode, isVerified: false };
         temporaryStorage.set(email, userData);
 
+        const filePath = path.join(__dirname, '../../pages/mail.html');
+        const htmlContent = fs.readFileSync(filePath, 'utf8');
+        const personalizedHtml = htmlContent.replace('{{otp}}', verificationCode);
+
         // Send verification email
         transporter.sendMail({
             from: process.env.EMAIL,
             to: email,
             subject: 'Account Verification',
-            text: `Your verification code is: ${verificationCode}`,
+            html: personalizedHtml,
         }, (err, info) => {
             if (err) console.error('Error sending email:', err);
             else console.log('Verification email sent:', info.response);
@@ -109,7 +115,7 @@ exports.registerUserWithEmail = async (req, res) => {
     try {
         const { name, email, password, mobileNumber } = req.body;
 
-        let user = await userModel.findOne({ email });
+        let user = await userModel.findOne({ email }).lean().lean().exec();
 
         if (user) {
             const token = generateTokenAndSetCookie(user, res);
@@ -132,11 +138,15 @@ exports.registerUserWithEmail = async (req, res) => {
         };
         temporaryStorage.set(email, userData);
 
+        const filePath = path.join(__dirname, '../../pages/mail.html');
+        const htmlContent = fs.readFileSync(filePath, 'utf8');
+        const personalizedHtml = htmlContent.replace('{{otp}}', verificationCode);
+
         transporter.sendMail({
             from: process.env.EMAIL,
             to: email,
             subject: 'Account Verification',
-            text: `Your verification code is: ${verificationCode}`,
+            html: personalizedHtml,
         }, (err, info) => {
             if (err) console.error('Error sending email:', err);
             else console.log('Verification email sent:', info.response);
@@ -235,7 +245,7 @@ exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
 
     try {
-        const user = await userModel.findOne({ email }).exec();
+        const user = await userModel.findOne({ email }).lean().exec();
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found!' });
         };
@@ -266,7 +276,7 @@ exports.resetPassword = async (req, res) => {
     const { email, otp, newPassword } = req.body;
 
     try {
-        const user = await userModel.findOne({ email, otp, otpExpiration: { $gt: Date.now() } }).exec();
+        const user = await userModel.findOne({ email, otp, otpExpiration: { $gt: Date.now() } }).lean().exec();
         if (!user) {
             return res.status(400).json({ success: false, message: 'Invalid OTP or OTP has expired!' });
         };
@@ -288,7 +298,7 @@ exports.resendOtp = async (req, res) => {
     const { email } = req.body;
 
     try {
-        const user = await userModel.findOne({ email }).exec();
+        const user = await userModel.findOne({ email }).lean().exec();
 
         if (!user) {
             return res.status(404).json({
@@ -388,7 +398,7 @@ exports.loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const user = await userModel.findOne({ email }).exec();
+        const user = await userModel.findOne({ email }).lean().exec();
 
         if (!user || !(await user.comparePassword(password))) {
             return res.status(401).json({

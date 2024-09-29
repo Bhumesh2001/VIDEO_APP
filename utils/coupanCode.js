@@ -3,7 +3,7 @@ const Coupon = require('../models/adminModel/coupan.adminModel');
 
 cron.schedule('0 * * * *', async () => {
     try {
-       await Coupon.deleteMany({ expirationDate: { $lt: new Date() } });
+        await Coupon.deleteMany({ expirationDate: { $lt: new Date() } });
     } catch (error) {
         console.error('Error deleting expired coupons:', error);
     };
