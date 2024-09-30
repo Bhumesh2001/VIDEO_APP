@@ -27,13 +27,12 @@ const {
 
 userRouter.post(
     '/register',
-    validateRequiredFields(['name', 'email', 'password' ,'mobileNumber']),
+    validateRequiredFields(['name', 'email', 'password', 'mobileNumber']),
     userController.registerUser
 );
 userRouter.post(
     '/register/email',
-    validateRequiredFields(['email']),
-    userController.registerUserWithEmail
+    userController.registerUserWithEmailOrPhone
 );
 userRouter.post(
     '/verify',
@@ -45,6 +44,10 @@ userRouter.post(
     validateRequiredFields(['email', 'password']),
     userController.loginUser
 );
+userRouter.post(
+    '/check-phone',
+    userController.checkMobileNumber
+)
 userRouter.post('/logout', userController.logoutUser);
 
 userRouter.get('/auth/google', userController.redirectToGoogleProfile);
@@ -108,7 +111,7 @@ userRouter.post(
     '/subscription/update',
     userAuthentication,
     validateRequiredFields(['paymentStatus']),
-    subscriptionUserController.updateSubscriptionStatus  
+    subscriptionUserController.updateSubscriptionStatus
 );
 userRouter.get(
     '/my-subscription',
@@ -132,10 +135,10 @@ userRouter.get(
 
 userRouter.get('/coupon', userAuthentication, couponUserController.getCoupon);
 userRouter.post(
-    '/valid-coupon', 
+    '/valid-coupon',
     userAuthentication,
-    validateRequiredFields(['couponCode']),
-    couponUserController.checkCoupon
+    validateRequiredFields(['couponCode', 'categoryId', 'planId']),
+    couponUserController.applyCoupon
 );
 
 // ********************* category routes ********************

@@ -1,19 +1,22 @@
 const jwt = require('jsonwebtoken');
 
 exports.generateTokenAndSetCookie = (user, res) => {
-    const token = jwt.sign(
-        { email: user.email, role: user.role, _id: user._id },
-        process.env.USER_SECRET_KEY,
-        { expiresIn: '2d' }
-    );
+    const tokenPayload = { _id: user._id, role: user.role };
 
-    // Set secure cookie for token
+    // Include email or mobileNumber in the token payload
+    if (user.email) tokenPayload.email = user.email;
+    if (user.mobileNumber) tokenPayload.mobileNumber = user.mobileNumber;
+
+    const token = jwt.sign(tokenPayload, process.env.USER_SECRET_KEY, { expiresIn: '7d' });
+
+    // Set 7-day cookie with token
     res.cookie('userToken', token, {
         httpOnly: true,
         secure: true,
-        maxAge: 1000 * 60 * 60 * 48,
+        maxAge: 7 * 24 * 60 * 60 * 1000,  // 7 days in milliseconds
         sameSite: 'Lax',
         path: '/',
     });
+
     return token;
 };

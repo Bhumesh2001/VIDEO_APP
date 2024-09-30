@@ -32,16 +32,18 @@ exports.registerUser = async (req, res) => {
         const { name, email, username, password, mobileNumber } = req.body;
 
         // Validate strong password
-        const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
-        if (!strongPasswordRegex.test(password)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Password must be strong (include upper, lower, number, and special character)',
-            });
+        if (password) {
+            const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+            if (!strongPasswordRegex.test(password)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Password must be strong (include upper, lower, number, and special character)',
+                });
+            }
         }
 
         // Check for existing user
-        const existingUser = await userModel.findOne({ email }).lean().lean().exec();
+        const existingUser = await userModel.findOne({ email }).lean().exec();
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'User already exists' });
         }
@@ -49,7 +51,7 @@ exports.registerUser = async (req, res) => {
         // Create and store user data
         const verificationCode = generateCode();
         const userData = {
-            name,
+            name: name ? name : `User_${crypto.randomBytes(4).toString('hex')}`,
             email,
             password,
             username: username ? username : `User_${crypto.randomBytes(2).toString('hex')}`,
@@ -119,12 +121,40 @@ exports.registerUser = async (req, res) => {
 };
 
 // ---------------- Register with email -----------------
-exports.registerUserWithEmail = async (req, res) => {
+exports.registerUserWithEmailOrPhone = async (req, res) => {
     try {
         const { name, email, username, password, mobileNumber } = req.body;
 
-        let user = await userModel.findOne({ email }).lean().lean().exec();
+        // Validate input: either email or mobileNumber is required
+        if (!email && !mobileNumber) {
+            return res.status(400).json({
+                success: false,
+                message: 'Either email or mobile number is required',
+            });
+        }
 
+        // Validate email format if provided
+        if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid email format.',
+            });
+        }
+
+        // Validate mobile number format if provided (example for a 10-digit number)
+        if (mobileNumber && !/^\d{10}$/.test(mobileNumber)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid mobile number. It must be a 10-digit number.',
+            });
+        }
+
+        // Find existing user by email or mobile number
+        const user = await userModel.findOne({
+            $or: [{ email }, { mobileNumber }]
+        }).lean().exec();
+
+        // If user exists, log them in
         if (user) {
             const token = generateTokenAndSetCookie(user, res);
             return res.status(200).json({
@@ -133,52 +163,27 @@ exports.registerUserWithEmail = async (req, res) => {
                 userId: user._id,
                 token,
             });
-        };
+        }
 
-        const verificationCode = generateCode();
-        const userData = {
-            name: name ? name : `User_${crypto.randomBytes(4).toString('hex')}`,
-            email,
+        // Create new user
+        const newUser = new userModel({
+            name: name || `User_${crypto.randomBytes(4).toString('hex')}`,
+            email: email || null,
             password,
-            username: username
-                ? username
-                : `${name ? name.split(' ').join('_') : 'User'}_${crypto.randomBytes(2).toString('hex')}`,
-            mobileNumber: mobileNumber
-                ? mobileNumber
-                : `${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-            Code: verificationCode,
-            isVerified: false
-        };
-
-        temporaryStorage.set(email, userData);
-
-        const filePath = path.join(__dirname, '../../pages/mail.html');
-        const htmlContent = fs.readFileSync(filePath, 'utf8');
-        const personalizedHtml = htmlContent.replace('{{otp}}', verificationCode);
-
-        transporter.sendMail({
-            from: process.env.EMAIL,
-            to: email,
-            subject: 'Account Verification',
-            html: personalizedHtml,
-        }, (err, info) => {
-            if (err) console.error('Error sending email:', err);
-            else console.log('Verification email sent:', info.response);
+            username: username || `${(name || 'User').split(' ').join('_')}_${crypto.randomBytes(2).toString('hex')}`,
+            mobileNumber: mobileNumber || null,
+            isVerified: true
         });
+        await newUser.save();
 
-        // Respond with success
-        res.status(201).json({
+        // Log in the new user
+        const token = generateTokenAndSetCookie(newUser, res);
+        return res.status(200).json({
             success: true,
-            message: 'Please verify your email',
+            message: 'User registered and logged in successfully',
+            userId: newUser._id,
+            token,
         });
-
-        // Set timeout for temporary data expiration (15 minutes)
-        setTimeout(() => {
-            if (temporaryStorage.has(email)) {
-                temporaryStorage.delete(email);
-                console.log(`Temporary data for user "${email}" has expired and been removed.`);
-            }
-        }, 15 * 60 * 1000);  // 15 minutes
 
     } catch (error) {
         console.error(error);
@@ -220,21 +225,7 @@ exports.verifyUser = async (req, res) => {
         // Delete temporary user data after successful verification
         temporaryStorage.delete(email);
 
-        // Generate JWT token
-        const token = jwt.sign(
-            { email: user.email, role: user.role, _id: user._id },
-            process.env.USER_SECRET_KEY,
-            { expiresIn: '2d' }
-        );
-
-        // Set secure cookie for token
-        res.cookie('userToken', token, {
-            httpOnly: true,
-            secure: true,
-            maxAge: 1000 * 60 * 60 * 48,  // 2 days
-            sameSite: 'Lax',
-            path: '/',
-        });
+        const token = generateTokenAndSetCookie(newUser, res);
 
         // Respond with success
         res.status(200).json({
@@ -448,6 +439,40 @@ exports.loginUser = async (req, res) => {
             message: 'error occured during login',
         });
     };
+};
+
+// -------------- Chek Mobile Number --------------
+exports.checkMobileNumber = async (req, res) => {
+    try {
+        const { mobileNumber } = req.body;
+
+        // Validate mobile number existence and format
+        if (!mobileNumber || !/^\d{10}$/.test(mobileNumber)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Valid 10-digit mobile number is required.',
+            });
+        }
+
+        // Check if the mobile number already exists in the database
+        const userExists = await userModel.exists({ mobileNumber });
+
+        return res.status(200).json({
+            success: true,
+            message: userExists
+                ? 'Mobile number already registered.'
+                : 'Mobile number not registered.',
+            exists: !!userExists,
+        });
+
+    } catch (error) {
+        console.error('Error checking mobile number:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error while checking mobile number.',
+            error: error.message,
+        });
+    }
 };
 
 // ------------- Logout User -----------------

@@ -36,6 +36,13 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             });
         };
 
+        if (!mongoose.Types.ObjectId.isValid(planId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid planId ID format!",
+            })
+        };
+
         // Fetch the subscription plan
         const subscriptionPlan = await SubscriptionPlan.findById(planId);
         if (!subscriptionPlan) {
@@ -165,20 +172,18 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             success: true,
             message: `Successfully subscribed to ${categoryId.toLowerCase() === 'all' ? 'all categories' : 'the selected category'}.`,
             orderId: order.id,
-            currency: order.currency,
-            receipt: order.receipt,
             userId: newSubscription.userId,
             categoryId: newSubscription.categoryId,
+            planId: newSubscription.planId,
             planName: newSubscription.planName,
             planType: newSubscription.planType,
             price: `₹${newSubscription.price}`,
             discountFromPlan: `${newSubscription.discountFromPlan}%`,
             discountFromCoupon: `${newSubscription.discountFromCoupon}%`,
-            flatDiscount: `${newSubscription.flatDiscount ? newSubscription.flatDiscount : 0}`,
+            flatDiscount: `₹${newSubscription.flatDiscount ? newSubscription.flatDiscount : 0}`,
             finalPrice: `₹${newSubscription.finalPrice}`,
             paymentId: newSubscription.paymentId,
             paymentStatus: newSubscription.paymentStatus,
-            status: newSubscription.status,
             startDate: newSubscription.startDate,
             expiryDate: newSubscription.expiryDate,
         };

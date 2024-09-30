@@ -5,14 +5,11 @@ const bcrypt = require('bcryptjs');
 const userSchema = new Schema({
     name: {
         type: String,
-        required: [true, 'Name is required'],
-        minlength: [2, 'Name must be at least 2 characters long'],
-        maxlength: [30, 'Name cannot exceed 30 characters'],
         trim: true,
+        default: ""
     },
     email: {
         type: String,
-        required: [true, 'Email is required'],
         unique: true,
         lowercase: true,
         trim: true,
@@ -24,16 +21,11 @@ const userSchema = new Schema({
     },
     username: {
         type: String,
-        required: [true, 'Username is required'],
         unique: true,
         trim: true,
-        minlength: [3, 'Username must be at least 3 characters long'],
-        maxlength: [30, 'Username cannot exceed 30 characters'],
-        match: [/^[a-zA-Z0-9_.]+$/, 'Username can only contain letters, numbers, underscores, or periods'],
     },
     mobileNumber: {
         type: String,
-        required: [true, 'Mobile number is required'],
         unique: true,
         validate: {
             validator: function (v) {
