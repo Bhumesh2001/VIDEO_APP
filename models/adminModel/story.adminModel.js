@@ -73,9 +73,7 @@ const storySchema = new mongoose.Schema({
         enum: ['active', 'expired', 'deleted'],
         default: 'active',
     },
-}, {
-    timestamps: true,
-});
+}, { timestamps: true });
 
 storySchema.methods.isExpired = function () {
     return new Date() > this.expirationTime;

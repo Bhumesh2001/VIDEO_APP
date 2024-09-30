@@ -276,7 +276,6 @@ exports.deleteArticle = async (req, res) => {
     }
 };
 
-// like an article
 exports.likeArticle = async (req, res) => {
     const { articleId } = req.query || req.body;
     const userId = req.user._id;
@@ -304,6 +303,7 @@ exports.likeArticle = async (req, res) => {
             success: true,
             likes: article.likes.length,
             like,
+            article,
         });
     } catch (error) {
         res.status(500).json({
@@ -314,10 +314,8 @@ exports.likeArticle = async (req, res) => {
     };
 };
 
-// comment an article
 exports.addComment = async (req, res) => {
-    const { articleId } = req.query || req.body;
-    const { content } = req.body;
+    const { articleId, content } = req.body;
     const userId = req.user._id;
 
     try {
@@ -340,7 +338,7 @@ exports.addComment = async (req, res) => {
         res.status(201).json({
             success: true,
             message: 'comments added successfully...',
-            comments: article.comments,
+            article,
         });
     } catch (error) {
         res.status(500).json({
@@ -355,6 +353,7 @@ exports.getAllComments = async (req, res) => {
     const { articleId } = req.query || req.body;
 
     try {
+        // Fetch the article and select the comments
         const article = await Article.findById(articleId).select('comments');
 
         if (!article) {
@@ -362,12 +361,15 @@ exports.getAllComments = async (req, res) => {
                 success: false,
                 message: 'Article not found.'
             });
-        };
+        }
+
+        // Sort comments by creation date (assuming comments have a 'createdAt' field)
+        const sortedComments = article.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         res.status(200).json({
             success: true,
-            message: 'comments fetched successfully...',
-            comments: article.comments,
+            message: 'Comments fetched successfully...',
+            comments: sortedComments,
         });
     } catch (error) {
         res.status(500).json({
@@ -375,7 +377,7 @@ exports.getAllComments = async (req, res) => {
             message: 'An error occurred while retrieving comments.',
             error: error.message
         });
-    };
+    }
 };
 
 exports.editComment = async (req, res) => {

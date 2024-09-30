@@ -5,12 +5,17 @@ const SingleCategorySubscriptionSchema = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
+        required: [true, 'userId is required!'],
     },
     categoryId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Category',
-        required: true,
+        required: [true, 'CategoryId is required!'],
+    },
+    planId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'SubscriptionPlan',
+        required: [true, 'PlanId is required!'],
     },
     planName: {
         type: String,
@@ -18,7 +23,7 @@ const SingleCategorySubscriptionSchema = new Schema({
     },
     planType: {
         type: String,
-        required: true,
+        required: [true, 'PlanType is required!'],
     },
     price: {
         type: Number,

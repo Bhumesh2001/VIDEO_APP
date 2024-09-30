@@ -36,6 +36,17 @@ const SubscriptionPlanSchema = new mongoose.Schema({
             message: 'Discount must be a whole number',
         },
     },
+    flatDiscount: {
+        type: Number,
+        default: 0,
+        required: true,
+        min: [0, 'Discount must be at least 0%'],
+        max: [100, 'Discount cannot exceed 100%'],
+        validate: {
+            validator: Number.isInteger,
+            message: 'Discount must be an integer value.'
+        }
+    },
     features: {
         type: [String],
         required: [true, 'At least one feature is required'],
@@ -50,6 +61,10 @@ const SubscriptionPlanSchema = new mongoose.Schema({
         type: String,
         enum: ['active', 'inactive'],
         default: 'active',
+    },
+    isAllCategory: {
+        type: Boolean,
+        default: false,
     },
 }, { timestamps: true });
 

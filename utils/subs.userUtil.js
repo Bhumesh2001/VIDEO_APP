@@ -6,8 +6,8 @@ const SingleCategorySubscriptionModel = require('../models/userModel/subs.user.M
 const AllCategorySubscriptionModel = require('../models/userModel/allSubs.userModel');
 const Category = require('../models/adminModel/category.adminModel');
 
-// Corn job that runs every minute
-cron.schedule('* * * * *', async () => {
+// Corn job that runs every day at midnight
+cron.schedule('0 0 * * *', async () => {
     try {
         const models = [SingleCategorySubscriptionModel, AllCategorySubscriptionModel];
 

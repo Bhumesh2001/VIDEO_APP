@@ -2,7 +2,7 @@ const Subscription = require('../../models/adminModel/subs.adminModel');
 
 exports.createSubscriptionPlan = async (req, res) => {
     try {
-        let { planName, planType, price, features, status } = req.body;
+        let { planName, planType, price, features, flatDiscount, status } = req.body;
 
         // Ensure features is an array
         if (!Array.isArray(features)) {
@@ -22,6 +22,7 @@ exports.createSubscriptionPlan = async (req, res) => {
             planName,
             planType,
             price,
+            flatDiscount,
             features,
             status: status?.toLowerCase(),  // Handle possible null or undefined
         });

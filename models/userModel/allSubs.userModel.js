@@ -5,11 +5,16 @@ const AllCategorySubscriptionSchema = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
+        required: [true, 'userId is required!'],
     },
     categoryId: {
         type: String,
         required: [true, 'CategoryId is required!'],
+    },
+    planId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'SubscriptionPlan',
+        required: [true, 'PlanId is required!'],
     },
     planName: {
         type: String,
@@ -17,7 +22,7 @@ const AllCategorySubscriptionSchema = new Schema({
     },
     planType: {
         type: String,
-        required: true,
+        required: [true, "PlanType is required!"],
     },
     price: {
         type: Number,
@@ -46,6 +51,17 @@ const AllCategorySubscriptionSchema = new Schema({
             },
             message: 'Discount from coupon must be a whole number',
         },
+    },
+    flatDiscount: {
+        type: Number,
+        default: 10,
+        required: true,
+        min: [0, 'Discount must be at least 0%'],
+        max: [100, 'Discount cannot exceed 100%'],
+        validate: {
+            validator: Number.isInteger,
+            message: 'Discount must be an integer value.'
+        }
     },
     finalPrice: {
         type: Number,
@@ -109,9 +125,17 @@ AllCategorySubscriptionSchema.pre('save', function (next) {
 });
 
 AllCategorySubscriptionSchema.methods.calculateFinalPrice = function () {
+    // Calculate the total discount percentage from the plan and coupon
     const totalDiscountPercentage = this.discountFromPlan + this.discountFromCoupon;
+
+    // Calculate the total discount amount based on the price and discount percentage
     const discountAmount = (this.price * totalDiscountPercentage) / 100;
-    this.finalPrice = this.price - discountAmount;
+
+    // Apply a flat 10% discount on top of the calculated discount
+    const flatDiscountAmount = (this.price * this.flatDiscount) / 100;
+
+    // Calculate the final price after all discounts
+    this.finalPrice = this.price - discountAmount - flatDiscountAmount;
 };
 
 const AllCategorySubscriptionModel = mongoose.model('AllCategorySubscription', AllCategorySubscriptionSchema);

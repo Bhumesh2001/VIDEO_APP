@@ -1,9 +1,11 @@
 const fs = require('fs').promises;
 const { faker } = require('@faker-js/faker');
+
 const Story = require('../../models/adminModel/story.adminModel');
-const { uploadImage, uploadVideo, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
 const userModel = require('../../models/userModel/userModel');
 const Admin = require('../../models/adminModel/adminModel');
+
+const { uploadImage, uploadVideo, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
 
 const storyVideoOptions = {
     folder: 'Stories',
@@ -110,7 +112,7 @@ exports.getAllStories = async (req, res) => {
         // Fetch all stories
         const stories = await Story.find()
             .sort({ createdAt: -1 })
-            .select('_id userId title video caption views likes image createdAt');
+            .select('_id userId title video caption views likes image createdAt expirationTime');
 
         if (!stories.length) {
             return res.status(404).json({
@@ -138,6 +140,7 @@ exports.getAllStories = async (req, res) => {
                 likes: story.likes?.length || 0,
                 image: story.image?.url || '',
                 createdAt: story.createdAt,
+                expirationTime: story.expirationTime,
             };
         });
 

@@ -148,7 +148,7 @@ exports.likeVideo = async (req, res) => {
         };
         await video.save();
 
-        res.status(200).json({ success: true, like });
+        res.status(200).json({ success: true, like, video, });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error });
     };
@@ -166,7 +166,7 @@ exports.addComment = async (req, res) => {
         video.comments.push({ userId, content });
         await video.save();
 
-        res.status(201).json({ success: true, message: 'Comment added successfully' });
+        res.status(201).json({ success: true, message: 'Comment added successfully', video });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error });
     };
@@ -238,6 +238,7 @@ exports.editComment = async (req, res) => {
             success: true,
             message: 'Comment updated successfully',
             comment,
+            video,
         });
     } catch (error) {
         console.error('Error editing comment:', error);
@@ -261,7 +262,7 @@ exports.deleteComment = async (req, res) => {
         video.comments.splice(commentIndex, 1);
         await video.save();
 
-        res.status(200).json({ success: true, message: 'Comment deleted successfully' });
+        res.status(200).json({ success: true, message: 'Comment deleted successfully', video });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error });
     };

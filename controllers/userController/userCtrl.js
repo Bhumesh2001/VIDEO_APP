@@ -259,7 +259,7 @@ exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
 
     try {
-        const user = await userModel.findOne({ email }).lean().exec();
+        const user = await userModel.findOne({ email });
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found!' });
         };
@@ -290,14 +290,14 @@ exports.resetPassword = async (req, res) => {
     const { email, otp, newPassword } = req.body;
 
     try {
-        const user = await userModel.findOne({ email, otp, otpExpiration: { $gt: Date.now() } }).lean().exec();
+        const user = await userModel.findOne({ email, otp, otpExpiration: { $gt: Date.now() } });
         if (!user) {
             return res.status(400).json({ success: false, message: 'Invalid OTP or OTP has expired!' });
         };
 
         user.password = newPassword;
-        user.otp = undefined;
-        user.otpExpiration = undefined;
+        user.otp = null;
+        user.otpExpiration = null;
         await user.save();
 
         res.status(200).json({ success: true, message: 'Password reset successfully!' });
@@ -312,7 +312,7 @@ exports.resendOtp = async (req, res) => {
     const { email } = req.body;
 
     try {
-        const user = await userModel.findOne({ email }).lean().exec();
+        const user = await userModel.findOne({ email });
 
         if (!user) {
             return res.status(404).json({

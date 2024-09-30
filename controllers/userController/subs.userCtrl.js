@@ -45,6 +45,13 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             });
         };
 
+        if (categoryId.toLowerCase() === 'all' && !subscriptionPlan.isAllCategory) {
+            return res.status(400).json({
+                success: false,
+                message: `You must select the All Access plan for all categories!`,
+            });
+        }
+
         // If a coupon code is provided, validate the coupon
         let coupon = null;
         if (couponCode) {
@@ -101,14 +108,13 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
         const receipt = `receipt_${crypto.randomBytes(4).toString('hex')}_${Date.now()}`;
 
         const options = {
-            amount: subscriptionPlan.price * 100, // Amount is in smallest currency unit, so convert to paise
+            amount: subscriptionPlan.price * 100,
             currency: 'INR',
             receipt,
             payment_capture: 1,
         };
 
         const order = await razorpay.orders.create(options);
-        const payments = await razorpay.orders.fetchPayments(order.id);
 
         // Create the new subscription
         let newSubscription;
@@ -116,14 +122,15 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             newSubscription = new AllCategorySubscriptionModel({
                 userId,
                 categoryId,
+                planId,
                 planName: subscriptionPlan.planName,
                 planType: subscriptionPlan.planType,
                 price: subscriptionPlan.price,
                 paymentGetway: 'Razorpay',
-                paymentMethod: payments.items?.[0]?.method || 'Unknown',
                 paymentId: order.id,
                 discountFromPlan,
                 discountFromCoupon,
+                flatDiscount: subscriptionPlan.flatDiscount,
             });
         }
         else {
@@ -138,14 +145,15 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             newSubscription = new SingleCategorySubscriptionModel({
                 userId,
                 categoryId,
+                planId,
                 planName: subscriptionPlan.planName,
                 planType: subscriptionPlan.planType,
                 price: subscriptionPlan.price,
                 paymentGetway: 'Razorpay',
-                paymentMethod: payments.items?.[0]?.method || 'Unknown',
                 paymentId: order.id,
                 discountFromPlan,
                 discountFromCoupon,
+                flatDiscount: subscriptionPlan.flatDiscount,
             });
         };
 
@@ -166,6 +174,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             price: `₹${newSubscription.price}`,
             discountFromPlan: `${newSubscription.discountFromPlan}%`,
             discountFromCoupon: `${newSubscription.discountFromCoupon}%`,
+            flatDiscount: `${newSubscription.flatDiscount ? newSubscription.flatDiscount : 0}`,
             finalPrice: `₹${newSubscription.finalPrice}`,
             paymentId: newSubscription.paymentId,
             paymentStatus: newSubscription.paymentStatus,
@@ -205,19 +214,36 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
 
 exports.updateSubscriptionStatus = async (req, res) => {
     try {
-        const { paymentStatus = 'completed' } = req.body;
+        const { paymentStatus = 'completed', categoryId, planId } = req.body;
         const userId = req.user._id;
 
-        // Find subscription in both models
-        const [singleSubscription, allSubscription] = await Promise.all([
-            SingleCategorySubscriptionModel.findOne({ userId }),
-            AllCategorySubscriptionModel.findOne({ userId })
-        ]);
+        const subscriptionPlan = await SubscriptionPlan.findById(planId);
+        if (!subscriptionPlan) {
+            return res.status(404).json({
+                success: false,
+                message: 'Subscription plan not found!',
+            });
+        };
 
-        // Combine both subscriptions and find the one that exists
-        const existingSubscription = singleSubscription || allSubscription;
+        if (categoryId.toLowerCase() === 'all' && !subscriptionPlan.isAllCategory) {
+            return res.status(400).json({
+                success: false,
+                message: `You must select the All Access plan for update the paymentStatus!`,
+            });
+        }
 
-        if (!existingSubscription) {
+        // Determine which subscription to query based on categoryId
+        let subscriptionPromise;
+        if (categoryId.toLowerCase() === 'all') {
+            subscriptionPromise = AllCategorySubscriptionModel.findOne({ userId, categoryId, planId });
+        } else {
+            subscriptionPromise = SingleCategorySubscriptionModel.findOne({ userId, categoryId, planId });
+        }
+
+        // Wait for the selected subscription to be fetched
+        const subscription = await subscriptionPromise;
+
+        if (!subscription) {
             return res.status(404).json({
                 success: false,
                 message: 'Subscription not found!',
@@ -225,22 +251,22 @@ exports.updateSubscriptionStatus = async (req, res) => {
         }
 
         // Check if payment status is already completed
-        if (existingSubscription.paymentStatus === "completed") {
+        if (subscription.paymentStatus === "completed") {
             return res.status(409).json({
                 success: false,
                 message: 'Subscription already updated!',
-                existingSubscription,
+                subscription,
             });
         }
 
         // Update subscription payment status
-        existingSubscription.paymentStatus = paymentStatus;
-        await existingSubscription.save();
+        subscription.paymentStatus = paymentStatus;
+        await subscription.save();
 
         return res.status(200).json({
             success: true,
             message: 'Subscription status updated successfully.',
-            subscription: existingSubscription,
+            subscription,
         });
     } catch (error) {
         console.error(error);
@@ -307,8 +333,14 @@ exports.getHistory = async (req, res) => {
         }
 
         const [singleSubscriptions, allSubscriptions] = await Promise.all([
-            SingleCategorySubscriptionModel.find({ userId }),
-            AllCategorySubscriptionModel.find({ userId })
+            SingleCategorySubscriptionModel.find({
+                userId,
+                paymentStatus: { $in: ['completed', 'failed'] }
+            }),
+            AllCategorySubscriptionModel.find({
+                userId,
+                paymentStatus: { $in: ['completed', 'failed'] }
+            })
         ]);
 
         // Check if both subscriptions are empty

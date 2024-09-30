@@ -220,7 +220,7 @@ adminRouter.delete(
 adminRouter.post(
     '/create-subscription',
     adminAuthentication,
-    validateRequiredFields(['planName', 'planType', 'price', 'features', 'status']),
+    // validateRequiredFields(['planName', 'planType', 'price', 'features', 'status']),
     subscriptionController.createSubscriptionPlan
 );
 adminRouter.get('/subscriptions', subscriptionController.getSubscriptionsPlan);
