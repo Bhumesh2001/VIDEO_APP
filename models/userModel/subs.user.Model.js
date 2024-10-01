@@ -116,8 +116,7 @@ SingleCategorySubscriptionSchema.pre('save', function (next) {
 });
 
 SingleCategorySubscriptionSchema.methods.calculateFinalPrice = function () {
-    const totalDiscountPercentage = this.discountFromPlan + this.discountFromCoupon;
-    const discountAmount = (this.price * totalDiscountPercentage) / 100;
+    const discountAmount = (this.price * this.discountFromPlan) / 100;
     this.finalPrice = this.price - discountAmount;
 };
 

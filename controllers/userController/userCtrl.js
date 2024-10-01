@@ -653,9 +653,7 @@ exports.getFacebookProfile = async (req, res) => {
 
 exports.userProfile = async (req, res) => {
     try {
-        const profile = await userModel.findById(req.user._id, {
-            __v: 0, createdAt: 0, updatedAt: 0, isVerified: 0, role: 0, password: 0,
-        });
+        const profile = await userModel.findById(req.user._id);
 
         if (!profile) {
             return res.status(404).json({ success: false, message: 'Profile not found.' });

@@ -4,6 +4,7 @@ const crypto = require('crypto');
 
 const CategoryModel = require('../../models/adminModel/category.adminModel');
 const Coupon = require('../../models/adminModel/coupan.adminModel');
+const CouponApplication = require('../../models/userModel/coupon.userModel');
 const SubscriptionPlan = require('../../models/adminModel/subs.adminModel');
 
 const SingleCategorySubscriptionModel = require('../../models/userModel/subs.user.Model');
@@ -109,13 +110,20 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
         };
 
         // Initialize discount values
+        let totalPrice;
         const discountFromPlan = subscriptionPlan.discount || 0;
-        const discountFromCoupon = coupon ? coupon.discountPercentage : 0;
+        let discountFromCoupon;
+
+        const CouponApplication_ = await CouponApplication.findOne({ userId });
+        if (CouponApplication_) {
+            totalPrice = CouponApplication_.finalPrice;
+            const findDiscount = await Coupon.findOne({ couponCode: CouponApplication_.couponCode });
+            discountFromCoupon = findDiscount.discountPercentage;
+        }
 
         const receipt = `receipt_${crypto.randomBytes(4).toString('hex')}_${Date.now()}`;
-
         const options = {
-            amount: subscriptionPlan.price * 100,
+            amount: totalPrice ? totalPrice * 100 : subscriptionPlan.price * 100,
             currency: 'INR',
             receipt,
             payment_capture: 1,
@@ -136,8 +144,9 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
                 paymentGetway: 'Razorpay',
                 paymentId: order.id,
                 discountFromPlan,
-                discountFromCoupon,
+                discountFromCoupon: discountFromCoupon ? discountFromCoupon : 0,
                 flatDiscount: subscriptionPlan.flatDiscount,
+                finalPrice: totalPrice?.totalPrice
             });
         }
         else {
@@ -159,8 +168,9 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
                 paymentGetway: 'Razorpay',
                 paymentId: order.id,
                 discountFromPlan,
-                discountFromCoupon,
+                discountFromCoupon: discountFromCoupon ? discountFromCoupon : 0,
                 flatDiscount: subscriptionPlan.flatDiscount,
+                finalPrice: totalPrice?.totalPrice
             });
         };
 
@@ -179,7 +189,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             planType: newSubscription.planType,
             price: `₹${newSubscription.price}`,
             discountFromPlan: `${newSubscription.discountFromPlan}%`,
-            discountFromCoupon: `${newSubscription.discountFromCoupon}%`,
+            discountFromCoupon: `${discountFromCoupon}%`,
             flatDiscount: `₹${newSubscription.flatDiscount ? newSubscription.flatDiscount : 0}`,
             finalPrice: `₹${newSubscription.finalPrice}`,
             paymentId: newSubscription.paymentId,

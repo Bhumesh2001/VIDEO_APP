@@ -125,11 +125,8 @@ AllCategorySubscriptionSchema.pre('save', function (next) {
 });
 
 AllCategorySubscriptionSchema.methods.calculateFinalPrice = function () {
-    // Calculate the total discount percentage from the plan and coupon
-    const totalDiscountPercentage = this.discountFromPlan + this.discountFromCoupon;
-
     // Calculate the total discount amount based on the price and discount percentage
-    const discountAmount = (this.price * totalDiscountPercentage) / 100;
+    const discountAmount = (this.price * this.discountFromPlan) / 100;
 
     // Apply a flat 10% discount on top of the calculated discount
     const flatDiscountAmount = (this.price * this.flatDiscount) / 100;

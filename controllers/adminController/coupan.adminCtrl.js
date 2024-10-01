@@ -16,10 +16,15 @@ exports.createCoupon = async (req, res) => {
         }
         const couponCode = coupon_Code ? coupon_Code : generateCouponCode();
 
+        const convertToISODate = (dateString) => {
+            const date = new Date(dateString);
+            return date.toISOString();
+        };
+
         const coupon = new Coupon({
             couponCode,
             discountPercentage,
-            expirationDate: new Date(convertToISODate(expirationDate)),
+            expirationDate: convertToISODate(expirationDate),
             maxUsage,
             status
         });

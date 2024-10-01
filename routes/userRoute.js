@@ -137,7 +137,7 @@ userRouter.get('/coupon', userAuthentication, couponUserController.getCoupon);
 userRouter.post(
     '/valid-coupon',
     userAuthentication,
-    validateRequiredFields(['couponCode', 'categoryId', 'planId']),
+    validateRequiredFields(['couponCode', 'totalPrice']),
     couponUserController.applyCoupon
 );
 

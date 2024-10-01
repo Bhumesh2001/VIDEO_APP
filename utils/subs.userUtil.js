@@ -70,7 +70,7 @@ const sendExpiryReminder = async () => {
         allCategoryExpiring.forEach(subscription => {
             sendReminder(subscription, 'All-category');
         });
-        
+
     } catch (error) {
         console.error('Error checking expiring subscriptions:', error);
     };
@@ -83,12 +83,30 @@ cron.schedule('0 * * * *', sendExpiryReminder);
 exports.convertToISODate = (dateString) => {
     // Use a regex to identify the date format
     const regexFormats = [
-        { regex: /(\d{1,2})\/(\d{1,2})\/(\d{4})/, parse: (d, m, y) => new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`) }, // DD/MM/YYYY
-        { regex: /(\d{1,2})-(\d{1,2})-(\d{4})/, parse: (d, m, y) => new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`) }, // DD-MM-YYYY
-        { regex: /(\d{1,2})\/(\d{1,2})\/(\d{2})/, parse: (d, m, y) => new Date(`20${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`) }, // DD/MM/YY
-        { regex: /(\d{1,2})-(\d{1,2})-(\d{2})/, parse: (d, m, y) => new Date(`20${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`) }, // DD-MM-YY
-        { regex: /(\d{1,2})\/(\d{1,2})\/(\d{4})/, parse: (m, d, y) => new Date(`${y}-${d.padStart(2, '0')}-${m.padStart(2, '0')}`) }, // MM/DD/YYYY
-        { regex: /(\d{1,2})-(\d{1,2})-(\d{4})/, parse: (m, d, y) => new Date(`${y}-${d.padStart(2, '0')}-${m.padStart(2, '0')}`) }, // MM-DD-YYYY
+        {
+            regex: /(\d{1,2})\/(\d{1,2})\/(\d{4})/,
+            parse: (d, m, y) => new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)
+        }, // DD/MM/YYYY
+        {
+            regex: /(\d{1,2})-(\d{1,2})-(\d{4})/,
+            parse: (d, m, y) => new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)
+        }, // DD-MM-YYYY
+        {
+            regex: /(\d{1,2})\/(\d{1,2})\/(\d{2})/,
+            parse: (d, m, y) => new Date(`20${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)
+        }, // DD/MM/YY
+        {
+            regex: /(\d{1,2})-(\d{1,2})-(\d{2})/,
+            parse: (d, m, y) => new Date(`20${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)
+        }, // DD-MM-YY
+        {
+            regex: /(\d{1,2})\/(\d{1,2})\/(\d{4})/,
+            parse: (m, d, y) => new Date(`${y}-${d.padStart(2, '0')}-${m.padStart(2, '0')}`)
+        }, // MM/DD/YYYY
+        {
+            regex: /(\d{1,2})-(\d{1,2})-(\d{4})/,
+            parse: (m, d, y) => new Date(`${y}-${d.padStart(2, '0')}-${m.padStart(2, '0')}`)
+        }, // MM-DD-YYYY
         // You can add more formats as necessary
     ];
 
