@@ -342,44 +342,47 @@ async function loadStoryData(page = 1, limit = 12) {
 
     storyRow.innerHTML = '';
 
-    data.stories.forEach(story => {
-        // Create elements
-        const colDiv = document.createElement('div');
-        const storyCard = document.createElement('div');
-        const storyImg = document.createElement('img');
-        const storyCardBody = document.createElement('div');
-        const h5 = document.createElement('h5');
-        const storyBtnDiv = document.createElement('div');
-        const storyEditBtn = document.createElement('button');
-        const storyDeleteBtn = document.createElement('button');
+    if (data.stories.length !== 0) {
+        data.stories.forEach(story => {
+            // Create elements
+            const colDiv = document.createElement('div');
+            const storyCard = document.createElement('div');
+            const storyImg = document.createElement('img');
+            const storyCardBody = document.createElement('div');
+            const h5 = document.createElement('h5');
+            const storyBtnDiv = document.createElement('div');
+            const storyEditBtn = document.createElement('button');
+            const storyDeleteBtn = document.createElement('button');
 
-        // Set classes and attributes
-        colDiv.classList.add('col-12', 'col-sm-4', 'col-md-4', 'col-lg-3', 'mb-4');
-        storyCard.classList.add('card', 'story_card');
-        storyImg.classList.add('img-fluid', 'rounded-top');
-        storyImg.setAttribute('alt', 'story-image');
-        storyImg.src = story.image.url;
-        storyCardBody.classList.add('card-body');
-        h5.classList.add('card-title', 'mb-3');
-        h5.innerText = story.title;
-        storyBtnDiv.classList.add('d-flex', 'justify-content-between');
-        storyEditBtn.classList.add('btn', 'btn-success', 'btn-sm', 'me-1');
-        storyDeleteBtn.classList.add('btn', 'btn-danger', 'btn-sm');
-        storyEditBtn.setAttribute('data-id', story._id);
-        storyDeleteBtn.setAttribute('data-id', story._id);
-        storyEditBtn.innerText = 'Edit';
-        storyDeleteBtn.innerText = 'Delete';
+            // Set classes and attributes
+            colDiv.classList.add('col-12', 'col-sm-4', 'col-md-4', 'col-lg-3', 'mb-4');
+            storyCard.classList.add('card', 'story_card');
+            storyImg.classList.add('img-fluid', 'rounded-top');
+            storyImg.setAttribute('alt', 'story-image');
+            storyImg.src = story.image.url;
+            storyCardBody.classList.add('card-body');
+            h5.classList.add('card-title', 'mb-3');
+            h5.innerText = story.title;
+            storyBtnDiv.classList.add('d-flex', 'justify-content-between');
+            storyEditBtn.classList.add('btn', 'btn-success', 'btn-sm', 'me-1');
+            storyDeleteBtn.classList.add('btn', 'btn-danger', 'btn-sm');
+            storyEditBtn.setAttribute('data-id', story._id);
+            storyDeleteBtn.setAttribute('data-id', story._id);
+            storyEditBtn.innerText = 'Edit';
+            storyDeleteBtn.innerText = 'Delete';
 
-        // Append children
-        storyBtnDiv.append(storyEditBtn, storyDeleteBtn);
-        storyCardBody.append(h5, storyBtnDiv);
-        storyCard.append(storyImg, storyCardBody);
-        colDiv.append(storyCard);
-        fragment.append(colDiv);
-    });
+            // Append children
+            storyBtnDiv.append(storyEditBtn, storyDeleteBtn);
+            storyCardBody.append(h5, storyBtnDiv);
+            storyCard.append(storyImg, storyCardBody);
+            colDiv.append(storyCard);
+            fragment.append(colDiv);
+        });
 
-    // Append all at once
-    storyRow.appendChild(fragment);
+        // Append all at once
+        storyRow.appendChild(fragment);
+    };
+
 };
 
 // function to load category data and display it on category section
@@ -427,11 +430,11 @@ async function loadCategoryData(page = 1, limit = 12) {
         categoryCard.append(categoryImg, categoryCardBody);
         categoryColDiv.append(categoryCard);
         fragment.append(categoryColDiv);
+
     });
 
     // Append all at once
     categoryRow.appendChild(fragment);
-
 };
 
 // function to laod subscription data and display it on subscription section
@@ -600,7 +603,7 @@ async function fetchSettingData() {
             const { createdAt, updatedAt, __v, ...cleanedData } = data;
             return cleanedData;
         };
-        
+
         // Clean the settings data and populate form fields
         settingsData.forEach(data => {
             const cleanedData = cleanSettingsData(data.settings);
@@ -612,11 +615,28 @@ async function fetchSettingData() {
     }
 };
 
+// function to load the category option and display it on video cateogory option
+async function loadCategoryOption() {
+    const data = await fetchData(`admin/category/options`);
+
+    if (!data) return;
+
+    const selectElement = document.querySelector('.category_option');
+
+    data.categoryOptions.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.name;
+        option.innerHTML = `${category.name}`;
+        option.setAttribute('class', 'category-option');
+        selectElement.appendChild(option);
+    });
+};
+
 // function to load the setting data and display it on setting sections
 function populateFormFields(settings) {
     Object.entries(settings).forEach(([key, value]) => {
         if (typeof value === 'boolean') {
-            const element = document.getElementById(key);    
+            const element = document.getElementById(key);
             if (element) {
                 element.value = value ? 'ON' : 'OFF';
             }
@@ -630,13 +650,11 @@ function populateFormFields(settings) {
             });
 
             // Handle specific cases for preview images
-            if (value.url && key === 'siteLogo') {  
+            if (value.url && key === 'siteLogo') {
                 const previewElement = document.getElementById(`logo-preview`);
                 if (previewElement) previewElement.src = value.url;
-                console.log(value.url,'=====');
-                
             }
-            if(value.url && key === 'siteFavicon'){
+            if (value.url && key === 'siteFavicon') {
                 const previewElement = document.getElementById(`favicon-preview`);
                 if (previewElement) previewElement.src = value.url;
             }
@@ -671,6 +689,7 @@ loadSubscriptionData();
 laodCouponData();
 laodBannerData();
 fetchSettingData();
+loadCategoryOption();
 
 const url = "/admin/dashboard-count";
 const Data = {
@@ -996,7 +1015,6 @@ async function submitSettingForm(form, url) {
         }
 
         const result = await response.json();
-        console.log(result);
         saveSettings();
 
     } catch (error) {

@@ -187,3 +187,27 @@ exports.deleteCategories = async (req, res) => {
         res.status(500).json({ success: false, message: "Error occurred while deleting the category." });
     }
 };
+
+exports.getCategoryOption = async (req, res) => {
+    try {
+        const categoryOptions = await Category.find().select('name').sort({ createdAt: -1 });
+        if (categoryOptions.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Category Option not found!',
+            })
+        };
+        res.status(200).json({
+            success: true,
+            message: 'Category option fetched successfully...!',
+            totalCategory: categoryOptions.length,
+            categoryOptions,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: 'error occured while fetching the category options',
+        });
+    };
+};

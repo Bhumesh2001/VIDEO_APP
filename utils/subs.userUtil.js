@@ -70,8 +70,7 @@ const sendExpiryReminder = async () => {
         allCategoryExpiring.forEach(subscription => {
             sendReminder(subscription, 'All-category');
         });
-
-        console.log('Subscription reminders check completed successfully.');
+        
     } catch (error) {
         console.error('Error checking expiring subscriptions:', error);
     };

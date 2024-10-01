@@ -466,58 +466,12 @@
                     <div class="form-group mb-3">
                       <label for="category">Category</label>
                       <select
-                        class="form-control"
+                        class="form-control category_option"
                         id="category"
                         name="category"
                         required
                       >
-                        <option value="">Select category</option>
-                        <option data-icon="fas fa-id-card">
-                          Aadhaar Service
-                        </option>
-                        <option data-icon="fas fa-id-card-alt">
-                          PAN Card Service
-                        </option>
-                        <option data-icon="fas fa-voter-id">
-                          Voter Card Service
-                        </option>
-                        <option data-icon="fas fa-user-graduate">
-                          UP Pension
-                        </option>
-                        <option data-icon="fas fa-building">PF (EPFO)</option>
-                        <option data-icon="fas fa-file-invoice">
-                          ITR Filing
-                        </option>
-                        <option data-icon="fas fa-industry">
-                          Udyog Adhar (MSME)
-                        </option>
-                        <option data-icon="fas fa-hand-holding-usd">
-                          PM Kisan Samman Nidhi
-                        </option>
-                        <option data-icon="fas fa-car">DL Service</option>
-                        <option data-icon="fas fa-road">Parivahan Seva</option>
-                        <option data-icon="fas fa-shield-alt">
-                          UP Police Service
-                        </option>
-                        <option data-icon="fas fa-passport">
-                          Passport Service
-                        </option>
-                        <option data-icon="fas fa-desktop">
-                          E District UP
-                        </option>
-                        <option data-icon="fas fa-laptop">CSC Service</option>
-                        <option data-icon="fas fa-file-upload">
-                          File Converter
-                        </option>
-                        <option data-icon="fas fa-user-tie">
-                          UP Labour Card Service
-                        </option>
-                        <option data-icon="fas fa-id-badge">
-                          E Shram Card Service
-                        </option>
-                        <option data-icon="fas fa-image">Photoshop</option>
-                        <option data-icon="fas fa-file-word">MS Word</option>
-                        <option data-icon="fas fa-file-excel">Excel</option>
+                        <option value="">Select Category</option>
                       </select>
                     </div>
 
@@ -1101,7 +1055,7 @@
                         autocomplete="off"
                       ></textarea>
                     </div>
-                    
+
                     <div class="mb-3">
                       <label for="image" class="form-label">Image</label>
                       <input
@@ -1194,18 +1148,22 @@
                         autocomplete="off"
                       />
                     </div>
+                    
                     <div class="mb-3">
-                      <label for="planName" class="form-label">Plan Type</label>
-                      <input
-                        type="text"
+                      <label for="planType" class="form-label">Plan Type</label>
+                      <select
                         class="form-control"
                         id="planType"
-                        placeholder="Enter plan type"
-                        required
                         name="planType"
-                        autocomplete="off"
-                      />
+                        required
+                      >
+                        <option value="">Select plan type</option>
+                        <option value="monthly">monthly</option>
+                        <option value="quarterly">quarterly</option>
+                        <option value="yearly">yearly</option>
+                      </select>
                     </div>
+                    
                     <div class="mb-3">
                       <label for="planPrice" class="form-label">Price</label>
                       <input
@@ -1218,6 +1176,7 @@
                         autocomplete="off"
                       />
                     </div>
+
                     <div class="mb-3">
                       <label for="planFeatures" class="form-label"
                         >Features</label
@@ -1232,6 +1191,7 @@
                         autocomplete="off"
                       ></textarea>
                     </div>
+
                     <div class="mb-3">
                       <label for="planStatus" class="form-label">Status</label>
                       <select
@@ -1244,6 +1204,7 @@
                         <option value="Inactive">Inactive</option>
                       </select>
                     </div>
+
                     <div class="d-flex justify-content-between mt-3">
                       <button
                         type="button"
@@ -1643,7 +1604,6 @@
                       aria-labelledby="general-tab"
                     >
                       <form id="siteConfigForm">
-
                         <div class="row">
                           <div class="col-md-6">
                             <div class="mb-3">
@@ -1834,7 +1794,6 @@
                             </button>
                           </div>
                         </div>
-
                       </form>
                     </div>
 
@@ -2031,9 +1990,7 @@
                     >
                       <form id="settingsForm_menu">
                         <div class="mb-3">
-                          <label for="story" class="form-label"
-                            >Story</label
-                          >
+                          <label for="story" class="form-label">Story</label>
                           <select
                             class="form-select"
                             name="story"
@@ -2708,8 +2665,6 @@
           </div>
         </div>
       </div>
-
-      <!-- failure model -->
 
       <!-- setting notification -->
       <div class="notification" id="notification">

@@ -73,6 +73,7 @@ SubscriptionPlanSchema.index({ planType: 1 });
 SubscriptionPlanSchema.index({ timestamps: 1 });
 
 SubscriptionPlanSchema.pre('save', function (next) {
+    this.features = this.features.map(feature => feature.trim());
     this.updatedAt = Date.now();
     next();
 });

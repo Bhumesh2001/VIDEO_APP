@@ -103,6 +103,11 @@ adminRouter.delete(
     validateObjectIds(['categoryId']),
     categoryController.deleteCategories
 );
+adminRouter.get(
+    '/category/options',
+    adminAuthentication,
+    categoryController.getCategoryOption
+)
 
 // ***************** create user by admin routes *********************
 

@@ -21,9 +21,7 @@ const couponSchema = new mongoose.Schema({
         type: Date,
         required: [true, 'Expiration date is required.'],
         validate: {
-            validator: function (value) {
-                return value > Date.now();
-            },
+            validator: (value) => value > Date.now(),
             message: 'Expiration date must be in the future.'
         }
     },

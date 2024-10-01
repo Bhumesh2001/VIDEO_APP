@@ -119,14 +119,14 @@ exports.applyCoupon = async (req, res) => {
         
         const subscription = existing;
 
-        if (subscription.discountFromCoupon !== 0) {
-            return res.status(400).json({
-                success: false,
-                message: "Coupon already applied!",
-                discount: subscription.discountFromCoupon,
-                finalPrice: subscription.finalPrice,
-            })
-        }
+        // if (subscription.discountFromCoupon !== 0) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: "Coupon already applied!",
+        //         discount: subscription.discountFromCoupon,
+        //         finalPrice: subscription.finalPrice,
+        //     })
+        // }
 
         const { finalPrice } = subscription;
         const discountAmount = (finalPrice * coupon.discountPercentage) / 100;
