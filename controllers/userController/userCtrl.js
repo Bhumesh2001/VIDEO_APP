@@ -8,6 +8,7 @@ const path = require('path');
 const userModel = require('../../models/userModel/userModel');
 const { generateCode } = require('../../utils/resendOtp.userUtil');
 const { generateTokenAndSetCookie } = require('../../utils/token');
+const { generateRandomEmail, generateRandomMobileNumber } = require('../../utils/email');
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(
@@ -168,17 +169,17 @@ exports.registerUserWithEmailOrPhone = async (req, res) => {
         // Create new user
         const newUser = new userModel({
             name: name || `User_${crypto.randomBytes(4).toString('hex')}`,
-            email: email || null,
+            email: email || generateRandomEmail(),
             password,
             username: username || `${(name || 'User').split(' ').join('_')}_${crypto.randomBytes(2).toString('hex')}`,
-            mobileNumber: mobileNumber || null,
+            mobileNumber: mobileNumber || generateRandomMobileNumber(),
             isVerified: true
         });
         await newUser.save();
 
         // Log in the new user
         const token = generateTokenAndSetCookie(newUser, res);
-        return res.status(200).json({
+        res.status(200).json({
             success: true,
             message: 'User registered and logged in successfully',
             userId: newUser._id,
@@ -225,7 +226,7 @@ exports.verifyUser = async (req, res) => {
         // Delete temporary user data after successful verification
         temporaryStorage.delete(email);
 
-        const token = generateTokenAndSetCookie(newUser, res);
+        const token = generateTokenAndSetCookie(user, res);
 
         // Respond with success
         res.status(200).json({
