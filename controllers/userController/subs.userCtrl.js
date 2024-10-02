@@ -2,7 +2,6 @@ const Razorpay = require('razorpay');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 
-const CategoryModel = require('../../models/adminModel/category.adminModel');
 const Coupon = require('../../models/adminModel/coupan.adminModel');
 const CouponApplication = require('../../models/userModel/coupon.userModel');
 const SubscriptionPlan = require('../../models/adminModel/subs.adminModel');
@@ -18,31 +17,31 @@ const razorpay = new Razorpay({
 });
 
 exports.subscribeToCategoryOrAll = async (req, res) => {
-    const { categoryId, planId, couponCode } = req.body;
+    const { categoryId, planId } = req.body;
 
     try {
-        const userId = req.user._id;
+        const userId = req.user?._id;
         if (!userId) {
             return res.status(404).json({
                 success: false,
                 message: 'User ID not found!',
             });
-        };
+        }
 
-        // Validate category ID if not subscribing to 'all'
+        // Validate category ID and plan ID
         if (categoryId.toLowerCase() !== 'all' && !mongoose.Types.ObjectId.isValid(categoryId)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid category ID format!',
             });
-        };
+        }
 
         if (!mongoose.Types.ObjectId.isValid(planId)) {
             return res.status(400).json({
                 success: false,
-                message: "Invalid planId ID format!",
-            })
-        };
+                message: 'Invalid planId format!',
+            });
+        }
 
         // Fetch the subscription plan
         const subscriptionPlan = await SubscriptionPlan.findById(planId);
@@ -51,7 +50,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
                 success: false,
                 message: 'Subscription plan not found!',
             });
-        };
+        }
 
         if (categoryId.toLowerCase() === 'all' && !subscriptionPlan.isAllCategory) {
             return res.status(400).json({
@@ -60,145 +59,87 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             });
         }
 
-        // If a coupon code is provided, validate the coupon
-        let coupon = null;
-        if (couponCode) {
-            coupon = await Coupon.findOne({ couponCode });
-
-            if (!coupon) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Invalid coupon code.',
-                });
-            };
-
-            if (coupon.isExpired()) {
-                await Coupon.deleteOne({ _id: coupon._id });
-                return res.status(400).json({
-                    success: false,
-                    message: 'Coupon has expired.',
-                });
-            };
-
-            if (coupon.status !== 'Active') {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Coupon is inactive.',
-                });
-            };
-        };
-
-        // Check for existing subscriptions for the user
-        const [existingSingleSubscription, existingAllSubscription] = await Promise.all([
-            SingleCategorySubscriptionModel.findOne({
-                userId,
-                paymentStatus: 'completed',
-                status: 'active'
-            }).exec(),
-            AllCategorySubscriptionModel.findOne({
-                userId,
-                paymentStatus: 'completed',
-                status: 'active'
-            }).exec()
+        // Check for existing subscriptions
+        const existingSubscription = await Promise.any([
+            SingleCategorySubscriptionModel.findOne({ userId, paymentStatus: 'completed', status: 'active' }),
+            AllCategorySubscriptionModel.findOne({ userId, paymentStatus: 'completed', status: 'active' }),
         ]);
 
-        if (existingSingleSubscription || existingAllSubscription) {
+        if (existingSubscription) {
             return res.status(409).json({
                 success: false,
                 message: 'Subscription already taken!',
             });
-        };
-
-        // Initialize discount values
-        let totalPrice;
-        const discountFromPlan = subscriptionPlan.discount || 0;
-        let discountFromCoupon;
-
-        const CouponApplication_ = await CouponApplication.findOne({ userId });
-        if (CouponApplication_) {
-            totalPrice = CouponApplication_.finalPrice;
-            const findDiscount = await Coupon.findOne({ couponCode: CouponApplication_.couponCode });
-            discountFromCoupon = findDiscount.discountPercentage;
         }
 
+        // Initialize discount and total price
+        let totalPrice = subscriptionPlan.price;
+        let discountFromPlan = subscriptionPlan.discount || 0;
+        let discountFromCoupon = 0;
+
+        // Apply any valid coupon discount
+        const couponApplication = await CouponApplication.findOne({ userId });
+        if (couponApplication) {
+            const appliedCoupon = await Coupon.findOne({ couponCode: couponApplication.couponCode });
+            discountFromCoupon = appliedCoupon?.discountPercentage || 0;
+            totalPrice = couponApplication.finalPrice;
+        }
+
+        // Prepare Razorpay order
         const receipt = `receipt_${crypto.randomBytes(4).toString('hex')}_${Date.now()}`;
-        const options = {
-            amount: totalPrice ? totalPrice * 100 : subscriptionPlan.price * 100,
+        const order = await razorpay.orders.create({
+            amount: totalPrice * 100,
             currency: 'INR',
             receipt,
             payment_capture: 1,
-        };
+        });
 
-        const order = await razorpay.orders.create(options);
+        // Calculate final price with applicable discounts
+        const discountAmount = (totalPrice * discountFromPlan) / 100;
+        let flatDiscountAmount = 0;
 
-        // Create the new subscription
-        let newSubscription;
+        // Apply flat 10% discount only for "All Categories" subscription
         if (categoryId.toLowerCase() === 'all') {
-            newSubscription = new AllCategorySubscriptionModel({
-                userId,
-                categoryId,
-                planId,
-                planName: subscriptionPlan.planName,
-                planType: subscriptionPlan.planType,
-                price: subscriptionPlan.price,
-                paymentGetway: 'Razorpay',
-                paymentId: order.id,
-                discountFromPlan,
-                discountFromCoupon: discountFromCoupon ? discountFromCoupon : 0,
-                flatDiscount: subscriptionPlan.flatDiscount,
-                finalPrice: totalPrice?.totalPrice
-            });
+            const flatDiscount = subscriptionPlan.flatDiscount;  // Flat 10% discount for all categories
+            flatDiscountAmount = (totalPrice * flatDiscount) / 100;
         }
-        else {
-            const category = await CategoryModel.findById(categoryId);
-            if (!category) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Category not found!',
-                });
-            };
 
-            newSubscription = new SingleCategorySubscriptionModel({
+        const finalPrice = totalPrice - discountAmount - flatDiscountAmount;
+
+        // Create new subscription model
+        const newSubscription = categoryId.toLowerCase() === 'all'
+            ? new AllCategorySubscriptionModel({
                 userId,
                 categoryId,
                 planId,
-                planName: subscriptionPlan.planName,
                 planType: subscriptionPlan.planType,
                 price: subscriptionPlan.price,
-                paymentGetway: 'Razorpay',
-                paymentId: order.id,
                 discountFromPlan,
-                discountFromCoupon: discountFromCoupon ? discountFromCoupon : 0,
-                flatDiscount: subscriptionPlan.flatDiscount,
-                finalPrice: totalPrice?.totalPrice
+                discountFromCoupon,
+                flatDiscount: flatDiscountAmount ? subscriptionPlan.flatDiscount : 0,  // Only apply if flat discount was applied
+                finalPrice,
+            })
+            : new SingleCategorySubscriptionModel({
+                userId,
+                categoryId,
+                planId,
+                planType: subscriptionPlan.planType,
+                price: subscriptionPlan.price,
+                discountFromPlan,
+                discountFromCoupon,
+                flatDiscount: flatDiscountAmount ? subscriptionPlan.flatDiscount : 0,
+                finalPrice,
             });
-        };
 
-        // Calculate final price and save subscription
-        newSubscription.calculateFinalPrice();
         await newSubscription.save();
 
-        const responseObj = {
+        // Response object
+        return res.status(201).json({
             success: true,
             message: `Successfully subscribed to ${categoryId.toLowerCase() === 'all' ? 'all categories' : 'the selected category'}.`,
             orderId: order.id,
-            userId: newSubscription.userId,
-            categoryId: newSubscription.categoryId,
-            planId: newSubscription.planId,
-            planName: newSubscription.planName,
-            planType: newSubscription.planType,
-            price: `₹${newSubscription.price}`,
-            discountFromPlan: `${newSubscription.discountFromPlan}%`,
-            discountFromCoupon: `${discountFromCoupon}%`,
-            flatDiscount: `₹${newSubscription.flatDiscount ? newSubscription.flatDiscount : 0}`,
-            finalPrice: `₹${newSubscription.finalPrice}`,
-            paymentId: newSubscription.paymentId,
-            paymentStatus: newSubscription.paymentStatus,
-            startDate: newSubscription.startDate,
-            expiryDate: newSubscription.expiryDate,
-        };
-
-        res.status(201).json(responseObj);
+            ...newSubscription.toObject(),
+        });
 
     } catch (error) {
         console.error(error);
@@ -210,21 +151,21 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
                 message: 'Validation Error',
                 errors: validationErrors,
             });
-        };
+        }
 
         if (error.code === 11000) {
             return res.status(409).json({
-                success: true,
-                message: 'Subscription already taken!',
+                success: false,
+                message: 'Subscription already exists!',
             });
-        };
+        }
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: 'Error occurred while creating the subscription',
-            error,
+            error: error.message,
         });
-    };
+    }
 };
 
 exports.updateSubscriptionStatus = async (req, res) => {

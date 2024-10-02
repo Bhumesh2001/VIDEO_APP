@@ -16,10 +16,6 @@ const AllCategorySubscriptionSchema = new Schema({
         ref: 'SubscriptionPlan',
         required: [true, 'PlanId is required!'],
     },
-    planName: {
-        type: String,
-        required: [true, 'Plan is required'],
-    },
     planType: {
         type: String,
         required: [true, "PlanType is required!"],
@@ -68,17 +64,6 @@ const AllCategorySubscriptionSchema = new Schema({
         required: [true, 'finalPrice is required'],
         min: [0, 'finalPrice cannot be less than 0'],
     },
-    paymentGetway: {
-        type: String,
-        default: '',
-    },
-    paymentMethod: {
-        type: String,
-    },
-    paymentId: {
-        type: String,
-        default: '',
-    },
     paymentStatus: {
         type: String,
         enum: ["pending", "completed", "failed"],
@@ -123,17 +108,6 @@ AllCategorySubscriptionSchema.pre('save', function (next) {
     this.expiryDate = calculateExpiryDate(this.startDate, this.planType);
     next();
 });
-
-AllCategorySubscriptionSchema.methods.calculateFinalPrice = function () {
-    // Calculate the total discount amount based on the price and discount percentage
-    const discountAmount = (this.price * this.discountFromPlan) / 100;
-
-    // Apply a flat 10% discount on top of the calculated discount
-    const flatDiscountAmount = (this.price * this.flatDiscount) / 100;
-
-    // Calculate the final price after all discounts
-    this.finalPrice = this.price - discountAmount - flatDiscountAmount;
-};
 
 const AllCategorySubscriptionModel = mongoose.model('AllCategorySubscription', AllCategorySubscriptionSchema);
 

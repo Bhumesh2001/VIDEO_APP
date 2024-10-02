@@ -17,10 +17,6 @@ const SingleCategorySubscriptionSchema = new Schema({
         ref: 'SubscriptionPlan',
         required: [true, 'PlanId is required!'],
     },
-    planName: {
-        type: String,
-        required: [true, 'Plan is required'],
-    },
     planType: {
         type: String,
         required: [true, 'PlanType is required!'],
@@ -53,21 +49,21 @@ const SingleCategorySubscriptionSchema = new Schema({
             message: 'Discount from coupon must be a whole number',
         },
     },
+    flatDiscount: {
+        type: Number,
+        default: 0,
+        required: true,
+        min: [0, 'Discount must be at least 0%'],
+        max: [100, 'Discount cannot exceed 100%'],
+        validate: {
+            validator: Number.isInteger,
+            message: 'Discount must be an integer value.'
+        }
+    },
     finalPrice: {
         type: Number,
         required: [true, 'finalPrice is required'],
         min: [0, 'finalPrice cannot be less than 0'],
-    },
-    paymentGetway: {
-        type: String,
-        default: '',
-    },
-    paymentMethod: {
-        type: String,
-    },
-    paymentId: {
-        type: String,
-        default: '',
     },
     paymentStatus: {
         type: String,
@@ -90,7 +86,6 @@ const SingleCategorySubscriptionSchema = new Schema({
 
 SingleCategorySubscriptionSchema.index({ userId: 1 });
 SingleCategorySubscriptionSchema.index({ categoryId: 1 });
-SingleCategorySubscriptionSchema.index({ paymentGetway: 1 });
 
 function calculateExpiryDate(startDate, planType) {
     const expiryDate = new Date(startDate);
@@ -114,11 +109,6 @@ SingleCategorySubscriptionSchema.pre('save', function (next) {
     this.expiryDate = calculateExpiryDate(this.startDate, this.planType);
     next();
 });
-
-SingleCategorySubscriptionSchema.methods.calculateFinalPrice = function () {
-    const discountAmount = (this.price * this.discountFromPlan) / 100;
-    this.finalPrice = this.price - discountAmount;
-};
 
 const SingleCategorySubscriptionModel = mongoose.model('SingleCategorySubscription', SingleCategorySubscriptionSchema);
 

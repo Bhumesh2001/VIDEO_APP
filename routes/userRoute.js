@@ -286,14 +286,12 @@ userRouter.delete(
 
 userRouter.post(
     '/rozorpay/create-order',
-    userAuthentication,
     validateRequiredFields(['amount', 'currency']),
     paymentGetwayController.createOrder
 );
 
 userRouter.post(
     '/rozorpay/verify-payment',
-    userAuthentication,
     validateRequiredFields(['order_id', 'payment_id', 'signature']),
     paymentGetwayController.verifyPayment
 );

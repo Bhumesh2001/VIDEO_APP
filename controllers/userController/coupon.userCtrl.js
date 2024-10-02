@@ -58,12 +58,29 @@ exports.applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid or expired coupon' });
         }
 
-        // Calculate final price
+        // Check if coupon is already applied
+        const existingCouponApplication = await CouponApplication.findOne({ userId, couponCode }).lean().exec();
+        if (existingCouponApplication) {
+            return res.status(409).json({
+                success: false,
+                message: 'CouponCode already applied!',
+                discount: coupon.discountPercentage,
+                finalPrice: existingCouponApplication.finalPrice,
+            });
+        }
+
+        // Calculate the discount and final price
         const discountAmount = (totalPrice * coupon.discountPercentage) / 100;
         const finalPrice = totalPrice - discountAmount;
 
-        // Store coupon usage
+        // Store coupon usage (apply the latest coupon)
         await CouponApplication.create({ userId, couponCode, finalPrice, status: 'applied' });
+
+        // Delete all previous coupon codes for the user except the latest one
+        await CouponApplication.deleteMany({
+            userId,
+            couponCode: { $ne: couponCode } // Keep the latest one
+        });
 
         // Respond with success
         return res.status(200).json({
