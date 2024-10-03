@@ -288,14 +288,14 @@ body {
 }
 
 .btn-success {
-  background-color: green;
-  border-color: green;
+  background-color: #208b3a;
+  border-color: #208b3a;
   font-weight: bold;
 }
 
 .btn-success:hover {
-  background-color: #006400;
-  border-color: #006400;
+  background-color: #1a7431;
+  border-color: #1a7431;
 }
 
 .btn-danger:hover {
@@ -646,11 +646,11 @@ body {
 }
 
 .profile-image {
-  width: 150px;
-  height: 150px;
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #007bff;
+  border: 2px solid #fa042d;
 }
 
 /* *************** user revenue chart css ***************** */

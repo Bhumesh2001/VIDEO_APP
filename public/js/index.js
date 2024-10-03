@@ -131,6 +131,12 @@ document.querySelectorAll('.card-body').forEach((card) => {
 
 document.querySelector('.nav-link[data-target="#dashboard"]').click();
 
+function generateUniqueId(prefix = 'btn') {
+    const timestamp = Date.now();
+    const randomNum = Math.floor(Math.random() * 10000);
+    return `${prefix}_${timestamp}_${randomNum}`;
+};
+
 // Function to make a fetch request
 async function fetchData(url) {
     try {
@@ -311,10 +317,12 @@ async function loadArticleData(page = 1, limit = 12) {
         h5.innerText = article.title;
         cardBodyDiv.classList.add('card-body');
         btnDiv.classList.add('d-flex', 'justify-content-end');
-        editBtn.classList.add('btn', 'btn-sm', 'btn-success', 'me-2');
+        editBtn.classList.add('btn', 'btn-sm', 'btn-success', 'me-2', 'article-edit-btn');
         deleteBtn.classList.add('btn', 'btn-sm', 'btn-danger');
         editBtn.setAttribute('data-id', article._id);
         deleteBtn.setAttribute('data-id', article._id);
+        editBtn.setAttribute('id', generateUniqueId());
+        deleteBtn.setAttribute('id', generateUniqueId());
         editBtn.innerText = 'Edit';
         deleteBtn.innerText = 'Delete';
 
@@ -679,6 +687,18 @@ async function updateDashboardElement(url, Data) {
     };
 };
 
+// function to laod the admin profile data and display it on admin profile section
+async function laodAdminProfileData() {
+    const data = await fetchData('/admin/profile');
+    if (!data) return;
+    document.getElementById('username').value = data.adminProfile.username;
+    document.getElementById('admin_email').value = data.adminProfile.email;
+    document.getElementById('password').value = data.adminProfile.password;
+    document.getElementById('phone').value = data.adminProfile.phone;
+    document.getElementById('profileImage').src = data.adminProfile.profilePicture.url;
+    document.getElementById('admin-profile-icon').src = data.adminProfile.profilePicture.url;
+};
+
 // Initialize data loading
 loadUserData();
 loadVideoData();
@@ -690,6 +710,7 @@ laodCouponData();
 laodBannerData();
 fetchSettingData();
 loadCategoryOption();
+laodAdminProfileData();
 
 const url = "/admin/dashboard-count";
 const Data = {
@@ -769,6 +790,11 @@ const newBanner = document.getElementById('add-new_banner');
 document.getElementById('banner-btn').addEventListener('click', () => toggleVisibility(banner, newBanner));
 document.getElementById('back-bnner-btn').addEventListener('click', () => goBack(banner, newBanner));
 
+// profile section
+const adminProfile = document.getElementById('admin_profile');
+const dashboard = document.getElementById('dashboard');
+document.getElementById('back-profile-btn').addEventListener('click', () => toggleVisibility(adminProfile, dashboard));
+
 function showModalWithMessage(message) {
     document.getElementById('modalMessage').textContent = message;
 
@@ -778,7 +804,8 @@ function showModalWithMessage(message) {
 
 // Function to handle form submission
 async function handleFormSubmission(
-    form, url, successCallback, processBtnId, submitBtnId, dataLoadCallback, isJson = false,
+    form, url, successCallback, processBtnId, submitBtnId, dataLoadCallback,
+    method = 'POST', isJson = false,
 ) {
     try {
         toggleProcessBtn(submitBtnId, processBtnId, true);
@@ -798,7 +825,7 @@ async function handleFormSubmission(
         };
 
         const response = await fetch(url, {
-            method: "POST",
+            method,
             body: body,
             headers: headers,
             credentials: "include",
@@ -933,6 +960,19 @@ document.querySelector("#bannerForm").addEventListener("submit", function (e) {
         'banner-process-btn',
         'add_new-banner-btn',
         laodBannerData,
+    );
+});
+
+document.querySelector("#admin_profile_form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    handleFormSubmission(
+        e.target,
+        "/admin/update-profile",
+        (data) => console.log("Profile updated successfully:", data),
+        'profile-process-btn',
+        'save-profile',
+        laodAdminProfileData,
+        'PUT',
     );
 });
 
@@ -1102,4 +1142,4 @@ function saveSettings() {
 
 document.getElementById('close-notify-btn').addEventListener('click', () => {
     closeNotification();
-})
+});

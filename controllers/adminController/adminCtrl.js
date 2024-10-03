@@ -1,13 +1,24 @@
 const jwt = require('jsonwebtoken');
+const fs = require('fs').promises;
+
 const Admin = require('../../models/adminModel/adminModel');
+const { uploadImage, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
+const { isValidPassword, isValidImageUrl } = require('../../utils/validateUtil');
+
+const adminProfileOptions = {
+    folder: 'Profiles',
+    transformation: [
+        { width: 140, height: 140, crop: 'fill' }
+    ],
+};
 
 exports.createAdmin = async (req, res) => {
+    let imageData = null;
     try {
-        const { username, email, password } = req.body;
+        const { username, email, password, phone, profilePicture } = req.body;
 
         // Validate password strength
-        const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
-        if (!strongPasswordRegex.test(password)) {
+        if (!isValidPassword(password)) {
             return res.status(400).json({
                 success: false,
                 message: 'Password must be strong (include upper, lower case, number, and special character)',
@@ -15,25 +26,46 @@ exports.createAdmin = async (req, res) => {
         }
 
         // Check if an admin already exists
-        const adminExists = await Admin.exists();
-        if (adminExists) {
+        if (await Admin.exists()) {
             return res.status(409).json({
                 success: false,
                 message: "Admin already exists, cannot create another admin.",
             });
         }
 
+        // Handle image validation and upload
+        const fileUpload = req.files?.profilePicture?.tempFilePath;
+        const imagePath = fileUpload || profilePicture;
+
+        if (!imagePath || (profilePicture && !isValidImageUrl(profilePicture))) {
+            return res.status(400).json({
+                success: false,
+                message: 'Valid image file or image URL is required!',
+            });
+        }
+
+        imageData = await uploadImage(imagePath, adminProfileOptions);
+        if (req.files?.profilePicture) await fs.unlink(req.files.profilePicture.tempFilePath);
+
         // Create and save new admin
-        const newAdmin = await new Admin({ username, email, password }).save();
+        const newAdmin = await new Admin({
+            username,
+            email,
+            password,
+            phone,
+            profilePicture: { url: imageData.url, public_id: imageData.public_id },
+        }).save();
 
         res.status(201).json({
             success: true,
             message: "Admin user created successfully.",
             newAdmin,
         });
-
     } catch (error) {
         console.error('Error creating admin:', error);
+
+        if (imageData?.public_id) await deleteImageOnCloudinary(imageData.public_id);
+
         res.status(500).json({
             success: false,
             message: 'Internal server error',
@@ -88,80 +120,110 @@ exports.loginAdmin = async (req, res) => {
 
 exports.adminProfile = async (req, res) => {
     try {
-        const adminId = req.admin._id;
+        const adminId = req.admin?._id;
         if (!adminId) {
             return res.status(404).json({
                 success: false,
-                message: 'adminId not found!',
+                message: 'Admin ID not found!',
             });
-        };
+        }
+
         const adminProfile = await Admin.findById(adminId);
         if (!adminProfile) {
             return res.status(404).json({
                 success: false,
-                message: 'Profile not found!',
+                message: 'Admin profile not found!',
             });
-        };
+        }
+
+        // Decrypt password
+        const decryptedPassword = adminProfile.decryptPassword();
+
+        // Remove password from the profile object to avoid sending the encrypted version
+        const { password, ...profileWithoutPassword } = adminProfile.toObject();
+
         res.status(200).json({
             success: true,
-            message: 'Profile fetched successfully...',
-            adminProfile,
+            message: 'Profile fetched successfully.',
+            adminProfile: {
+                ...profileWithoutPassword,
+                password: decryptedPassword,  // Send decrypted password
+            },
         });
     } catch (error) {
-        console.log(error);
+        console.error('Error fetching admin profile:', error);
         res.status(500).json({
             success: false,
-            message: 'error occured while fetching the adminProfile',
+            message: 'An error occurred while fetching the admin profile.',
         });
-    };
+    }
 };
 
 exports.updateProfile = async (req, res) => {
+    let imageData = null;
     try {
         const userId = req.admin._id;
         if (!userId) {
             return res.status(404).json({
                 success: false,
-                message: 'userId not found!',
+                message: 'User ID not found!',
             });
-        };
+        }
+
         const admin = await Admin.findById(userId);
         if (!admin) {
             return res.status(404).json({
                 success: false,
-                message: 'User not found!',
+                message: 'Admin not found!',
             });
+        }
+
+        const { phone, profilePicture, ...adminData } = req.body;
+
+        // Handle image input (file or URL)
+        const imagePath = req.files?.profilePicture?.tempFilePath || profilePicture;
+        if (profilePicture && !isValidImageUrl(profilePicture)) {
+            return res.status(400).json({ success: false, message: 'Invalid image URL!' });
+        }
+
+        // Upload image to Cloudinary if provided
+        if (imagePath) {
+            if (admin.profilePicture.public_id) {
+                await deleteImageOnCloudinary(admin.profilePicture.public_id); // Delete old image
+            }
+            imageData = await uploadImage(imagePath, adminProfileOptions); // Upload new image
+            if (req.files?.profilePicture) await fs.unlink(req.files.profilePicture.tempFilePath); // Delete temp file
+        }
+
+        const dataToUpdate = {
+            phone: typeof phone === "string" ? phone : phone.toString(),
+            profilePicture: {
+                url: imageData.url,
+                public_id: imageData.public_id,
+            },
+            ...adminData
         };
 
-        const { profilePicture, ...adminData } = req.body;
-
-        if (profilePicture) {
-            const isValidURL = /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(profilePicture);
-            if (!isValidURL) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid profile picture URL! Profile should be match jpg, jpeg, png, gif, webp, tiff',
-                });
-            };
-            await admin.updateProfilePicture(profilePicture);
-        };
-
-        Object.assign(admin, adminData);
+        // Update other profile fields
+        Object.assign(admin, dataToUpdate);
         await admin.save();
 
         res.status(200).json({
             success: true,
-            message: 'User updated successfully...',
+            message: 'Profile updated successfully.',
             admin,
         });
     } catch (error) {
-        console.log(error);
+        console.error('Error updating profile:', error);
+
+        if (imageData?.public_id) await deleteImageOnCloudinary(imageData.public_id);
+
         return res.status(500).json({
-            success: true,
-            message: 'error occured while updating the profile',
+            success: false,
+            message: 'An error occurred while updating the profile.',
             error: error.message,
         });
-    };
+    }
 };
 
 exports.logoutAdmin = async (req, res) => {

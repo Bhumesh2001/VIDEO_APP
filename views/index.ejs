@@ -48,6 +48,7 @@
                     src="/icon/default_icon.png"
                     draggable="false"
                     alt="Profile"
+                    id="admin-profile-icon"
                   />
                 </button>
                 <ul
@@ -60,7 +61,19 @@
                       data-target="#admin_profile"
                       draggable="false"
                       href="#"
-                      >Profile</a
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        width="24px"
+                        height="24px"
+                      >
+                        <path
+                          d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+                        />
+                      </svg>
+                      Profile</a
                     >
                   </li>
                   <li>
@@ -72,7 +85,19 @@
                       id="logout-btn"
                       draggable="false"
                       href="#"
-                      >Logout</a
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        width="24px"
+                        height="24px"
+                      >
+                        <path
+                          d="M16 13v-2H7V8l-5 4 5 4v-3h9zm7-9v14c0 1.1-.9 2-2 2H3c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h18c1.1 0 2 .9 2 2zM21 4H3v14h18V4z"
+                        />
+                      </svg>
+                      Logout</a
                     >
                   </li>
                 </ul>
@@ -705,6 +730,11 @@
               </div>
             </section>
 
+            <!-- update the article -->
+            <section class="update-article d-none" id="update-article">
+              <div class="main-content"></div>
+            </section>
+
             <section id="users" class="users d-none">
               <div class="main-content">
                 <div class="main_div p-3 my-3">
@@ -1148,7 +1178,7 @@
                         autocomplete="off"
                       />
                     </div>
-                    
+
                     <div class="mb-3">
                       <label for="planType" class="form-label">Plan Type</label>
                       <select
@@ -1163,7 +1193,7 @@
                         <option value="yearly">yearly</option>
                       </select>
                     </div>
-                    
+
                     <div class="mb-3">
                       <label for="planPrice" class="form-label">Price</label>
                       <input
@@ -2528,6 +2558,7 @@
               </div>
             </section>
 
+            <!-- logout section -->
             <section id="logout" class="logout d-none">
               <div class="main-content">
                 <div class="card-container my-3">
@@ -2551,7 +2582,7 @@
             <section class="admin-profile d-none" id="admin_profile">
               <div class="main-content">
                 <div class="container-fluid my-4 content-box">
-                  <div class="text-center mb-3">
+                  <div class="text-center mb-2">
                     <img
                       src="https://via.placeholder.com/150"
                       alt="Profile Image"
@@ -2572,6 +2603,7 @@
                         autocomplete="off"
                       />
                     </div>
+                    
                     <div class="mb-3">
                       <label for="email" class="form-label">Email</label>
                       <input
@@ -2584,6 +2616,7 @@
                         autocomplete="off"
                       />
                     </div>
+
                     <div class="mb-3">
                       <label for="password" class="form-label">Password</label>
                       <input
@@ -2596,10 +2629,11 @@
                         autocomplete="off"
                       />
                     </div>
+
                     <div class="mb-3">
                       <label for="phone" class="form-label">Phone</label>
                       <input
-                        type="tel"
+                        type="number"
                         class="form-control"
                         id="phone"
                         placeholder="Enter phone number"
@@ -2608,6 +2642,7 @@
                         autocomplete="off"
                       />
                     </div>
+
                     <div class="mb-3">
                       <label for="imageUpload" class="form-label"
                         >Profile Image</label
@@ -2620,7 +2655,30 @@
                         name="profilePicture"
                       />
                     </div>
-                    <button type="submit" class="btn btn-danger">Save</button>
+
+                    <div class="d-flex justify-content-between">
+                      <button
+                        type="button"
+                        id="back-profile-btn"
+                        class="btn btn-danger"
+                      >
+                        Back
+                      </button>
+                      <button type="submit" id="save-profile" class="btn btn-success">Save</button>
+                      <button
+                        class="btn btn-success custom-btn d-none"
+                        type="button"
+                        id="profile-process-btn"
+                      >
+                        <span
+                          class="spinner-border spinner-border-sm"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="visually-hidden" role="status"
+                          >Loading...</span
+                        >
+                      </button>
+                    </div>
                   </form>
                 </div>
               </div>
