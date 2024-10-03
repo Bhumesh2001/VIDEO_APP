@@ -85,15 +85,6 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             totalPrice = couponApplication.finalPrice;
         }
 
-        // Prepare Razorpay order
-        const receipt = `receipt_${crypto.randomBytes(4).toString('hex')}_${Date.now()}`;
-        const order = await razorpay.orders.create({
-            amount: totalPrice * 100,
-            currency: 'INR',
-            receipt,
-            payment_capture: 1,
-        });
-
         // Calculate final price with applicable discounts
         const discountAmount = (totalPrice * discountFromPlan) / 100;
         let flatDiscountAmount = 0;
@@ -105,6 +96,15 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
         }
 
         const finalPrice = totalPrice - discountAmount - flatDiscountAmount;
+
+        // Prepare Razorpay order
+        const receipt = `receipt_${crypto.randomBytes(4).toString('hex')}_${Date.now()}`;
+        const order = await razorpay.orders.create({
+            amount: finalPrice * 100,
+            currency: 'INR',
+            receipt,
+            payment_capture: 1,
+        });
 
         // Create new subscription model
         const newSubscription = categoryId.toLowerCase() === 'all'
