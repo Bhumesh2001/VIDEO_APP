@@ -5,7 +5,7 @@ const { convertToISODate } = require('../../utils/subs.userUtil');
 // Create a new coupon
 exports.createCoupon = async (req, res) => {
     try {
-        const { coupon_Code, discountPercentage, expirationDate, maxUsage, status } = req.body;
+        const { coupon_Code, expirationDate, maxUsage, status } = req.body;
 
         const existingCoupon = await Coupon.findOne({ couponCode: coupon_Code });
         if (existingCoupon) {
@@ -23,7 +23,6 @@ exports.createCoupon = async (req, res) => {
 
         const coupon = new Coupon({
             couponCode,
-            discountPercentage,
             expirationDate: convertToISODate(expirationDate),
             maxUsage,
             status

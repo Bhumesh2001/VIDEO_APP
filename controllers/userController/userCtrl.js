@@ -9,6 +9,7 @@ const userModel = require('../../models/userModel/userModel');
 const { generateCode } = require('../../utils/resendOtp.userUtil');
 const { generateTokenAndSetCookie } = require('../../utils/token');
 const { generateRandomEmail, generateRandomMobileNumber } = require('../../utils/email');
+const { isValidPassword } = require('../../utils/validateUtil');
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(
@@ -34,8 +35,7 @@ exports.registerUser = async (req, res) => {
 
         // Validate strong password
         if (password) {
-            const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
-            if (!strongPasswordRegex.test(password)) {
+            if (!isValidPassword(password)) {
                 return res.status(400).json({
                     success: false,
                     message: 'Password must be strong (include upper, lower, number, and special character)',
@@ -279,12 +279,17 @@ exports.forgotPassword = async (req, res) => {
 
 // -------------- Reset password ------------------
 exports.resetPassword = async (req, res) => {
-    const { email, otp, newPassword } = req.body;
+    const { email, newPassword } = req.body;
 
     try {
-        const user = await userModel.findOne({ email, otp, otpExpiration: { $gt: Date.now() } });
+        const user = await userModel.findOne({
+            email,
+            otp: { $ne: null },
+            otpExpiration: { $ne: null }
+        });
+
         if (!user) {
-            return res.status(400).json({ success: false, message: 'Invalid OTP or OTP has expired!' });
+            return res.status(400).json({ success: false, message: 'User not found!' });
         };
 
         user.password = newPassword;
@@ -292,11 +297,30 @@ exports.resetPassword = async (req, res) => {
         user.otpExpiration = null;
         await user.save();
 
-        res.status(200).json({ success: true, message: 'Password reset successfully!' });
+        res.status(200).json({ success: true, message: 'Password reset successfully!', user });
     } catch (error) {
         console.log(error);
         res.status(500).json({ success: false, message: 'Error resetting password' });
     };
+};
+
+// --------------- Verify Otp ------------------- 
+exports.verifyOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        if (!email || !otp) return res.status(400).json({ success: false, message: 'Email and OTP are required!' });
+
+        const user = await userModel.findOne({ email, otp });
+        if (!user) return res.status(404).json({ success: false, message: 'User not found!' });
+
+        if (user.otp !== otp || user.otpExpiration <= Date.now()) {
+            return res.status(400).json({ success: false, message: 'Invalid or expired OTP!' });
+        };
+
+        res.status(200).json({ success: true, message: 'OTP verified successfully!' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Internal server error!', error: error.message });
+    }
 };
 
 // -------------- Resend otp -------------------

@@ -10,13 +10,6 @@ const couponSchema = new mongoose.Schema({
         minlength: [5, 'Coupon code must be at least 5 characters long.'],
         maxlength: [20, 'Coupon code must not exceed 20 characters.']
     },
-    discountPercentage: {
-        type: Number,
-        default: 0,
-        required: [true, 'Discount percentage is required.'],
-        min: [0, 'Discount percentage must be at least 0%.'],
-        max: [100, 'Discount percentage cannot exceed 100%.'],
-    },
     expirationDate: {
         type: Date,
         required: [true, 'Expiration date is required.'],

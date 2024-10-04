@@ -257,7 +257,7 @@ adminRouter.get('/dashboard-count', dashboardController.dashboardCount);
 adminRouter.post(
     '/create-coupon',
     adminAuthentication,
-    validateRequiredFields(['discountPercentage', 'expirationDate', 'maxUsage']),
+    validateRequiredFields(['expirationDate', 'maxUsage']),
     couponController.createCoupon
 );
 adminRouter.get('/coupons', couponController.getCoupons);

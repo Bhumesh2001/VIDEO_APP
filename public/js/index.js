@@ -536,12 +536,11 @@ async function laodCouponData() {
         const row = `
           <tr>
             <td>${coupon.couponCode}</td>
-            <td>${coupon.discountPercentage}</td>
             <td>${day}/${month}/${year}</td>
             <td>${coupon.maxUsage}</td>
             <td><span class="badge bg-${coupon.status === 'Active' ? 'success' : 'danger'}">${coupon.status}</span></td>
             <td>
-              <div class="d-flex justify-content-end">
+              <div class="d-flex justify-content-start">
                 <button class="btn btn-secondary btn-sm me-2" data-id="${coupon._id}" >Edit</button>
                 <button class="btn btn-danger btn-sm" data-id="${coupon._id}">Delete</button>
               </div>
@@ -802,8 +801,6 @@ document.getElementById('back-profile-btn').addEventListener('click', () => {
 
 function showModalWithMessage(message) {
     document.getElementById('modalMessage').textContent = message;
-
-    let successModal = new bootstrap.Modal(document.getElementById('successModal'));
     successModal.show();
 };
 
@@ -952,7 +949,6 @@ document.querySelector("#couponForm").addEventListener("submit", function (e) {
         'coupon-process-btn',
         'add-new-coupon-btn',
         laodCouponData,
-        true,
     );
 });
 

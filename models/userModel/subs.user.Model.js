@@ -25,19 +25,7 @@ const SingleCategorySubscriptionSchema = new Schema({
         type: Number,
         require: [true, 'price is required!'],
     },
-    discountFromPlan: {
-        type: Number,
-        default: 0,
-        min: [0, 'Discount from plan cannot be less than 0'],
-        max: [100, 'Discount from plan cannot exceed 100'],
-        validate: {
-            validator: function (v) {
-                return v % 1 === 0;
-            },
-            message: 'Discount from plan must be a whole number',
-        },
-    },
-    discountFromCoupon: {
+    discount: {
         type: Number,
         default: 0,
         min: [0, 'Discount from coupon cannot be less than 0'],
@@ -48,17 +36,6 @@ const SingleCategorySubscriptionSchema = new Schema({
             },
             message: 'Discount from coupon must be a whole number',
         },
-    },
-    flatDiscount: {
-        type: Number,
-        default: 0,
-        required: true,
-        min: [0, 'Discount must be at least 0%'],
-        max: [100, 'Discount cannot exceed 100%'],
-        validate: {
-            validator: Number.isInteger,
-            message: 'Discount must be an integer value.'
-        }
     },
     finalPrice: {
         type: Number,
@@ -89,6 +66,7 @@ SingleCategorySubscriptionSchema.index({ categoryId: 1 });
 
 function calculateExpiryDate(startDate, planType) {
     const expiryDate = new Date(startDate);
+    
     switch (planType) {
         case 'monthly':
             expiryDate.setMonth(expiryDate.getMonth() + 1);
@@ -99,9 +77,12 @@ function calculateExpiryDate(startDate, planType) {
         case 'yearly':
             expiryDate.setFullYear(expiryDate.getFullYear() + 1);
             break;
+        case 'lifetime':
+            return null;
         default:
             throw new Error('Invalid planType');
     };
+    
     return expiryDate;
 };
 

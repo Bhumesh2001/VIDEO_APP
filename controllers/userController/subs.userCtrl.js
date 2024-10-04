@@ -60,12 +60,13 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
         }
 
         // Check for existing subscriptions
-        const existingSubscription = await Promise.any([
+        const [singleCategorySub, allCategorySub] = await Promise.all([
             SingleCategorySubscriptionModel.findOne({ userId, paymentStatus: 'completed', status: 'active' }),
             AllCategorySubscriptionModel.findOne({ userId, paymentStatus: 'completed', status: 'active' }),
         ]);
 
-        if (existingSubscription) {
+        // If either subscription exists, return a conflict message
+        if (singleCategorySub || allCategorySub) {
             return res.status(409).json({
                 success: false,
                 message: 'Subscription already taken!',
@@ -74,33 +75,26 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
 
         // Initialize discount and total price
         let totalPrice = subscriptionPlan.price;
-        let discountFromPlan = subscriptionPlan.discount || 0;
-        let discountFromCoupon = 0;
+        let discount = subscriptionPlan.discount || 0;
 
         // Apply any valid coupon discount
         const couponApplication = await CouponApplication.findOne({ userId });
         if (couponApplication) {
             const appliedCoupon = await Coupon.findOne({ couponCode: couponApplication.couponCode });
-            discountFromCoupon = appliedCoupon?.discountPercentage || 0;
+            if (!appliedCoupon) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Applied coupon not found!',
+                })
+            }
+            discount = couponApplication?.discount || 0;
             totalPrice = couponApplication.finalPrice;
         }
-
-        // Calculate final price with applicable discounts
-        const discountAmount = (totalPrice * discountFromPlan) / 100;
-        let flatDiscountAmount = 0;
-
-        // Apply flat 10% discount only for "All Categories" subscription
-        if (categoryId.toLowerCase() === 'all') {
-            const flatDiscount = subscriptionPlan.flatDiscount;  // Flat 10% discount for all categories
-            flatDiscountAmount = (totalPrice * flatDiscount) / 100;
-        }
-
-        const finalPrice = totalPrice - discountAmount - flatDiscountAmount;
 
         // Prepare Razorpay order
         const receipt = `receipt_${crypto.randomBytes(4).toString('hex')}_${Date.now()}`;
         const order = await razorpay.orders.create({
-            amount: finalPrice * 100,
+            amount: totalPrice * 100,
             currency: 'INR',
             receipt,
             payment_capture: 1,
@@ -114,10 +108,8 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
                 planId,
                 planType: subscriptionPlan.planType,
                 price: subscriptionPlan.price,
-                discountFromPlan,
-                discountFromCoupon,
-                flatDiscount: flatDiscountAmount ? subscriptionPlan.flatDiscount : 0,  // Only apply if flat discount was applied
-                finalPrice,
+                discount,
+                finalPrice: totalPrice,
             })
             : new SingleCategorySubscriptionModel({
                 userId,
@@ -125,12 +117,9 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
                 planId,
                 planType: subscriptionPlan.planType,
                 price: subscriptionPlan.price,
-                discountFromPlan,
-                discountFromCoupon,
-                flatDiscount: flatDiscountAmount ? subscriptionPlan.flatDiscount : 0,
-                finalPrice,
+                discount,
+                finalPrice: totalPrice,
             });
-
         await newSubscription.save();
 
         // Response object

@@ -63,7 +63,7 @@ userRouter.post(
 );
 userRouter.post(
     '/reset-password',
-    validateRequiredFields(['email', 'otp', 'newPassword']),
+    validateRequiredFields(['email', 'newPassword']),
     userController.resetPassword
 );
 userRouter.post(
@@ -75,7 +75,12 @@ userRouter.post(
     '/resend-code',
     validateRequiredFields(['email']),
     userController.resendVerificationCode
-)
+);
+userRouter.post(
+    '/verify-otp',
+    validateRequiredFields(['email', 'otp']),
+    userController.verifyOtp
+);
 
 // ******************** User profile routes ******************
 
@@ -137,7 +142,7 @@ userRouter.get('/coupon', userAuthentication, couponUserController.getCoupon);
 userRouter.post(
     '/valid-coupon',
     userAuthentication,
-    validateRequiredFields(['couponCode', 'totalPrice']),
+    validateRequiredFields(['couponCode', 'planId']),
     couponUserController.applyCoupon
 );
 
