@@ -72,7 +72,7 @@ body {
 }
 
 .sidebar a {
-  color: #fff;
+  color: #ffff;
   padding: 8px 15px 8px 15px;
   text-decoration: none;
   font-size: 18px;
@@ -84,7 +84,7 @@ body {
 
 .sidebar a:hover {
   text-decoration: none;
-  color: red;
+  color: #ff002b;
 }
 
 .sidebar a:focus {
@@ -282,8 +282,8 @@ body {
 }
 
 .btn-danger {
-  background-color: red;
-  border-color: red;
+  background-color: #ff002b;
+  border-color: #ff002b;
   font-weight: bold;
 }
 

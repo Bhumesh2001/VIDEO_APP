@@ -160,53 +160,61 @@ exports.adminProfile = async (req, res) => {
 };
 
 exports.updateProfile = async (req, res) => {
-    let imageData = null;
+    let imageData = null; // Track image data for cleanup if needed
+
     try {
         const userId = req.admin._id;
+
+        // Check for missing admin ID
         if (!userId) {
-            return res.status(404).json({
-                success: false,
-                message: 'User ID not found!',
-            });
+            return res.status(404).json({ success: false, message: 'User ID not found!' });
         }
 
+        // Fetch admin profile by ID
         const admin = await Admin.findById(userId);
         if (!admin) {
-            return res.status(404).json({
-                success: false,
-                message: 'Admin not found!',
-            });
+            return res.status(404).json({ success: false, message: 'Admin not found!' });
         }
 
         const { phone, profilePicture, ...adminData } = req.body;
 
-        // Handle image input (file or URL)
+        // Handle image input (from file or URL)
         const imagePath = req.files?.profilePicture?.tempFilePath || profilePicture;
-        if (profilePicture && !isValidImageUrl(profilePicture)) {
-            return res.status(400).json({ success: false, message: 'Invalid image URL!' });
-        }
-
-        // Upload image to Cloudinary if provided
-        if (imagePath) {
-            if (admin.profilePicture.public_id) {
-                await deleteImageOnCloudinary(admin.profilePicture.public_id); // Delete old image
+        if (profilePicture) {
+            // Validate URL format
+            if (!isValidImageUrl(profilePicture)) {
+                return res.status(400).json({ success: false, message: 'Invalid image URL!' });
             }
-            imageData = await uploadImage(imagePath, adminProfileOptions); // Upload new image
-            if (req.files?.profilePicture) await fs.unlink(req.files.profilePicture.tempFilePath); // Delete temp file
         }
 
+        // Upload new image if provided (file or valid URL)
+        if (imagePath) {
+            // Remove previous image from Cloudinary if it exists
+            if (admin.profilePicture.public_id) {
+                await deleteImageOnCloudinary(admin.profilePicture.public_id);
+            }
+
+            // Upload new image to Cloudinary
+            imageData = await uploadImage(imagePath, adminProfileOptions);
+
+            // Delete the local temp file if uploaded via file
+            if (req.files?.profilePicture) {
+                await fs.unlink(req.files.profilePicture.tempFilePath);
+            }
+        }
+
+        // Update phone and profile picture
         const dataToUpdate = {
-            phone: typeof phone === "string" ? phone : phone.toString(),
-            profilePicture: {
-                url: imageData.url,
-                public_id: imageData.public_id,
-            },
-            ...adminData
+            phone: phone ? phone.toString() : admin.phone, // Ensure phone is a string
+            profilePicture: imageData
+                ? { url: imageData.url, public_id: imageData.public_id } // New image data
+                : admin.profilePicture, // Retain existing image if not updated
+            ...adminData // Spread other fields from request
         };
 
-        // Update other profile fields
+        // Merge the updated data into the admin object
         Object.assign(admin, dataToUpdate);
-        await admin.save();
+        await admin.save(); // Save the updated admin profile
 
         res.status(200).json({
             success: true,
@@ -216,7 +224,10 @@ exports.updateProfile = async (req, res) => {
     } catch (error) {
         console.error('Error updating profile:', error);
 
-        if (imageData?.public_id) await deleteImageOnCloudinary(imageData.public_id);
+        // Clean up image if an error occurs after uploading it
+        if (imageData?.public_id) {
+            await deleteImageOnCloudinary(imageData.public_id);
+        }
 
         return res.status(500).json({
             success: false,

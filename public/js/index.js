@@ -108,11 +108,13 @@ document.querySelectorAll('.sidebar-link').forEach(function (link) {
         document.querySelectorAll('.sidebar-link').forEach(function (item) {
             item.classList.remove('active');
             item.style.backgroundColor = '';
+            item.style.borderLeft = '';
             item.style.color = '';
         });
 
         this.classList.add('active');
-        this.style.backgroundColor = 'red';
+        this.style.backgroundColor = '#ff002b';
+        this.style.borderLeft = '3px solid white';
         this.style.color = 'white';
     });
 });
@@ -794,6 +796,9 @@ document.getElementById('back-bnner-btn').addEventListener('click', () => goBack
 const adminProfile = document.getElementById('admin_profile');
 const dashboard = document.getElementById('dashboard');
 document.getElementById('back-profile-btn').addEventListener('click', () => toggleVisibility(adminProfile, dashboard));
+document.getElementById('back-profile-btn').addEventListener('click', () => {
+    document.getElementById('nav-bar_').innerText = 'Dashboard';
+});
 
 function showModalWithMessage(message) {
     document.getElementById('modalMessage').textContent = message;
