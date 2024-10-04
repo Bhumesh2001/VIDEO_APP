@@ -66,7 +66,7 @@ SingleCategorySubscriptionSchema.index({ categoryId: 1 });
 
 function calculateExpiryDate(startDate, planType) {
     const expiryDate = new Date(startDate);
-    
+
     switch (planType) {
         case 'monthly':
             expiryDate.setMonth(expiryDate.getMonth() + 1);
@@ -82,7 +82,7 @@ function calculateExpiryDate(startDate, planType) {
         default:
             throw new Error('Invalid planType');
     };
-    
+
     return expiryDate;
 };
 

@@ -29,7 +29,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
         }
 
         // Validate category ID and plan ID
-        if (categoryId.toLowerCase() !== 'all' && !mongoose.Types.ObjectId.isValid(categoryId)) {
+        if (categoryId.toLowerCase() !== 'allcombo' && !mongoose.Types.ObjectId.isValid(categoryId)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid category ID format!',
@@ -52,7 +52,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             });
         }
 
-        if (categoryId.toLowerCase() === 'all' && !subscriptionPlan.isAllCategory) {
+        if (categoryId.toLowerCase() === 'allcombo' && !subscriptionPlan.isAllCategory) {
             return res.status(400).json({
                 success: false,
                 message: `You must select the All Access plan for all categories!`,
@@ -75,7 +75,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
 
         // Initialize discount and total price
         let totalPrice = subscriptionPlan.price;
-        let discount = subscriptionPlan.discount || 0;
+        let discount = 0;
 
         // Apply any valid coupon discount
         const couponApplication = await CouponApplication.findOne({ userId });
@@ -101,7 +101,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
         });
 
         // Create new subscription model
-        const newSubscription = categoryId.toLowerCase() === 'all'
+        const newSubscription = categoryId.toLowerCase() === 'allcombo'
             ? new AllCategorySubscriptionModel({
                 userId,
                 categoryId,
@@ -170,7 +170,7 @@ exports.updateSubscriptionStatus = async (req, res) => {
             });
         };
 
-        if (categoryId.toLowerCase() === 'all' && !subscriptionPlan.isAllCategory) {
+        if (categoryId.toLowerCase() === 'allcombo' && !subscriptionPlan.isAllCategory) {
             return res.status(400).json({
                 success: false,
                 message: `You must select the All Access plan for update the paymentStatus!`,
@@ -179,7 +179,7 @@ exports.updateSubscriptionStatus = async (req, res) => {
 
         // Determine which subscription to query based on categoryId
         let subscriptionPromise;
-        if (categoryId.toLowerCase() === 'all') {
+        if (categoryId.toLowerCase() === 'allcombo') {
             subscriptionPromise = AllCategorySubscriptionModel.findOne({ userId, categoryId, planId });
         } else {
             subscriptionPromise = SingleCategorySubscriptionModel.findOne({ userId, categoryId, planId });

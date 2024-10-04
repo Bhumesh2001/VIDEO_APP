@@ -5,79 +5,124 @@ const mongoose = require('mongoose');
 const SingleCategorySubscriptionModel = require('../models/userModel/subs.user.Model');
 const AllCategorySubscriptionModel = require('../models/userModel/allSubs.userModel');
 const Category = require('../models/adminModel/category.adminModel');
+const userModel = require('../models/userModel/userModel');
+const { sendNotification } = require('../utils/email');
 
-// Corn job that runs every day at midnight
-cron.schedule('0 0 * * *', async () => {
+// 1. Update Subscription Status
+const updateSubscriptionStatus = async () => {
+    const now = moment().toDate();
     try {
-        const models = [SingleCategorySubscriptionModel, AllCategorySubscriptionModel];
-
-        // Loop through both models and delete pending subscriptions
-        await Promise.all(models.map(async (model) => {
-            await model.deleteMany({ paymentStatus: 'pending' });
-        }));
-    } catch (error) {
-        console.error('Error deleting pending subscriptions:', error);
-    }
-});
-
-// Cron job that runs every day at hourly
-cron.schedule('0 * * * *', async () => {
-    const now = moment().toDate();  // Get the current date
-    try {
-        // Find and expire single-category subscriptions
         await SingleCategorySubscriptionModel.updateMany(
             { expiryDate: { $lt: now }, status: 'active' },
             { $set: { status: 'expired' } }
         );
 
-        // Find and expire all-category subscriptions
         await AllCategorySubscriptionModel.updateMany(
             { expiryDate: { $lt: now }, status: 'active' },
             { $set: { status: 'expired' } }
         );
+
     } catch (error) {
         console.error('Error updating subscription statuses:', error);
     };
-});
-
-// set the remidner for the user subescription 
-const sendReminder = (subscription, userType) => {
-    console.log(`Reminder: ${userType} subscription for user ${subscription.userId} is expiring on ${subscription.expiryDate}.`);
 };
 
-// Function to check and send reminders for expiring subscriptions
+// 2. Delete pending subscription
+const deletePendingSubscription = async () => {
+    try {
+        const models = [SingleCategorySubscriptionModel, AllCategorySubscriptionModel];
+
+        await Promise.all(models.map(async (model) => {
+            await model.deleteMany({ paymentStatus: 'pending' });
+        }));
+
+    } catch (error) {
+        console.error('Error deleting pending subscriptions:', error);
+    }
+};
+
+// 3. Send Expiry Reminders
 const sendExpiryReminder = async () => {
     const now = moment();
-    const reminderDate = now.add(3, 'days').toDate();  // Remind 3 days before expiry
+    const reminderDate = now.add(3, 'days').toDate();
 
     try {
-        // Find expiring single-category subscriptions
+        const data = {
+            subject: 'Your subscription is expiring soon.',
+            text: `<pre>We hope this message finds you well.
+            We wanted to remind you that your subscription is due for renewal.
+            To continue enjoying our services without interruption, 
+            please take a moment to renew your subscription.
+            Thank you for being a valued part of our community. 
+            If you have any questions or need assistance, our support team is here to help.
+            </pre>`
+        };
+
         const singleCategoryExpiring = await SingleCategorySubscriptionModel.find({
             expiryDate: { $lte: reminderDate, $gt: now.toDate() },
             status: 'active',
         });
 
-        singleCategoryExpiring.forEach(subscription => {
-            sendReminder(subscription, 'Single-category');
+        singleCategoryExpiring.forEach(async subscription => {
+            const user = await userModel.findById(subscription.userId);
+            sendNotification(user.email, data);
         });
 
-        // Find expiring all-category subscriptions
         const allCategoryExpiring = await AllCategorySubscriptionModel.find({
             expiryDate: { $lte: reminderDate, $gt: now.toDate() },
             status: 'active',
         });
 
-        allCategoryExpiring.forEach(subscription => {
-            sendReminder(subscription, 'All-category');
+        allCategoryExpiring.forEach(async subscription => {
+            const user = await userModel.findById(subscription.userId);
+            sendNotification(user.email, data);
         });
-
+        
     } catch (error) {
         console.error('Error checking expiring subscriptions:', error);
     };
 };
 
-// Schedule cron job to run daily at midnight
-cron.schedule('0 * * * *', sendExpiryReminder);
+// 4. Mark Subscriptions as Expired
+const markSubscriptionsAsExpired = async () => {
+    try {
+        const models = [SingleCategorySubscriptionModel, AllCategorySubscriptionModel];
+
+        await Promise.all(models.map(async (model) => {
+            const expiredSubscriptions = await model.find({
+                paymentStatus: 'completed',
+                status: 'active',
+                expiryDate: { $lt: new Date() }
+            });
+
+            for (const subscription of expiredSubscriptions) {
+                const user = await userModel.findById(subscription.userId);
+                if (user) {
+                    const data = {
+                        subject: 'Subscription expired!',
+                        text: `Your subscription has expired. Please renew to continue enjoying our services`,
+                    }
+                    sendNotification(user.email, data);
+                };
+            }
+        }));
+
+    } catch (error) {
+        console.error('Error processing subscriptions:', error);
+    }
+};
+
+// 1. Update subscription status (runs every minute)
+cron.schedule('* * * * *', updateSubscriptionStatus);
+
+// 2. Send expiry reminders (runs every minutes)
+cron.schedule('* * * * *', sendExpiryReminder);
+
+// 3. Mark expired subscriptions (runs every minutes)
+cron.schedule('* * * * *', markSubscriptionsAsExpired);
+
+// 4. Delete pending subscriptions (runs every hour)
+cron.schedule('0 * * * *', deletePendingSubscription);
 
 // convert to iso date format
 exports.convertToISODate = (dateString) => {
