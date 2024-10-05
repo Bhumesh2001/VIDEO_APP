@@ -16,20 +16,21 @@ client.connect();
 
 exports.cacheMiddleware = async (req, res, next) => {
     const key = req.originalUrl;
-
     try {
-        const cachedResponse = await client.get(key);
+        if (key !== '/admin/login' || key !== '/user/login') {
+            const cachedResponse = await client.get(key);
 
-        if (cachedResponse) {
-            console.log('Serving from cache');
-            res.send(JSON.parse(cachedResponse));
-        } else {
-            res.sendResponse = res.send;
-            res.send = async (body) => {
-                await client.setEx(key, 600, JSON.stringify(body));  // Cache the response for 10 min
-                res.sendResponse(body);
-            };
-            next();
+            if (cachedResponse) {
+                console.log('Serving from cache');
+                res.send(JSON.parse(cachedResponse));
+            } else {
+                res.sendResponse = res.send;
+                res.send = async (body) => {
+                    await client.setEx(key, 1200, JSON.stringify(body));  // Cache the response for 20 min
+                    res.sendResponse(body);
+                };
+                next();
+            }
         }
     } catch (error) {
         console.error('Redis error: ', error);
