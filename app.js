@@ -16,6 +16,7 @@ const { connectToDB } = require('./db/connect');
 const adminRouter = require('./routes/adminRoute');
 const userRouter = require('./routes/userRoute');
 const { adminAuthentication } = require('./middlewares/adminMiddleware/auth.adminMdlwr');
+const { cacheMiddleware } = require('./middlewares/userMiddleware/redisMidlwr');
 
 // CORS configuration
 const allowedOrigins = [
@@ -56,6 +57,8 @@ cloudinary.config({
 
 // Database connection
 connectToDB();
+
+app.use(cacheMiddleware);
 
 // Routes
 app.get('/', adminAuthentication, (req, res) => res.render('index'));
