@@ -1,34 +1,38 @@
 const redis = require('redis');
 
-// Create a Redis client
-const client = redis.createClient();
+const client = redis.createClient({
+    password: process.env.REDIS_PASSWORD,
+    socket: {
+        host: process.env.REDIS_HOST,
+        port: process.env.REDIS_PORT,
+    }
+});
 
 client.on('error', (err) => {
     console.error('Redis error: ', err);
 });
 
-client.connect(); // Connect to Redis server
+client.connect();
 
-// Middleware to cache responses
 exports.cacheMiddleware = async (req, res, next) => {
-    const key = req.originalUrl;  // Use the request URL as the key
+    const key = req.originalUrl;
 
     try {
-        const cachedResponse = await client.get(key); // Check if the response is cached
+        const cachedResponse = await client.get(key);
 
         if (cachedResponse) {
             console.log('Serving from cache');
-            res.send(JSON.parse(cachedResponse));  // Return the cached response
+            res.send(JSON.parse(cachedResponse));
         } else {
-            res.sendResponse = res.send;  // Save the original response method
+            res.sendResponse = res.send;
             res.send = async (body) => {
                 await client.setEx(key, 600, JSON.stringify(body));  // Cache the response for 10 min
-                res.sendResponse(body);  // Send the response
+                res.sendResponse(body);
             };
-            next();  // Proceed to the route handler
+            next();
         }
     } catch (error) {
         console.error('Redis error: ', error);
-        next();  // In case of Redis error, proceed to route handler without caching
+        next();
     }
 };
