@@ -14,11 +14,12 @@ client.on('error', (err) => {
 
 client.connect();
 
+const sensitiveRoutes = ['/admin/login-admin', '/user/login', '/user/profile', '/admin/profile'];
+
 exports.cacheMiddleware = async (req, res, next) => {
     const key = req.originalUrl;
 
-    // Skip caching for login routes
-    if (key === '/admin/login' || key === '/user/login') {
+    if (sensitiveRoutes.includes(key)) {
         return next();
     }
 
@@ -26,20 +27,19 @@ exports.cacheMiddleware = async (req, res, next) => {
         const cachedResponse = await client.get(key);
 
         if (cachedResponse) {
-            console.log('Serving from cache');
-            return res.json(JSON.parse(cachedResponse)); // Send parsed JSON response
+            return res.json(JSON.parse(cachedResponse));
         }
 
-        // Override res.json to cache response
         const originalJson = res.json.bind(res);
         res.json = async (body) => {
             await client.setEx(key, 1200, JSON.stringify(body)); // Cache for 20 minutes
-            originalJson(body); // Send original response
+            originalJson(body);
         };
 
-        next(); // Proceed to the next middleware
+        next();
+
     } catch (error) {
         console.error('Redis error: ', error);
-        next(); // Continue to next middleware even if Redis fails
+        next();
     }
 };
