@@ -22,6 +22,8 @@ const {
     validateObjectIds,
     validateRequiredFields
 } = require('../middlewares/adminMiddleware/validate.adminMidlwr');
+const { cacheMiddleware } = require('../middlewares/userMiddleware/redisMidlwr');
+
 
 // ********************* login/signup routes **********************
 
@@ -42,10 +44,12 @@ userRouter.post(
 userRouter.post(
     '/login',
     validateRequiredFields(['email', 'password']),
+    cacheMiddleware,
     userController.loginUser
 );
 userRouter.post(
     '/check-phone',
+    cacheMiddleware,
     userController.checkMobileNumber
 )
 userRouter.post('/logout', userController.logoutUser);
@@ -101,8 +105,13 @@ userRouter.post(
 
 // ******************** video routes **********************
 
-userRouter.get('/videos', userAuthentication, videoUserController.getAllVideos);
-userRouter.get('/videos/by-category', userAuthentication, videoUserController.getAllVideosByCategory);
+userRouter.get('/videos', userAuthentication, cacheMiddleware, videoUserController.getAllVideos);
+userRouter.get(
+    '/videos/by-category', 
+    userAuthentication, 
+    cacheMiddleware, 
+    videoUserController.getAllVideosByCategory
+);
 
 // ******************** subscription routes **********************
 
@@ -127,18 +136,20 @@ userRouter.get(
 userRouter.get(
     '/subscription/plan',
     userAuthentication,
+    cacheMiddleware,
     subscriptionPlanAdminController.getSubscriptionsPlan
 );
-userRouter.get('/history', userAuthentication, subscriptionUserController.getHistory);
+userRouter.get('/history', userAuthentication, cacheMiddleware, subscriptionUserController.getHistory);
 userRouter.get(
     '/single-history/:paymentId',
     userAuthentication,
+    cacheMiddleware,
     subscriptionUserController.getSingleHistory
 )
 
 // ****************** coupans routes *****************
 
-userRouter.get('/coupon', userAuthentication, couponUserController.getCoupon);
+userRouter.get('/coupon', userAuthentication, cacheMiddleware, couponUserController.getCoupon);
 userRouter.post(
     '/valid-coupon',
     userAuthentication,
@@ -151,12 +162,13 @@ userRouter.post(
 userRouter.get(
     '/categories',
     userAuthentication,
+    cacheMiddleware,
     categorAdminController.getAllCategories
 );
 
 // ******************** banner routers ********************
 
-userRouter.get('/banners', userAuthentication, bannerAdminController.getAllBanners);
+userRouter.get('/banners', userAuthentication, cacheMiddleware, bannerAdminController.getAllBanners);
 
 // ********************* article routes **********************
 
@@ -166,11 +178,12 @@ userRouter.post(
     validateRequiredFields(['title', 'description']),
     articleUserController.createArticle
 );
-userRouter.get('/articles', userAuthentication, articleUserController.getAllArticles);
+userRouter.get('/articles', userAuthentication, cacheMiddleware, articleUserController.getAllArticles);
 userRouter.get(
     '/article',
     userAuthentication,
     validateObjectIds(['articleId']),
+    cacheMiddleware,
     articleUserController.getSingleArticle
 );
 userRouter.put(
@@ -196,12 +209,14 @@ userRouter.post(
 userRouter.get(
     '/stories',
     userAuthentication,
+    cacheMiddleware,
     storyUserController.getAllStories
 );
 userRouter.get(
     '/story',
     userAuthentication,
     validateObjectIds(['storyId']),
+    cacheMiddleware,
     storyUserController.getSingleStory
 );
 userRouter.put(
@@ -237,6 +252,7 @@ userRouter.get(
     '/article-comments',
     userAuthentication,
     validateObjectIds(['articleId']),
+    cacheMiddleware,
     articleUserController.getAllComments
 );
 userRouter.put(
@@ -272,6 +288,7 @@ userRouter.get(
     '/video-comments',
     userAuthentication,
     validateObjectIds(['videoId']),
+    cacheMiddleware,
     videoUserController.getAllComments
 );
 userRouter.put(

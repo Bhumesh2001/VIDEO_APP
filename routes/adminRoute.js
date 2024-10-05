@@ -23,6 +23,7 @@ const {
     validateObjectIds,
     validateRequiredFields
 } = require('../middlewares/adminMiddleware/validate.adminMidlwr');
+const { cacheMiddleware } = require('../middlewares/userMiddleware/redisMidlwr');
 
 // ****************** login/signup routes ******************
 
@@ -45,11 +46,17 @@ adminRouter.post('/logout', adminAuthentication, adminController.logoutAdmin);
 
 // ****************** Countact Us routes **********************
 
-adminRouter.get('/contact/users', adminAuthentication, contactUserController.getAllContactUsers);
+adminRouter.get(
+    '/contact/users',
+    adminAuthentication,
+    cacheMiddleware,
+    contactUserController.getAllContactUsers
+);
 adminRouter.get(
     '/contact/user/:userId',
     adminAuthentication,
     validateObjectIds(['userId']),
+    cacheMiddleware,
     contactUserController.getContactUserById
 );
 adminRouter.put(
@@ -73,8 +80,13 @@ adminRouter.post(
     videoController.uploadVideoToCloudinary
 );
 adminRouter.post('/mega/upload-video', adminAuthentication, videoController.uploadVideoToMega);
-adminRouter.get('/videos', videoController.getAllVideos);
-adminRouter.get('/videos-by-category', adminAuthentication, videoController.getAllVideosByCategory);
+adminRouter.get('/videos', adminAuthentication, cacheMiddleware, videoController.getAllVideos);
+adminRouter.get(
+    '/videos-by-category',
+    adminAuthentication,
+    cacheMiddleware,
+    videoController.getAllVideosByCategory
+);
 
 // ******************** Category routes ********************
 
@@ -84,11 +96,17 @@ adminRouter.post(
     validateRequiredFields(['name', 'description', 'status']),
     categoryController.createCategory
 );
-adminRouter.get('/categories', categoryController.getAllCategories);
+adminRouter.get(
+    '/categories',
+    adminAuthentication,
+    cacheMiddleware,
+    categoryController.getAllCategories
+);
 adminRouter.get(
     '/category',
     adminAuthentication,
     validateObjectIds(['categoryId']),
+    cacheMiddleware,
     categoryController.getCategory
 );
 adminRouter.put(
@@ -106,6 +124,7 @@ adminRouter.delete(
 adminRouter.get(
     '/category/options',
     adminAuthentication,
+    cacheMiddleware,
     categoryController.getCategoryOption
 )
 
@@ -117,11 +136,12 @@ adminRouter.post(
     validateRequiredFields(['name', 'email', 'password', 'mobileNumber']),
     userAdminController.createUserByAdmin
 );
-adminRouter.get('/users', userAdminController.getAllUsersByAdmin);
+adminRouter.get('/users', adminAuthentication, cacheMiddleware, userAdminController.getAllUsersByAdmin);
 adminRouter.get(
     '/user',
     adminAuthentication,
     validateObjectIds(['userId']),
+    cacheMiddleware,
     userAdminController.getSingleUserByAdmin
 );
 adminRouter.put(
@@ -145,11 +165,12 @@ adminRouter.post(
     validateRequiredFields(['title', 'description']),
     articleController.createArticle
 );
-adminRouter.get('/articls', articleController.getAllArticles);
+adminRouter.get('/articls', adminAuthentication, cacheMiddleware, articleController.getAllArticles);
 adminRouter.get(
     '/article',
     adminAuthentication,
     validateObjectIds(['articleId']),
+    cacheMiddleware,
     articleController.getSingleArticle
 );
 adminRouter.put(
@@ -173,11 +194,12 @@ adminRouter.post(
     validateRequiredFields(['title', 'caption']),
     storyController.createStoryByAdmin
 );
-adminRouter.get('/stories', storyController.getAllStoriesByAdmin);
+adminRouter.get('/stories', adminAuthentication, cacheMiddleware, storyController.getAllStoriesByAdmin);
 adminRouter.get(
     '/story',
     adminAuthentication,
     validateObjectIds(['storyId']),
+    cacheMiddleware,
     storyController.getSingleStoryByAdmin
 );
 adminRouter.put(
@@ -200,11 +222,12 @@ adminRouter.post(
     validateRequiredFields(['title', 'description']),
     bannerController.createBanner
 );
-adminRouter.get('/banners', adminAuthentication, bannerController.getAllBanners);
+adminRouter.get('/banners', adminAuthentication, cacheMiddleware, bannerController.getAllBanners);
 adminRouter.get(
     '/banner',
     adminAuthentication,
     validateObjectIds(['bannerId']),
+    cacheMiddleware,
     bannerController.getSingleBanner
 );
 adminRouter.put(
@@ -225,14 +248,20 @@ adminRouter.delete(
 adminRouter.post(
     '/create-subscription',
     adminAuthentication,
-    // validateRequiredFields(['planName', 'planType', 'price', 'features', 'status']),
+    validateRequiredFields(['planName', 'planType', 'price', 'features', 'discount']),
     subscriptionController.createSubscriptionPlan
 );
-adminRouter.get('/subscriptions', subscriptionController.getSubscriptionsPlan);
+adminRouter.get(
+    '/subscriptions',
+    adminAuthentication,
+    cacheMiddleware,
+    subscriptionController.getSubscriptionsPlan
+);
 adminRouter.get(
     '/subscription',
     adminAuthentication,
     validateObjectIds(['subscriptionId']),
+    cacheMiddleware,
     subscriptionController.getSubscriptionPlanById
 );
 adminRouter.put(
@@ -250,7 +279,12 @@ adminRouter.delete(
 
 // ******************* total likes and comment routes ****************
 
-adminRouter.get('/dashboard-count', dashboardController.dashboardCount);
+adminRouter.get(
+    '/dashboard-count',
+    adminAuthentication,
+    cacheMiddleware,
+    dashboardController.dashboardCount
+);
 
 // ******************* coupan code routes *****************
 
@@ -260,11 +294,12 @@ adminRouter.post(
     validateRequiredFields(['expirationDate', 'maxUsage']),
     couponController.createCoupon
 );
-adminRouter.get('/coupons', couponController.getCoupons);
+adminRouter.get('/coupons', adminAuthentication, cacheMiddleware, couponController.getCoupons);
 adminRouter.get(
     '/coupon',
     adminAuthentication,
     validateObjectIds(['couponId']),
+    cacheMiddleware,
     couponController.getCouponById
 );
 adminRouter.put(
@@ -284,30 +319,30 @@ adminRouter.delete(
 
 adminRouter.route('/setting/general')
     .post(adminAuthentication, settingController.saveGeneralSettings)
-    .get(adminAuthentication, settingController.getGeneralSettings)
+    .get(adminAuthentication, cacheMiddleware, settingController.getGeneralSettings)
 
 adminRouter.route('/setting/smtp')
     .post(adminAuthentication, settingController.saveSmtpSettings)
-    .get(adminAuthentication, settingController.getSmtpSettings)
+    .get(adminAuthentication, cacheMiddleware, settingController.getSmtpSettings)
 
 adminRouter.route('/setting/social-media')
     .post(adminAuthentication, settingController.saveSocialMediaSettings)
-    .get(adminAuthentication, settingController.getSocialMediaSettings)
+    .get(adminAuthentication, cacheMiddleware, settingController.getSocialMediaSettings)
 
 adminRouter.route('/setting/menu')
     .post(adminAuthentication, settingController.saveMenuSettings)
-    .get(adminAuthentication, settingController.getMenuSettings)
+    .get(adminAuthentication, cacheMiddleware, settingController.getMenuSettings)
 
 adminRouter.route('/setting/re-captcha')
     .post(adminAuthentication, settingController.saveRecaptchaSettings)
-    .get(adminAuthentication, settingController.getRecaptchaSettings)
+    .get(adminAuthentication, cacheMiddleware, settingController.getRecaptchaSettings)
 
 adminRouter.route('/setting/banner-ads')
     .post(adminAuthentication, settingController.saveBannerAdsSettings)
-    .get(adminAuthentication, settingController.getBannerAdsSettings)
+    .get(adminAuthentication, cacheMiddleware, settingController.getBannerAdsSettings)
 
 adminRouter.route('/setting/maintenance-mode')
     .post(adminAuthentication, settingController.saveMaintenanceModeSettings)
-    .get(adminAuthentication, settingController.getMaintenanceModeSettings)
+    .get(adminAuthentication, cacheMiddleware, settingController.getMaintenanceModeSettings)
 
 module.exports = adminRouter;

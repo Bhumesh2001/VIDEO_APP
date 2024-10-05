@@ -14,14 +14,8 @@ client.on('error', (err) => {
 
 client.connect();
 
-const sensitiveRoutes = ['/admin/login-admin', '/user/login', '/user/profile', '/admin/profile'];
-
 exports.cacheMiddleware = async (req, res, next) => {
     const key = req.originalUrl;
-
-    if (sensitiveRoutes.includes(key)) {
-        return next();
-    }
 
     try {
         const cachedResponse = await client.get(key);
