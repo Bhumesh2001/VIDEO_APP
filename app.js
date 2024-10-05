@@ -58,8 +58,6 @@ cloudinary.config({
 // Database connection
 connectToDB();
 
-app.use(cacheMiddleware);
-
 // Routes
 app.get('/', adminAuthentication, (req, res) => res.render('index'));
 
@@ -67,6 +65,8 @@ app.get('/login', (req, res) => {
     if (req.cookies.adminToken) return res.redirect('/');
     res.render('login');
 });
+
+app.use(cacheMiddleware);
 
 app.use('/admin', adminRouter);
 app.use('/user', userRouter);
