@@ -142,7 +142,7 @@ exports.getSingleArticle = async (req, res) => {
     try {
         const { articleId } = req.query;
 
-        const article = await Article.findById(articleId);
+        const article = await Article.findById(articleId).sort({ createdAt: -1 });
         if (!article) {
             return res.status(404).json({
                 success: false,
