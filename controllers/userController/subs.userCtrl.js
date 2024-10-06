@@ -227,32 +227,36 @@ exports.mySubscription = async (req, res) => {
     try {
         const userId = req.user._id;
 
+        // Fetch single and all category subscriptions in parallel
         const [singleCategorySubscription, allCategorySubscription] = await Promise.all([
-            SingleCategorySubscriptionModel.findOne({
+            SingleCategorySubscriptionModel.find({
                 userId,
                 paymentStatus: 'completed',
                 status: 'active'
             }),
-            AllCategorySubscriptionModel.findOne({
+            AllCategorySubscriptionModel.find({
                 userId,
                 paymentStatus: 'completed',
                 status: 'active'
             })
         ]);
 
-        if (!singleCategorySubscription && !allCategorySubscription) {
+        // If no subscriptions are found, return early
+        if (!singleCategorySubscription.length && !allCategorySubscription.length) {
             return res.status(404).json({
                 success: false,
                 message: 'No subscriptions found for this user.',
             });
-        };
+        }
 
+        // Prepare subscription data
         const subscriptionData = {
-            singleCategorySubscription: singleCategorySubscription || null,
-            allCategorySubscription: allCategorySubscription || null,
+            singleCategorySubscription,
+            allCategorySubscription,
         };
 
-        res.status(200).json({
+        // Send the response
+        return res.status(200).json({
             success: true,
             message: 'Subscriptions fetched successfully!',
             subscription: subscriptionData,
@@ -260,11 +264,11 @@ exports.mySubscription = async (req, res) => {
 
     } catch (error) {
         console.error('Error fetching subscriptions:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: 'An error occurred while fetching the subscriptions.',
         });
-    };
+    }
 };
 
 exports.getHistory = async (req, res) => {
