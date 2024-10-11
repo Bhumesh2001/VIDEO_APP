@@ -101,7 +101,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
         });
 
         // Create new subscription model
-        const newSubscription = categoryId.toLowerCase() === 'allcombo'
+        const newSubscription = categoryId.toLowerCase() === 'all combo'
             ? new AllCategorySubscriptionModel({
                 userId,
                 categoryId,
