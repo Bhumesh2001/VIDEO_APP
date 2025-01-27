@@ -10,7 +10,6 @@ const userSchema = new Schema({
     },
     email: {
         type: String,
-        unique: true,
         lowercase: true,
         trim: true,
         match: [/\S+@\S+\.\S+/, 'Please provide a valid email address'],
@@ -26,7 +25,6 @@ const userSchema = new Schema({
     },
     mobileNumber: {
         type: String,
-        unique: true,
         validate: {
             validator: function (v) {
                 return /^\d{10}$/.test(v);

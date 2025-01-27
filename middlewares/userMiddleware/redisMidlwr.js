@@ -1,39 +1,29 @@
-const redis = require('redis');
+const NodeCache = require('node-cache');
 
-const client = redis.createClient({
-    password: process.env.REDIS_PASSWORD,
-    socket: {
-        host: process.env.REDIS_HOST,
-        port: process.env.REDIS_PORT,
-    }
-});
+// Create a cache instance
+const cache = new NodeCache({ stdTTL: 1200, checkperiod: 600 });
 
-client.on('error', (err) => {
-    console.error('Redis error: ', err);
-});
-
-client.connect();
-
-exports.cacheMiddleware = async (req, res, next) => {
-    const key = req.originalUrl;
+// Cache middleware
+exports.cacheMiddleware = (req, res, next) => {
+    const key = req.originalUrl; // Use the URL as the cache key
 
     try {
-        const cachedResponse = await client.get(key);
-
+        // Check if the response is already cached
+        const cachedResponse = cache.get(key);
         if (cachedResponse) {
-            return res.json(JSON.parse(cachedResponse));
+            return res.status(200).json(JSON.parse(cachedResponse));
         }
 
+        // Override the `res.json` method to cache the response
         const originalJson = res.json.bind(res);
-        res.json = async (body) => {
-            await client.setEx(key, 1200, JSON.stringify(body)); // Cache for 20 minutes
+        res.json = (body) => {
+            cache.set(key, JSON.stringify(body)); // Cache the response
             originalJson(body);
         };
 
         next();
-
     } catch (error) {
-        console.error('Redis error: ', error);
+        console.error('NodeCache error: ', error);
         next();
     }
 };

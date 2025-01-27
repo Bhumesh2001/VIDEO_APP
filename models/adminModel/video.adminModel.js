@@ -17,7 +17,6 @@ const commentSchema = new mongoose.Schema({
 const videoSchema = new mongoose.Schema({
     title: {
         type: String,
-        unique: true,
         required: [true, 'Title is required'],
         minlength: [5, 'Title must be at least 5 characters long'],
         trim: true

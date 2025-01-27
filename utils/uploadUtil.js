@@ -1,4 +1,4 @@
-const cloudinary = require('cloudinary').v2;
+const { cloudinary } = require('../config/cloudinary');
 const fs = require('fs');
 const axios = require('axios');
 const stream = require('stream');

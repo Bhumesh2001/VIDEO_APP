@@ -1,76 +1,116 @@
+// Load Environment Variables
 require('dotenv').config();
-require('./utils/subs.userUtil');
-require('./utils/coupanCode');
-require('./utils/storyUtil');
+
+// Import Dependencies
+const cluster = require('cluster');
+const os = require('os');
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const fileUpload = require('express-fileupload');
-const cloudinary = require('cloudinary').v2;
-const path = require('path');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
+const xssClean = require('xss-clean');
+const hpp = require('hpp');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-const { connectToDB } = require('./db/connect');
-
+// Import Configurations and Routes
+require('./config/cloudinary');
+require('./utils/storyUtil');
+require('./utils/subs.userUtil');
+const { connectToDB } = require('./config/connect');
 const adminRouter = require('./routes/adminRoute');
 const userRouter = require('./routes/userRoute');
-const { adminAuthentication } = require('./middlewares/adminMiddleware/auth.adminMdlwr');
 
-// CORS configuration
-const allowedOrigins = [
-    'http://localhost:3001',
-    'https://video-app-0i3v.onrender.com',
-];
+// Function to Start Server
+const startServer = () => {
+    const app = express();
+    const PORT = process.env.PORT || 3000;
 
-app.use(cors({
-    origin: allowedOrigins,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-}));
+    // Trust Proxy (Required for Reverse Proxies like NGINX)
+    app.set('trust proxy', 1);
 
-// View engine and static files
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public')));
+    // Middleware: Security and Performance
+    app.use(cors({
+        origin: [
+            'https://video-app-0i3v.onrender.com',
+            'http://127.0.0.1:5500'
+        ],
+        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        credentials: true,
+    }));
+    app.use(helmet()); // Secure HTTP headers
+    app.use(xssClean()); // Prevent Cross-Site Scripting (XSS)
+    app.use(hpp()); // Prevent HTTP Parameter Pollution
+    app.use(mongoSanitize()); // Prevent NoSQL Injection
+    app.use(compression()); // Compress HTTP responses for faster delivery
 
-// Middleware
-app.use(cookieParser());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(fileUpload({
-    useTempFiles: true,
-    tempFileDir: '/tmp/',
-    limits: { fileSize: 1e12 }, // 1TB
-    abortOnLimit: true,
-    limitHandler: (req, res) => res.status(413).send('File is too large.'),
-}));
+    // Rate Limiting to Prevent Abuse
+    const apiLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 100, // Limit each IP to 100 requests per window
+        message: 'Too many requests, please try again later.',
+    });
+    app.use(apiLimiter);
 
-// Cloudinary configuration
-cloudinary.config({
-    cloud_name: process.env.CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+    // Body Parsing and File Uploads
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+    app.use(cookieParser());
+    app.use(fileUpload({
+        useTempFiles: true,
+        tempFileDir: '/tmp/',
+        limits: { fileSize: 100 * 1024 * 1024 }, // 100MB per file
+        abortOnLimit: true,
+        limitHandler: (req, res) => res.status(413).json({ success: false, error: 'File is too large.' }),
+    }));
 
-// Database connection
-connectToDB();
+    // Connect to Database
+    connectToDB();
 
-// Routes
-app.get('/', adminAuthentication, (req, res) => res.render('index'));
+    // Routes
+    app.use('/admin', adminRouter);
+    app.use('/user', userRouter);
 
-app.get('/login', (req, res) => {
-    if (req.cookies.adminToken) return res.redirect('/');
-    res.render('login');
-});
+    // 404 Error Handling
+    app.use((req, res, next) => {
+        res.status(404).json({ success: false, status: 404, error: 'Resource not found' });
+    });
 
-app.use('/admin', adminRouter);
-app.use('/user', userRouter);
+    // Global Error Handler
+    app.use((err, req, res, next) => {
+        res.status(err.status || 500).json({
+            success: false,
+            error: 'Internal Server Error',
+            message: err.message || 'Something went wrong.',
+        });
+    });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-    console.log(`Google login: http://localhost:${PORT}/user/auth/google`);
-    console.log(`Facebook login: http://localhost:${PORT}/user/auth/facebook`);
-});
+    // Start the Server
+    app.listen(PORT, () => {
+        console.log(`Worker ${process.pid} running at http://localhost:${PORT}`);
+    });
+};
+
+// Clustering for Multi-Core CPU Usage
+if (cluster.isMaster) {
+    console.log(`Master process ${process.pid} is running`);
+
+    const numCPUs = os.cpus().length;
+
+    // Fork Workers for Each CPU Core
+    for (let i = 0; i < numCPUs; i++) {
+        cluster.fork();
+    };
+
+    // Restart Workers if They Crash
+    cluster.on('exit', (worker, code, signal) => {
+        console.log(`Worker ${worker.process.pid} died. Restarting...`);
+        cluster.fork();
+    });
+} else {
+    // Start Worker Server
+    startServer();
+};

@@ -4,7 +4,6 @@ const SubscriptionPlanSchema = new mongoose.Schema({
     planName: {
         type: String,
         required: [true, 'Plan name is required'],
-        unique: true,
         trim: true,
         minlength: [3, 'Plan name must be at least 3 characters long'],
     },

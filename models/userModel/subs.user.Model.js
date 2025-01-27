@@ -91,6 +91,9 @@ SingleCategorySubscriptionSchema.pre('save', function (next) {
     next();
 });
 
-const SingleCategorySubscriptionModel = mongoose.model('SingleCategorySubscription', SingleCategorySubscriptionSchema);
+const SingleCategorySubscriptionModel = mongoose.model(
+    'SingleCategorySubscription',
+    SingleCategorySubscriptionSchema
+);
 
 module.exports = SingleCategorySubscriptionModel;

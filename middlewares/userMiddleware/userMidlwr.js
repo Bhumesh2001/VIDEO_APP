@@ -5,8 +5,8 @@ exports.userAuthentication = async (req, res, next) => {
         const token = req.headers.authorization?.split(' ')[1] || req.cookies.userToken;
 
         if (!token) {
-            return res.status(401).json({ message: 'Unauthorized, please login.' });
-        }
+            return res.status(401).json({ success: false, message: 'Unauthorized, please login.' });
+        };
 
         req.user = jwt.verify(token, process.env.USER_SECRET_KEY);
         next();
@@ -17,7 +17,11 @@ exports.userAuthentication = async (req, res, next) => {
                 ? 'Token is not valid.'
                 : 'Internal server error.';
 
-        return res.status(error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError' ? 401 : 500).json({ message: errorMessage });
+        return res.status(
+            error.name === 'TokenExpiredError'
+                || error.name === 'JsonWebTokenError'
+                ? 401 : 500)
+            .json({ message: errorMessage });
     }
 };
 

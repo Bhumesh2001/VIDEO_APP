@@ -22,7 +22,6 @@ const articleSchema = new mongoose.Schema({
     },
     title: {
         type: String,
-        unique: true,
         required: [true, 'Title is required'],
         trim: true,
         minlength: [10, 'Title must be at least 10 characters long'],

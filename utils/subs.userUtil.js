@@ -166,7 +166,7 @@ exports.convertToISODate = (dateString) => {
                 throw new Error('Invalid date');
             }
         }
-    }
+    };
 
     throw new Error('Invalid date format');
 };
