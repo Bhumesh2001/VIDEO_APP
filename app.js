@@ -23,9 +23,10 @@ const adminRouter = require('./routes/adminRoute');
 const userRouter = require('./routes/userRoute');
 const errorMiddleware = require('./middlewares/errorMiddleware');
 
+const app = express();
+
 // Function to Start Server
 const startServer = () => {
-    const app = express();
     const PORT = process.env.PORT || 3001;
 
     // Trust Proxy (Required for Reverse Proxies like NGINX)
@@ -60,6 +61,9 @@ const startServer = () => {
     app.use(express.urlencoded({ extended: true }));
     app.use(cookieParser());
 
+    // welcome message
+    app.get('/', (req, res) => res.send('<h1>Welcome to Digital Vle App Backend</h1>'))
+
     // Routes
     app.use('/admin', adminRouter);
     app.use('/user', userRouter);
@@ -76,8 +80,6 @@ const startServer = () => {
     app.listen(PORT, () => {
         console.log(`Worker ${process.pid} running at http://localhost:${PORT}`);
     });
-
-    module.exports = app;
 };
 
 // Clustering for Multi-Core CPU Usage
@@ -102,3 +104,5 @@ if (cluster.isMaster) {
     // Start Worker Server
     startServer();
 };
+
+module.exports = app;
