@@ -48,7 +48,6 @@ const startServer = async () => {
         app.use(cors({
             origin: [
                 'https://video-app-0i3v.onrender.com',
-                'http://localhost:3000'
             ],
             methods: ['GET', 'POST', 'PUT', 'DELETE'],
             allowedHeaders: ['Content-Type', 'Authorization'],
