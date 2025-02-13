@@ -5,9 +5,7 @@ const categorySchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true, // Ensures unique names
-        trim: true,   // Removes unnecessary whitespaces
-        minlength: 3, // Ensures a minimum length for category names
-        maxlength: 50 // Prevents excessively long names
+        trim: true,
     },
     public_id: {
         type: String,

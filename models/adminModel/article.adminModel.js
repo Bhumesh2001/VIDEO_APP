@@ -46,7 +46,6 @@ const articleSchema = new mongoose.Schema({
 
 // Remove duplicate or redundant indexes
 articleSchema.index({ userId: 1, title: 1 });  // Efficient search by user and title
-articleSchema.index({ 'comments.userId': 1 }); // Index for searching comments by userId
 
 // Add an index for efficient searches based on article's creation time
 articleSchema.index({ createdAt: -1 });  // This index already handles sorting based on createdAt
