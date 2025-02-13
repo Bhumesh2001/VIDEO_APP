@@ -136,7 +136,6 @@ if (cluster.isMaster) {
             setTimeout(() => cluster.fork(), 3000); // Restart the worker
         }
     });
-
 } else {
     startServer(); // ✅ Start Worker Server
 };

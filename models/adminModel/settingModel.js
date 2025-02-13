@@ -108,6 +108,8 @@ const smtpEmailSettingsSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
+smtpEmailSettingsSchema.index({ smtpEmail: 1 });
+
 // ******************* social media shcema *******************
 
 const socialMediaSettingsSchema = new mongoose.Schema({

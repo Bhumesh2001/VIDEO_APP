@@ -1,40 +1,32 @@
 const mongoose = require("mongoose");
 
-// Define the function first
+let backoffDelay = 5000; // Initial 5 seconds backoff delay
+
 const connectToDB = async () => {
     try {
         if (mongoose.connection.readyState === 1) {
             return;
         }
 
+        // Attempt to connect
         await mongoose.connect(process.env.DB_URI, {
-            serverSelectionTimeoutMS: 60000, // 60s for better stability
-            socketTimeoutMS: 60000, // 60s to prevent early disconnections
-            maxPoolSize: 20, // Control max concurrent connections
-            minPoolSize: 5, // Maintain minimum connections
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 60000,
+            socketTimeoutMS: 60000,
+            maxPoolSize: 20,
+            minPoolSize: 5,
         });
 
-        // 🔹 Handle Errors Properly
-        mongoose.connection.on("error", (err) => {
-            console.error("MongoDB Connection Error:", err);
-        });
-
-        // 🔹 Handle Disconnection (Prevents Application Crash)
-        mongoose.connection.on("disconnected", () => {
-            console.warn("MongoDB Disconnected! Retrying...");
-            setTimeout(connectToDB, 5000); // Try to reconnect after 5 seconds
-        });
-
-        // 🔹 Close Connection on App Exit
-        process.on("SIGINT", async () => {
-            await mongoose.connection.close();
-            console.log("MongoDB Connection Closed!");
-            process.exit(0);
-        });
+        // Reset backoff delay on successful connection
+        backoffDelay = 5000;
 
     } catch (error) {
         console.error("MongoDB Connection Error:", error.message);
-        setTimeout(connectToDB, 5000); // Retry after 5 sec if connection fails
+        // Exponential backoff (increases retry delay each time)
+        backoffDelay = Math.min(backoffDelay * 2, 60000); // Max delay is 1 minute
+        console.log(`Retrying MongoDB connection in ${backoffDelay / 1000} seconds...`);
+        setTimeout(connectToDB, backoffDelay); // Retry connection after backoff delay
     }
 };
 
