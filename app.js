@@ -130,7 +130,7 @@ if (cluster.isMaster) {
         console.error(`💀 Worker ${worker.process.pid} died with code ${code}.`);
         if (code !== 0) {
             console.log('♻️ Restarting worker...');
-            cluster.fork();
+            setTimeout(() => cluster.fork(), 3000); // Restart the worker
         }
     });
 
