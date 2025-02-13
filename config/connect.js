@@ -10,8 +10,6 @@ const connectToDB = async () => {
 
         // Attempt to connect
         await mongoose.connect(process.env.DB_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
             serverSelectionTimeoutMS: 60000,
             socketTimeoutMS: 60000,
             maxPoolSize: 20,
