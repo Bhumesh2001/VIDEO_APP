@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
-
-let backoffDelay = 5000; // Initial 5 seconds backoff delay
+let backoffDelay = 5000; // Initial delay
 
 const connectToDB = async () => {
     try {
@@ -16,15 +15,16 @@ const connectToDB = async () => {
             minPoolSize: 5,
         });
 
-        // Reset backoff delay on successful connection
+        // Reset delay after successful connection
         backoffDelay = 5000;
 
     } catch (error) {
         console.error("MongoDB Connection Error:", error.message);
-        // Exponential backoff (increases retry delay each time)
-        backoffDelay = Math.min(backoffDelay * 2, 60000); // Max delay is 1 minute
-        console.log(`Retrying MongoDB connection in ${backoffDelay / 1000} seconds...`);
-        setTimeout(connectToDB, backoffDelay); // Retry connection after backoff delay
+
+        // Linear backoff (increases delay by a fixed amount)
+        backoffDelay += 5000;  // Adds 5 seconds per retry
+
+        setTimeout(connectToDB, backoffDelay); // Retry with linear delay
     }
 };
 
