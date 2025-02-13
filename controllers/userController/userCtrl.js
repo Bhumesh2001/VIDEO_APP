@@ -1,5 +1,5 @@
 const axios = require('axios');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 const jwt = require('jsonwebtoken');
 const {
     generateRandomEmail,

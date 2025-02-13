@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 
 const algorithm = process.env.ALGORITHM;
 const secretKey = process.env.SECRET_KEY_;

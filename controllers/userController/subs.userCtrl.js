@@ -1,5 +1,5 @@
 const Razorpay = require('razorpay');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 
 const Coupon = require('../../models/adminModel/coupan.adminModel');
 const CouponApplication = require('../../models/userModel/coupon.userModel');

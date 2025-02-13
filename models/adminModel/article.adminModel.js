@@ -44,16 +44,12 @@ const articleSchema = new mongoose.Schema({
     comments: [commentSchema],
 }, { timestamps: true });
 
-// Add compound indexes based on frequently used queries
+// Remove duplicate or redundant indexes
 articleSchema.index({ userId: 1, title: 1 });  // Efficient search by user and title
 articleSchema.index({ 'comments.userId': 1 }); // Index for searching comments by userId
 
-// Create indexes for better performance on likes and comments
-articleSchema.index({ likes: 1 }, { sparse: true }); // Only index when likes are present
-articleSchema.index({ 'comments.createdAt': -1 }); // Index comment timestamp for quick sorting
-
 // Add an index for efficient searches based on article's creation time
-articleSchema.index({ createdAt: -1 });
+articleSchema.index({ createdAt: -1 });  // This index already handles sorting based on createdAt
 
 // Model
 const Article = mongoose.model('Article', articleSchema);

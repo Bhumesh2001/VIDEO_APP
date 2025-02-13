@@ -1,5 +1,5 @@
 const userModel = require('../../models/userModel/userModel');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 const { isValidPassword } = require('../../utils/validateUtil');
 

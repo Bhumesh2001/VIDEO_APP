@@ -1,4 +1,4 @@
-const crypto = require("crypto");
+const crypto = require("node:crypto");
 const nodemailer = require("nodemailer");
 const mongoose = require("mongoose");
 const fs = require("fs");

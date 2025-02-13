@@ -47,24 +47,27 @@ const startServer = async () => {
         // 📌 Middleware: Security & Performance
         app.use(cors({
             origin: [
-                'https://video-app-0i3v.onrender.com',
+                'https://video-app-0i3v.onrender.com', // Your production domain
             ],
             methods: ['GET', 'POST', 'PUT', 'DELETE'],
             allowedHeaders: ['Content-Type', 'Authorization'],
             credentials: true,
         }));
-        app.use(helmet());
-        app.use(hpp());
-        app.use(mongoSanitize());
-        app.use(compression());
+        app.use(helmet()); // Secure HTTP headers
+        app.use(hpp()); // Prevent HTTP Parameter Pollution
+        app.use(mongoSanitize()); // Prevent NoSQL Injection
+        app.use(compression()); // Compress HTTP responses
         app.use(sanitizeRequestBody); // ✅ Sanitize Input to Prevent XSS
 
         // 📌 Rate Limiting (Prevents Abuse)
         const apiLimiter = rateLimit({
-            windowMs: 15 * 60 * 1000,
-            max: 100,
-            message: 'Too many requests, please try again later.',
+            windowMs: 15 * 60 * 1000, // 15 minutes window
+            max: 100, // Limit each IP to 100 requests per window
+            message: { success: false, status: 429, message: 'Too many requests, Please try again later.' },
+            standardHeaders: true,
+            legacyHeaders: false,
         });
+        // Uncomment below to enable rate limiting
         // app.use(apiLimiter);
 
         // 📌 Body Parsing & Cookies
@@ -123,7 +126,7 @@ if (cluster.isMaster) {
     // Fork Workers for Each CPU Core
     for (let i = 0; i < numCPUs; i++) {
         cluster.fork();
-    };
+    }
 
     // 📌 Restart Worker If It Crashes (Prevents Infinite Loops)
     cluster.on('exit', (worker, code, signal) => {
