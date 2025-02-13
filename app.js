@@ -7,7 +7,6 @@ const os = require('os');
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const fileUpload = require('express-fileupload');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
@@ -22,11 +21,12 @@ require('./utils/subs.userUtil');
 const { connectToDB } = require('./config/connect');
 const adminRouter = require('./routes/adminRoute');
 const userRouter = require('./routes/userRoute');
+const errorMiddleware = require('./middlewares/errorMiddleware');
 
 // Function to Start Server
 const startServer = () => {
     const app = express();
-    const PORT = process.env.PORT || 3000;
+    const PORT = process.env.PORT || 3001;
 
     // Trust Proxy (Required for Reverse Proxies like NGINX)
     app.set('trust proxy', 1);
@@ -35,7 +35,7 @@ const startServer = () => {
     app.use(cors({
         origin: [
             'https://video-app-0i3v.onrender.com',
-            'http://127.0.0.1:5500'
+            'http://localhost:3000'
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         allowedHeaders: ['Content-Type', 'Authorization'],
@@ -53,22 +53,12 @@ const startServer = () => {
         max: 100, // Limit each IP to 100 requests per window
         message: 'Too many requests, please try again later.',
     });
-    app.use(apiLimiter);
+    // app.use(apiLimiter);
 
     // Body Parsing and File Uploads
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
     app.use(cookieParser());
-    app.use(fileUpload({
-        useTempFiles: true,
-        tempFileDir: '/tmp/',
-        limits: { fileSize: 100 * 1024 * 1024 }, // 100MB per file
-        abortOnLimit: true,
-        limitHandler: (req, res) => res.status(413).json({ success: false, error: 'File is too large.' }),
-    }));
-
-    // Connect to Database
-    connectToDB();
 
     // Routes
     app.use('/admin', adminRouter);
@@ -79,14 +69,8 @@ const startServer = () => {
         res.status(404).json({ success: false, status: 404, error: 'Resource not found' });
     });
 
-    // Global Error Handler
-    app.use((err, req, res, next) => {
-        res.status(err.status || 500).json({
-            success: false,
-            error: 'Internal Server Error',
-            message: err.message || 'Something went wrong.',
-        });
-    });
+    // Use the centralized error handler
+    app.use(errorMiddleware);
 
     // Start the Server
     app.listen(PORT, () => {
@@ -97,7 +81,6 @@ const startServer = () => {
 // Clustering for Multi-Core CPU Usage
 if (cluster.isMaster) {
     console.log(`Master process ${process.pid} is running`);
-
     const numCPUs = os.cpus().length;
 
     // Fork Workers for Each CPU Core
@@ -111,6 +94,9 @@ if (cluster.isMaster) {
         cluster.fork();
     });
 } else {
+    // Connect to Database
+    (async () => { await connectToDB(); })();
+
     // Start Worker Server
     startServer();
 };

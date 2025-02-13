@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Subscription Expired</title>
+    <style>
+      body {
+        font-family: "Poppins";
+        background-color: #f8d7da;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 550px;
+        margin: 30px auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      .logo {
+        width: 50%;
+        margin-bottom: 20px;
+      }
+      .title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 15px;
+      }
+      .message {
+        font-size: 16px;
+        color: #666;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+      .button {
+        display: inline-block;
+        background: #d9534f;
+        color: #fff;
+        padding: 12px 20px;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 5px;
+        margin-top: 10px;
+      }
+      .footer {
+        font-size: 14px;
+        color: #999;
+        margin-top: 20px;
+      }
+      .footer a {
+        color: #d9534f;
+        text-decoration: none;
+      }
+      .footer a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <img src="new_logo.png" alt="Company Logo" class="logo" />
+      <p class="title">Oops, {{username}}! Your Subscription Has Expired! 😟</p>
+      <p class="message">
+        We noticed that your subscription expired on
+        <strong>{{expiryDate}}</strong>.<br /><br />
+        Don't worry! You can renew your subscription right now and continue
+        enjoying our premium services.<br /><br />
+        Click the button below to renew your subscription and regain access.
+      </p>
+      <a href="{{renewLink}}" class="button">Renew Now</a>
+      <p class="footer">
+        Need help? <a href="#">Contact Support</a><br />
+        &copy; 2024 Your Company. All rights reserved.
+      </p>
+    </div>
+  </body>
+</html>

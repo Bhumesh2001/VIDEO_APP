@@ -1,147 +1,150 @@
 const Coupon = require('../../models/adminModel/coupan.adminModel');
 const { generateCouponCode } = require('../../utils/coupanCode');
-const { convertToISODate } = require('../../utils/subs.userUtil');
+const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
 // Create a new coupon
-exports.createCoupon = async (req, res) => {
+exports.createCoupon = async (req, res, next) => {
     try {
-        const { coupon_Code, expirationDate, maxUsage, status } = req.body;
+        const { coupon_Code, expirationDate, maxUsage } = req.body;
 
-        const existingCoupon = await Coupon.findOne({ couponCode: coupon_Code });
+        // Check if the coupon already exists
+        const existingCoupon = await Coupon.findOne({ couponCode: coupon_Code }).lean();
         if (existingCoupon) {
             return res.status(409).json({
                 success: false,
+                status: 409,
                 message: "Coupon already exists!",
-            })
+            });
         }
-        const couponCode = coupon_Code ? coupon_Code : generateCouponCode();
 
-        const convertToISODate = (dateString) => {
-            const date = new Date(dateString);
-            return date.toISOString();
-        };
+        // Generate a coupon code if not provided
+        const couponCode = coupon_Code || generateCouponCode(); // Ensure generateCouponCode is defined
 
+        // Validate and convert expirationDate to a Date object
+        const expirationDateObj = new Date(expirationDate);
+        if (isNaN(expirationDateObj.getTime())) {
+            return res.status(400).json({
+                success: false,
+                status: 400,
+                message: "Invalid expirationDate format!",
+            });
+        }
+
+        // Create and save the coupon
         const coupon = new Coupon({
             couponCode,
-            expirationDate: convertToISODate(expirationDate),
+            expirationDate: expirationDateObj, // Store as Date object
             maxUsage,
-            status
         });
-
         await coupon.save();
+
+        // Clear node-cache
+        clearCache("node-cache");
 
         res.status(201).json({
             success: true,
-            message: 'Coupon created successfully.',
-            coupon
+            status: 201,
+            message: 'Coupon created successfully!',
+            coupon,
         });
     } catch (error) {
-        console.error(error);
-        if (error.name === 'ValidationError') {
-            const messages = Object.values(error.errors).map(val => val.message);
-            return res.status(400).json({
-                success: false,
-                errors: messages,
-            });
-        } else if (error.code === 11000) {
-            return res.status(409).json({
-                success: false,
-                message: 'Coupan already exists!',
-            });
-        };
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while creating the coupon.',
-        });
-    };
+        next(error);
+    }
 };
 
 // Get all coupons
-exports.getCoupons = async (req, res) => {
+exports.getCoupons = async (req, res, next) => {
     try {
         // Fetch coupons and total count in parallel for efficiency
         const [coupons, totalCoupons] = await Promise.all([
-            Coupon.find({}).sort({ createdAt: -1 }),
-            Coupon.countDocuments()
+            Coupon.find({}, { createdAt: 0, updatedAt: 0, __v: 0 }).sort({ createdAt: -1 }).lean(),
+            Coupon.countDocuments(),
         ]);
 
         // Check if no coupons were found
         if (coupons.length === 0) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: 'Coupons not found!',
             });
         }
 
         res.status(200).json({
             success: true,
+            status: 200,
+            message: 'Coupon fetched successfully...!',
             totalCoupons,
             coupons
         });
     } catch (error) {
-        console.error('Error retrieving coupons:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while retrieving coupons.',
-            error: error.message,
-        });
-    }
+        next(error);
+    };
 };
 
 // Get a single coupon by ID
-exports.getCouponById = async (req, res) => {
+exports.getCouponById = async (req, res, next) => {
     try {
         const { couponId } = req.query;
 
-        const coupon = await Coupon.findById(couponId);
-
+        const coupon = await Coupon.findById(couponId).select('-createdAt -updatedAt -__v').lean();
         if (!coupon) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: 'Coupon not found.',
             });
         };
 
         res.status(200).json({
             success: true,
+            status: 200,
+            message: "Coupon fetched successfully...!",
             coupon,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while retrieving the coupon.',
-        });
-    }
+        next(error);
+    };
 };
 
 // Update a coupon by ID
-exports.updateCoupon = async (req, res) => {
+exports.updateCoupon = async (req, res, next) => {
     const { couponId } = req.query;
     const { expirationDate, ...couponData } = req.body;
 
     try {
         const updateData = {
-            expirationDate: new Date(convertToISODate(expirationDate)),
+            expirationDate: new Date(expirationDate),
             ...couponData,
             updatedAt: Date.now(),
         };
 
-        const coupon = await Coupon.findByIdAndUpdate(couponId, updateData, { new: true, runValidators: true });
+        const coupon = await Coupon.findByIdAndUpdate(
+            couponId,
+            updateData,
+            { new: true, runValidators: true }
+        );
 
         if (!coupon) {
-            return res.status(404).json({ success: false, message: 'Coupon not found.' });
+            return res.status(404).json({ success: false, status: 404, message: 'Coupon not found.' });
         }
 
-        res.status(200).json({ success: true, message: 'Coupon updated successfully.', coupon });
+        // Clear node-cache
+        clearCache("node-cache");
+
+        res.status(200).json({
+            success: true,
+            status: 200,
+            message: 'Coupon updated successfully.',
+            coupon
+        });
     } catch (error) {
-        console.error('Error updating coupon:', error);
-        res.status(500).json({ success: false, message: 'Error occurred while updating the coupon.', error: error.message });
-    }
+        next(error);
+    };
 };
 
 // Delete a coupon by ID
-exports.deleteCoupon = async (req, res) => {
+exports.deleteCoupon = async (req, res, next) => {
     try {
         const { couponId } = req.query;
         const coupon = await Coupon.findByIdAndDelete(couponId);
@@ -149,20 +152,21 @@ exports.deleteCoupon = async (req, res) => {
         if (!coupon) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: 'Coupon not found.',
             });
         };
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'Coupon deleted successfully.',
             coupon,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while deleting the coupon.',
-        });
+        next(error);
     };
 };

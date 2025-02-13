@@ -1,45 +1,22 @@
-const fs = require('fs').promises;
 const Article = require('../../models/adminModel/article.adminModel');
-const { uploadImage, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
+const { deleteImageOnCloudinary, uploadImageOnCloudinary } = require('../../utils/uploadUtil');
+const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
-const articleOptions = {
-    folder: 'Articles',
-    transformation: [
-        { width: 1200, height: 1200, crop: 'fill' }
-    ]
-};
-
-exports.createArticle = async (req, res) => {
-    let imageData = null;
-
+exports.createArticle = async (req, res, next) => {
     try {
-        const { title, description, image } = req.body;
-
-        // Check for existing article
-        const existingArticle = await Article.findOne({ title });
-        if (existingArticle) {
-            return res.status(409).json({ success: false, message: 'Article already exists!' });
-        }
-
-        // Validate image input
-        if (!(req.files && req.files.image) && !image) {
-            return res.status(400).json({ success: false, message: 'Image file or image URL is required!' });
-        }
-
-        // Handle image input (file or URL)
-        const imagePath = req.files?.image ? req.files.image.tempFilePath : image;
-        if (image && !/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
-            return res.status(400).json({ success: false, message: 'Invalid image URL!' });
-        }
+        const { title, description } = req.body;
 
         // Upload image to Cloudinary if provided
-        if (imagePath) {
-            imageData = await uploadImage(imagePath, articleOptions);
-            if (req.files?.image) await fs.unlink(req.files.image.tempFilePath);
+        let imageData = { url: null, public_id: null };
+        if (req.file) {
+            const data = await uploadImageOnCloudinary(req.file.path, 'VleArticles');
+            imageData.url = data.secure_url;
+            imageData.public_id = data.public_id;
         }
 
+        // Create article
         const articleData = {
-            userId: req.admin._id,
+            userId: req.admin?._id, // Ensure req.admin exists
             title,
             description,
             image: imageData.url,
@@ -49,114 +26,100 @@ exports.createArticle = async (req, res) => {
         const article = new Article(articleData);
         await article.save();
 
-        res.status(201).json({ success: true, message: "Article created successfully...", article });
+        // Clear node-cache
+        clearCache("node-cache");
 
+        res.status(201).json({
+            success: true,
+            status: 201,
+            message: 'Article created successfully!',
+            article,
+        });
     } catch (error) {
-        console.error(error);
-
-        // Delete image on Cloudinary if upload was successful but other errors occurred
-        if (imageData?.public_id) await deleteImageOnCloudinary(imageData.public_id);
-
-        // Validation error handling
-        if (error.name === 'ValidationError') {
-            const validationErrors = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({ success: false, message: 'Validation Error', errors: validationErrors });
-        }
-
-        // Handle duplicate error (11000 for MongoDB unique constraint violations)
-        if (error.code === 11000) {
-            return res.status(409).json({ success: false, message: 'Article already exists!' });
-        }
-
-        // Default server error
-        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+        next(error);
     }
 };
 
-exports.getAllArticles = async (req, res) => {
+exports.getAllArticles = async (req, res, next) => {
     try {
-        const page = Math.max(1, parseInt(req.query.page) || 1);
-        const limit = Math.max(1, parseInt(req.query.limit) || 12);
+        // Validate and parse pagination parameters
+        const page = Math.max(1, parseInt(req.query.page)) || 1;
+        const limit = Math.max(1, parseInt(req.query.limit)) || 12;
         const skip = (page - 1) * limit;
 
+        // Fetch articles and total count in parallel
         const [articles, totalArticles] = await Promise.all([
-            Article.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit),
-            Article.countDocuments()
+            Article.find({})
+                .select('title description image userId likes comments') // Include only necessary fields
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Article.countDocuments(), // No need for .lean() here
         ]);
 
-        if (!articles.length) {
-            return res.status(404).json({ success: false, message: 'No articles found!' });
-        }
-
+        // Return response
         res.status(200).json({
             success: true,
-            message: 'Articles fetched successfully...',
+            status: 200,
+            message: 'Articles fetched successfully!',
             totalArticles,
             totalPages: Math.ceil(totalArticles / limit),
             page,
             articles,
         });
-
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while fetching articles',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
-exports.getSingleArticle = async (req, res) => {
+exports.getSingleArticle = async (req, res, next) => {
     try {
         const { articleId } = req.query;
 
-        const article = await Article.findById(articleId);
+        // Fetch article with specific fields
+        const article = await Article.findById(articleId)
+            .select('-createdAt -updatedAt -__v -public_id') // Exclude unnecessary fields
+            .lean();
+
         if (!article) {
-            return res.status(404).json({ success: false, message: 'Article not found' });
+            return res.status(404).json({
+                success: false,
+                status: 404,
+                message: 'Article not found!',
+            });
         }
 
+        // Return response
         res.status(200).json({
             success: true,
-            message: 'Article fetched successfully...',
+            status: 200,
+            message: 'Article fetched successfully!',
             article,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while fetching the article',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
-exports.updateArticle = async (req, res) => {
+exports.updateArticle = async (req, res, next) => {
     const { articleId } = req.query;
-    const { title, description, image } = req.body;
-    let imageFile, imageData;
+    const { title, description, status } = req.body;
+    let imageData = { url: null, public_id: null };
 
     try {
         // Find the article
-        const article = await Article.findById(articleId);
+        const article = await Article.findById(articleId).lean();
         if (!article) {
-            return res.status(404).json({ success: false, message: 'Article not found!' });
-        }
-
-        // Handle image file or image URL
-        if (req.files?.image) {
-            imageFile = req.files.image.tempFilePath;
-        } else if (image && /^(https?:\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff))$/i.test(image)) {
-            imageFile = image; // Treat URL as file input
-        } else if (image) {
-            return res.status(400).json({ success: false, message: 'Invalid image URL!' });
+            return res.status(404).json({ success: false, status: 404, message: 'Article not found!' });
         }
 
         // Upload image if file or URL is provided
-        if (imageFile) {
+        if (req.file) {
             if (article.public_id) await deleteImageOnCloudinary(article.public_id);
-            imageData = await uploadImage(imageFile, articleOptions);
-            if (req.files?.image) await fs.unlink(req.files.image.tempFilePath);
+            const data = await uploadImageOnCloudinary(req.file.path, 'VleArticles');
+            imageData.url = data.secure_url;
+            imageData.public_id = data.public_id;
         };
 
         // Update article data
@@ -167,29 +130,32 @@ exports.updateArticle = async (req, res) => {
                 description: description || article.description,
                 image: imageData?.url || article.image,
                 public_id: imageData?.public_id || article.public_id,
+                status: status ? status : article.status,
             },
             { new: true, runValidators: true }
         );
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'Article updated successfully...',
             article: updatedArticle,
         });
-
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Error updating article', error: error.message });
-    }
+        next(error);
+    };
 };
 
-exports.deleteArticle = async (req, res) => {
+exports.deleteArticle = async (req, res, next) => {
     try {
         const { articleId } = req.query;
 
         const article = await Article.findByIdAndDelete(articleId);
         if (!article) {
-            return res.status(404).json({ success: false, message: 'Article not found!' });
+            return res.status(404).json({ success: false, status: 404, message: 'Article not found!' });
         }
 
         // Delete the associated image from Cloudinary
@@ -197,17 +163,16 @@ exports.deleteArticle = async (req, res) => {
             await deleteImageOnCloudinary(article.public_id);
         }
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'Article deleted successfully...',
             article,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while deleting the article',
-            error: error.message,
-        });
-    }
+        next(error);
+    };
 };

@@ -5,42 +5,27 @@ const SingleCategorySubscriptionSchema = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: [true, 'userId is required!'],
     },
     categoryId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Category',
-        required: [true, 'CategoryId is required!'],
     },
     planId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'SubscriptionPlan',
-        required: [true, 'PlanId is required!'],
     },
     planType: {
         type: String,
-        required: [true, 'PlanType is required!'],
     },
     price: {
         type: Number,
-        require: [true, 'price is required!'],
     },
     discount: {
         type: Number,
-        default: 0,
-        min: [0, 'Discount from coupon cannot be less than 0'],
-        max: [100, 'Discount from coupon cannot exceed 100'],
-        validate: {
-            validator: function (v) {
-                return v % 1 === 0;
-            },
-            message: 'Discount from coupon must be a whole number',
-        },
+        default: 0
     },
     finalPrice: {
-        type: Number,
-        required: [true, 'finalPrice is required'],
-        min: [0, 'finalPrice cannot be less than 0'],
+        type: Number
     },
     paymentStatus: {
         type: String,

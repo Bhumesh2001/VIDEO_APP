@@ -1,8 +1,9 @@
 const Subscription = require('../../models/adminModel/subs.adminModel');
+const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
-exports.createSubscriptionPlan = async (req, res) => {
+exports.createSubscriptionPlan = async (req, res, next) => {
     try {
-        let { planName, planType, price, features, flatDiscount, status } = req.body;
+        let { planName, planType, price, features, flatDiscount } = req.body;
 
         // Ensure features is an array
         if (!Array.isArray(features)) {
@@ -11,8 +12,9 @@ exports.createSubscriptionPlan = async (req, res) => {
 
         // Validate required fields
         if (!features.length) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
+                status: 400,
                 message: 'At least one feature is required'
             });
         }
@@ -24,104 +26,72 @@ exports.createSubscriptionPlan = async (req, res) => {
             price,
             flatDiscount,
             features,
-            status: status?.toLowerCase(),  // Handle possible null or undefined
         });
-
         const savedSubscription = await newSubscription.save();
+
+        // Clear node-cache
+        clearCache("node-cache");
 
         res.status(201).json({
             success: true,
+            status: 200,
             message: 'Subscription created successfully',
             data: savedSubscription,
         });
 
     } catch (error) {
-        console.error('Error creating subscription plan:', error);
-
-        // Handle validation errors
-        if (error.name === 'ValidationError') {
-            const validationErrors = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({
-                success: false,
-                message: 'Validation Error',
-                errors: validationErrors,
-            });
-        }
-
-        // Handle duplicate subscription plan error
-        if (error.code === 11000) {
-            return res.status(409).json({
-                success: false,
-                message: 'Subscription plan already exists!',
-            });
-        }
-
-        // Generic server error
-        res.status(500).json({
-            success: false,
-            message: 'Server Error',
-            error: error.message,
-        });
-    }
+        next(error);
+    };
 };
 
-exports.getSubscriptionsPlan = async (req, res) => {
+exports.getSubscriptionsPlan = async (req, res, next) => {
     try {
         // Fetch all subscription plans and total count in parallel for efficiency
         const [subscriptions, totalSubscription] = await Promise.all([
-            Subscription.find({}).sort({ createdAt: -1 }),
-            Subscription.countDocuments()
+            Subscription.find({}, { createdAt: 0, updatedAt: 0, __v: 0 }).sort({ createdAt: -1 }).lean(),
+            Subscription.countDocuments(),
         ]);
 
         res.status(200).json({
             success: true,
+            status: 200,
             totalSubscription,
             subscriptions,
         });
     } catch (error) {
-        console.error('Error retrieving subscriptions:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to retrieve subscriptions',
-            error: error.message,
-        });
-    }
+        next(error)
+    };
 };
 
-exports.getSubscriptionPlanById = async (req, res) => {
+exports.getSubscriptionPlanById = async (req, res, next) => {
     try {
         const { subscriptionId } = req.query;
-
-        const subscription = await Subscription.findById(subscriptionId);
+        const subscription = await Subscription.findById(subscriptionId)
+            .select('-createdAt -updatedAt -__v')
+            .lean();
         if (!subscription) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: 'Subscription not found',
             });
         };
 
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'Subscription fetched successfully...',
             subscription,
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to retrieve subscription',
-            error: error.message,
-        });
+        next(error);
     };
 };
 
-exports.updateSubscriptionPlan = async (req, res) => {
+exports.updateSubscriptionPlan = async (req, res, next) => {
     try {
         const { subscriptionId } = req.query;
         const updates = req.body;
-
-        if (updates.features && (!Array.isArray(updates.features) || updates.features.length === 0)) {
-            return res.status(400).json({ error: 'At least one feature is required' });
-        };
 
         const updatedSubscription = await Subscription.findByIdAndUpdate(subscriptionId, updates, {
             new: true,
@@ -129,24 +99,24 @@ exports.updateSubscriptionPlan = async (req, res) => {
         });
 
         if (!updatedSubscription) {
-            return res.status(404).json({ error: 'Subscription not found' });
+            return res.status(404).json({ success: false, status: 404, message: 'Subscription not found' });
         };
+
+        // Clear node-cache
+        clearCache("node-cache");
 
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'Subscription updated successfully',
             data: updatedSubscription,
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to update subscription',
-            error: error.message,
-        });
+        next(error);
     };
 };
 
-exports.deleteSubscriptionPlan = async (req, res) => {
+exports.deleteSubscriptionPlan = async (req, res, next) => {
     try {
         const { subscriptionId } = req.query;
         const subscription = await Subscription.findByIdAndDelete(subscriptionId);
@@ -154,20 +124,21 @@ exports.deleteSubscriptionPlan = async (req, res) => {
         if (!subscription) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: 'Subscription not found',
             });
         };
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'Subscription deleted successfully',
             subscription,
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to delete subscription',
-            error: error.message,
-        });
+        next(error);
     };
 };

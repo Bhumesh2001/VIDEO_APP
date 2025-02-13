@@ -4,41 +4,29 @@ const categorySchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        trim: true,
-    },
-    description: {
-        type: String,
-        trim: true,
-        default: '',
+        unique: true, // Ensures unique names
+        trim: true,   // Removes unnecessary whitespaces
+        minlength: 3, // Ensures a minimum length for category names
+        maxlength: 50 // Prevents excessively long names
     },
     public_id: {
         type: String,
-        unique: true,
-        trim: true
+        required: true,
     },
     image_url: {
         type: String,
-        validate: {
-            validator: function (v) {
-                return /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(v);
-            },
-            message: props => `${props.value} is not a valid image URL!`
-        }
+        required: true,
     },
     status: {
         type: String,
-        enum: ['active', 'inactive'],
-        default: 'active',
-    },
+        enum: ['active', 'inactive'],  // Only allows 'active' or 'inactive' status
+        default: 'active', // Defaults to 'active'
+    }
 }, { timestamps: true });
 
-categorySchema.index({ name: 1 }, { unique: true });
-categorySchema.index({ timestamps: 1 });
-
-categorySchema.pre('save', function (next) {
-    this.updatedAt = Date.now();
-    next();
-});
+// Indexes
+categorySchema.index({ name: 1 });    // Index for fast search on 'name'
+categorySchema.index({ status: 1 });  // Index for filtering 'status' (active/inactive)
 
 const Category = mongoose.model('Category', categorySchema);
 

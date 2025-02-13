@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const Session = require('../models/userModel/session.userModel');
 
 exports.generateTokenAndSetCookie = (user, res) => {
     const tokenPayload = { _id: user._id, role: user.role };
@@ -19,4 +20,20 @@ exports.generateTokenAndSetCookie = (user, res) => {
     });
 
     return token;
+};
+
+// Helper function for creating JWT token
+exports.generateToken = (user) => {
+    return jwt.sign(
+        { email: user.email, role: user.role, _id: user._id },
+        process.env.USER_SECRET_KEY,
+        { expiresIn: '2d' }
+    );
+};
+
+// Helper function for session management
+exports.createSession = async (user, token, deviceId) => {
+    await Session.deleteMany({ userId: user._id }); // Delete old sessions
+    const session = new Session({ userId: user._id, token, deviceId });
+    await session.save();
 };

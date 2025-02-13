@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Password Reset OTP</title>
+    <style>
+      body {
+        font-family: "Poppins";
+        background-color: #f8d7da;
+        padding: 20px;
+      }
+      .container {
+        max-width: 500px;
+        margin: auto;
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      .header {
+        font-size: 22px;
+        font-weight: bold;
+        color: #333;
+      }
+      .logo {
+        width: 50%;
+      }
+      .otp {
+        font-size: 24px;
+        font-weight: bold;
+        color: #e74c3c;
+        margin: 15px 0;
+      }
+      .footer {
+        font-size: 14px;
+        color: #555;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <img src="new_logo.png" alt="Company Logo" class="logo" />
+      <p class="header">🔑 Password Reset Request</p>
+      <p>Hello,</p>
+      <p>Use the following One-Time Password (OTP) to reset your password:</p>
+      <p class="otp">{{otp}}</p>
+      <p>This OTP is valid for <strong>10 minutes</strong>.</p>
+      <p>If you didn't request a password reset, please ignore this email.</p>
+      <p class="footer">Thank you,<br />🚀 Your Company Team</p>
+    </div>
+  </body>
+</html>

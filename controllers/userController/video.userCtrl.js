@@ -1,7 +1,8 @@
 const Video = require('../../models/adminModel/video.adminModel');
 const { UserSubscription } = require('../../utils/subs.userUtil');
+const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
-exports.getAllVideos = async (req, res) => {
+exports.getAllVideos = async (req, res, next) => {
     try {
         const userId = req.user._id;
         if (!userId) {
@@ -17,7 +18,7 @@ exports.getAllVideos = async (req, res) => {
 
         // Fetch all videos from DB
         let videos = await Video.find({}, { __v: 0 }).sort({ createdAt: -1 }).lean();
-      
+
         // If user has 'all' in categoryId, mark all videos as paid
         if (subscribedCategoryName === 'all' || subscribedCategoryName === 'All') {
             videos = videos.map(video => ({
@@ -54,15 +55,11 @@ exports.getAllVideos = async (req, res) => {
             videos,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while fetching the videos',
-        });
+        next(error);
     };
 };
 
-exports.getAllVideosByCategory = async (req, res) => {
+exports.getAllVideosByCategory = async (req, res, next) => {
     try {
         const { category } = req.query;
         if (!category) {
@@ -121,16 +118,12 @@ exports.getAllVideosByCategory = async (req, res) => {
             videosByCategory,
         });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occured while fetching the videos by category',
-        });
+        next(error);
     };
 };
 
 // like a video
-exports.likeVideo = async (req, res) => {
+exports.likeVideo = async (req, res, next) => {
     try {
         const { videoId } = req.body;
         const userId = req.user._id;
@@ -150,12 +143,12 @@ exports.likeVideo = async (req, res) => {
 
         res.status(200).json({ success: true, like, video, });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Server Error', error });
+        next(error);
     };
 };
 
 // comment a video
-exports.addComment = async (req, res) => {
+exports.addComment = async (req, res, next) => {
     try {
         const { videoId, content } = req.body;
         const userId = req.user._id;
@@ -166,13 +159,16 @@ exports.addComment = async (req, res) => {
         video.comments.push({ userId, content });
         await video.save();
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(201).json({ success: true, message: 'Comment added successfully', video });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Server Error', error });
+        next(error);
     };
 };
 
-exports.getAllComments = async (req, res) => {
+exports.getAllComments = async (req, res, next) => {
     try {
         const { videoId } = req.query || req.body;
 
@@ -191,18 +187,13 @@ exports.getAllComments = async (req, res) => {
             comments: sortedComments,
         });
     } catch (error) {
-        console.error('Error fetching comments:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server Error',
-        });
+        next(error);
     };
 };
 
-exports.editComment = async (req, res) => {
+exports.editComment = async (req, res, next) => {
     try {
         const { videoId, commentId } = req.body || req.query;
-
         const { content } = req.body;
 
         if (!content || content.trim().length === 0) {
@@ -213,7 +204,6 @@ exports.editComment = async (req, res) => {
         };
 
         const video = await Video.findById(videoId);
-
         if (!video) {
             return res.status(404).json({
                 success: false,
@@ -231,8 +221,10 @@ exports.editComment = async (req, res) => {
 
         comment.content = content;
         comment.updatedAt = Date.now();
-
         await video.save();
+
+        // Clear node-cache
+        clearCache("node-cache");
 
         res.status(200).json({
             success: true,
@@ -241,15 +233,11 @@ exports.editComment = async (req, res) => {
             video,
         });
     } catch (error) {
-        console.error('Error editing comment:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server Error',
-        });
+        next(error);
     };
 };
 
-exports.deleteComment = async (req, res) => {
+exports.deleteComment = async (req, res, next) => {
     try {
         const { videoId, commentId } = req.body || req.query;
 
@@ -262,8 +250,11 @@ exports.deleteComment = async (req, res) => {
         video.comments.splice(commentIndex, 1);
         await video.save();
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({ success: true, message: 'Comment deleted successfully', video });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Server Error', error });
+        next(error);
     };
 };

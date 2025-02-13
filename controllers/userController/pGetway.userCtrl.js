@@ -8,7 +8,7 @@ const razorpay = new Razorpay({
 
 // razorpay payment getway
 
-exports.createOrder = async (req, res) => {
+exports.createOrder = async (req, res, next) => {
     try {
         const { amount, currency } = req.body;
 
@@ -20,7 +20,6 @@ exports.createOrder = async (req, res) => {
             receipt, 
             payment_capture: 1, 
         };
-
         const order = await razorpay.orders.create(options);     
 
         res.status(201).json({
@@ -32,14 +31,11 @@ exports.createOrder = async (req, res) => {
             receipt: order.receipt
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+        next(error);
     };
 };
 
-exports.verifyPayment = (req, res) => {
+exports.verifyPayment = (req, res, next) => {
     try {
         const { order_id, payment_id, signature } = req.body;
         
@@ -62,11 +58,7 @@ exports.verifyPayment = (req, res) => {
             });
         };
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
-            success: true,
-            message: "error occured while verifying the payment",
-        });
+       next(error);
     };
 };
 

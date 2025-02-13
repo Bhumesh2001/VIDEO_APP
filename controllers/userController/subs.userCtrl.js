@@ -1,5 +1,4 @@
 const Razorpay = require('razorpay');
-const mongoose = require('mongoose');
 const crypto = require('crypto');
 
 const Coupon = require('../../models/adminModel/coupan.adminModel');
@@ -8,15 +7,16 @@ const SubscriptionPlan = require('../../models/adminModel/subs.adminModel');
 
 const SingleCategorySubscriptionModel = require('../../models/userModel/subs.user.Model');
 const AllCategorySubscriptionModel = require('../../models/userModel/allSubs.userModel');
-
 const { isValidRazorpayOrderId } = require('../../utils/subs.userUtil');
+
+const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_ID_KEY,
     key_secret: process.env.RAZORPAY_SECRET_KEY
 });
 
-exports.subscribeToCategoryOrAll = async (req, res) => {
+exports.subscribeToCategoryOrAll = async (req, res, next) => {
     const { categoryId, planId } = req.body;
 
     try {
@@ -25,21 +25,6 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: 'User ID not found!',
-            });
-        }
-
-        // Validate category ID and plan ID
-        if (categoryId.toLowerCase() !== 'allcombo' && !mongoose.Types.ObjectId.isValid(categoryId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid category ID format!',
-            });
-        }
-
-        if (!mongoose.Types.ObjectId.isValid(planId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid planId format!',
             });
         }
 
@@ -61,8 +46,16 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
 
         // Check for existing subscriptions
         const [singleCategorySub, allCategorySub] = await Promise.all([
-            SingleCategorySubscriptionModel.findOne({ userId, paymentStatus: 'completed', status: 'active' }),
-            AllCategorySubscriptionModel.findOne({ userId, paymentStatus: 'completed', status: 'active' }),
+            SingleCategorySubscriptionModel.findOne({
+                userId,
+                paymentStatus: 'completed',
+                status: 'active'
+            }).lean(),
+            AllCategorySubscriptionModel.findOne({
+                userId,
+                paymentStatus: 'completed',
+                status: 'active'
+            }).lean(),
         ]);
 
         // If either subscription exists, return a conflict message
@@ -78,7 +71,7 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
         let discount = 0;
 
         // Apply any valid coupon discount
-        const couponApplication = await CouponApplication.findOne({ userId });
+        const couponApplication = await CouponApplication.findOne({ userId }).lean();
         if (couponApplication) {
             const appliedCoupon = await Coupon.findOne({ couponCode: couponApplication.couponCode });
             if (!appliedCoupon) {
@@ -122,42 +115,24 @@ exports.subscribeToCategoryOrAll = async (req, res) => {
             });
         await newSubscription.save();
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         // Response object
         return res.status(201).json({
             success: true,
-            message: `Successfully subscribed to ${categoryId.toLowerCase() === 'all' ? 'all categories' : 'the selected category'}.`,
+            message: `Successfully subscribed to ${categoryId.toLowerCase() === 'all' ?
+                'all categories' : 'the selected category'}.`,
             orderId: order.id,
             ...newSubscription.toObject(),
         });
 
     } catch (error) {
-        console.error(error);
-
-        if (error.name === 'ValidationError') {
-            const validationErrors = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({
-                success: false,
-                message: 'Validation Error',
-                errors: validationErrors,
-            });
-        }
-
-        if (error.code === 11000) {
-            return res.status(409).json({
-                success: false,
-                message: 'Subscription already exists!',
-            });
-        }
-
-        return res.status(500).json({
-            success: false,
-            message: 'Error occurred while creating the subscription',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
-exports.updateSubscriptionStatus = async (req, res) => {
+exports.updateSubscriptionStatus = async (req, res, next) => {
     try {
         const { paymentStatus = 'completed', categoryId, planId } = req.body;
         const userId = req.user._id;
@@ -180,9 +155,13 @@ exports.updateSubscriptionStatus = async (req, res) => {
         // Determine which subscription to query based on categoryId
         let subscriptionPromise;
         if (categoryId.toLowerCase() === 'allcombo') {
-            subscriptionPromise = AllCategorySubscriptionModel.findOne({ userId, categoryId, planId });
+            subscriptionPromise = AllCategorySubscriptionModel.findOne({
+                userId, categoryId, planId
+            }).lean();
         } else {
-            subscriptionPromise = SingleCategorySubscriptionModel.findOne({ userId, categoryId, planId });
+            subscriptionPromise = SingleCategorySubscriptionModel.findOne({
+                userId, categoryId, planId
+            }).lean();
         }
 
         // Wait for the selected subscription to be fetched
@@ -208,22 +187,20 @@ exports.updateSubscriptionStatus = async (req, res) => {
         subscription.paymentStatus = paymentStatus;
         await subscription.save();
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         return res.status(200).json({
             success: true,
             message: 'Subscription status updated successfully.',
             subscription,
         });
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({
-            success: false,
-            message: "Server error",
-            error: error.message
-        });
+        next(error);
     }
 };
 
-exports.mySubscription = async (req, res) => {
+exports.mySubscription = async (req, res, next) => {
     try {
         const userId = req.user._id;
 
@@ -233,12 +210,12 @@ exports.mySubscription = async (req, res) => {
                 userId,
                 paymentStatus: 'completed',
                 status: 'active'
-            }),
+            }).lean(),
             AllCategorySubscriptionModel.find({
                 userId,
                 paymentStatus: 'completed',
                 status: 'active'
-            })
+            }).lean()
         ]);
 
         // If no subscriptions are found, return early
@@ -263,15 +240,11 @@ exports.mySubscription = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error fetching subscriptions:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'An error occurred while fetching the subscriptions.',
-        });
+        next(error);
     }
 };
 
-exports.getHistory = async (req, res) => {
+exports.getHistory = async (req, res, next) => {
     try {
         const userId = req.user?._id;
         if (!userId) {
@@ -285,11 +258,11 @@ exports.getHistory = async (req, res) => {
             SingleCategorySubscriptionModel.find({
                 userId,
                 paymentStatus: { $in: ['completed', 'failed'] }
-            }),
+            }).lean(),
             AllCategorySubscriptionModel.find({
                 userId,
                 paymentStatus: { $in: ['completed', 'failed'] }
-            })
+            }).lean()
         ]);
 
         // Check if both subscriptions are empty
@@ -307,16 +280,11 @@ exports.getHistory = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error fetching history:', error);  // Improved error logging
-        res.status(500).json({
-            success: false,
-            message: "Error occurred while fetching the history",
-            error: error.message,  // Added more detailed error message
-        });
+        next(error);
     }
 };
 
-exports.getSingleHistory = async (req, res) => {
+exports.getSingleHistory = async (req, res, next) => {
     try {
         const userId = req.user._id;
         const { paymentId } = req.params;
@@ -337,13 +305,12 @@ exports.getSingleHistory = async (req, res) => {
 
         // Fetch history from both models based on userId and paymentId
         const [singleHistory, allHistory] = await Promise.all([
-            SingleCategorySubscriptionModel.findOne({ userId, paymentId }).exec(),
-            AllCategorySubscriptionModel.findOne({ userId, paymentId }).exec()
+            SingleCategorySubscriptionModel.findOne({ userId, paymentId }).lean().exec(),
+            AllCategorySubscriptionModel.findOne({ userId, paymentId }).lean().exec()
         ]);
 
         // If history is found in any model, return it
         const history = singleHistory || allHistory;
-
         if (!history) {
             return res.status(404).json({
                 success: false,
@@ -357,12 +324,7 @@ exports.getSingleHistory = async (req, res) => {
             message: "History fetched successfully.",
             history,
         });
-
     } catch (error) {
-        console.error('Error fetching history:', error);
-        return res.status(500).json({
-            success: false,
-            message: "Error occurred while fetching the history.",
-        });
+        next(error);
     };
 };

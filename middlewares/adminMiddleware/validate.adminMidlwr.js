@@ -1,3 +1,4 @@
+const { validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 
 exports.validateObjectIds = (keys) => (req, res, next) => {
@@ -33,7 +34,23 @@ exports.validateRequiredFields = (requiredFields) => {
                 message: `The following fields are required: ${missingFields.join(', ')}`,
             });
         };
-        
+
         next();
     };
+};
+
+exports.validateFields = (validationRules) => {
+    return [
+        ...validationRules, // Add the dynamic validation rules provided by the route
+        (req, res, next) => {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.array(),
+                });
+            }
+            next();
+        },
+    ];
 };

@@ -1,15 +1,18 @@
-const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
 const axios = require('axios');
 const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-
+const jwt = require('jsonwebtoken');
+const {
+    generateRandomEmail,
+    generateRandomMobileNumber,
+    sendVerificationEmail,
+    sendOtpEmail
+} = require('../../services/emailService');
 const userModel = require('../../models/userModel/userModel');
+const Session = require('../../models/userModel/session.userModel');
 const { generateCode } = require('../../utils/resendOtp.userUtil');
-const { generateTokenAndSetCookie } = require('../../utils/token');
-const { generateRandomEmail, generateRandomMobileNumber } = require('../../utils/email');
+const { generateToken, createSession } = require('../../utils/token');
 const { isValidPassword } = require('../../utils/validateUtil');
+const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(
@@ -17,19 +20,10 @@ const client = new OAuth2Client(
     process.env.ClIENT_SECRET,
     process.env.CALLBACK_URL
 );
-
 const temporaryStorage = new Map();
 
-let transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL,
-        pass: process.env.EMAIL_PASSWORD,
-    },
-});
-
 // --------------- Register User -----------------
-exports.registerUser = async (req, res) => {
+exports.registerUser = async (req, res, next) => {
     try {
         const { name, email, username, password, mobileNumber } = req.body;
 
@@ -38,15 +32,16 @@ exports.registerUser = async (req, res) => {
             if (!isValidPassword(password)) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Password must be strong (include upper, lower, number, and special character)',
+                    status: 400,
+                    message: 'Password must be strong!',
                 });
-            }
-        }
+            };
+        };
 
         // Check for existing user
         const existingUser = await userModel.findOne({ email }).lean().exec();
         if (existingUser) {
-            return res.status(400).json({ success: false, message: 'User already exists' });
+            return res.status(400).json({ success: false, status: 400, message: 'User already exists' });
         }
 
         // Create and store user data
@@ -60,26 +55,21 @@ exports.registerUser = async (req, res) => {
             Code: verificationCode,
             isVerified: false
         };
+        if (temporaryStorage.has(email)) {
+            temporaryStorage.delete(email);
+        };
         temporaryStorage.set(email, userData);
 
-        const filePath = path.join(__dirname, '../../pages/mail.html');
-        const htmlContent = fs.readFileSync(filePath, 'utf8');
-        const personalizedHtml = htmlContent.replace('{{otp}}', verificationCode);
-
-        // Send verification email
-        transporter.sendMail({
-            from: process.env.EMAIL,
-            to: email,
-            subject: 'Account Verification',
-            html: personalizedHtml,
-        }, (err, info) => {
-            if (err) console.error('Error sending email:', err);
-            else console.log('Verification email sent:', info.response);
-        });
+        const data = {
+            verificationCode,
+            subject: '🔐 Verify Your Account & Unlock Exclusive Features!',
+        };
+        sendVerificationEmail(email, data);
 
         // Respond with success
         res.status(201).json({
             success: true,
+            status: 201,
             message: 'Please verify your email',
         });
 
@@ -87,113 +77,112 @@ exports.registerUser = async (req, res) => {
         setTimeout(() => {
             if (temporaryStorage.has(email)) {
                 temporaryStorage.delete(email);
-                console.log(`Temporary data for user "${email}" has expired and been removed.`);
-            }
-        }, 15 * 60 * 1000);  // 15 minutes
+            };
+        }, 10 * 60 * 1000);  // 10 minutes
 
     } catch (error) {
-        console.error('Error during user registration:', error);
-
-        // Handle validation errors
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({
-                success: false,
-                message: 'Validation Error',
-                errors: Object.values(error.errors).map(err => err.message),
-            });
-        }
-
-        // Handle duplicate errors (email already exists)
-        if (error.code === 11000) {
-            const field = Object.keys(error.keyValue)[0];
-            return res.status(409).json({
-                success: false,
-                message: `Duplicate field value entered for ${field}: ${error.keyValue[field]}. Please use another value!`,
-            });
-        }
-
-        // General server error
-        res.status(500).json({
-            success: false,
-            message: 'Server Error',
-            error: error.message,
-        });
-    }
+        next(error);
+    };
 };
 
 // ---------------- Register with email -----------------
-exports.registerUserWithEmailOrPhone = async (req, res) => {
+exports.registerUserWithEmailOrPhone = async (req, res, next) => {
     try {
         const { name, email, username, password, mobileNumber } = req.body;
 
-        // Validate input: either email or mobileNumber is required
+        // Validate either email or mobileNumber is provided
         if (!email && !mobileNumber) {
             return res.status(400).json({
                 success: false,
-                message: 'Either email or mobile number is required',
+                status: 400,
+                message: 'Either email or mobile number is required'
             });
         }
 
-        // Validate email format if provided
+        // Validate email and mobile number formats
         if (email && !/^\S+@\S+\.\S+$/.test(email)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid email format.',
-            });
+            return res.status(400).json({ success: false, status: 400, message: 'Invalid email format.' });
         }
 
-        // Validate mobile number format if provided (example for a 10-digit number)
         if (mobileNumber && !/^\d{10}$/.test(mobileNumber)) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid mobile number. It must be a 10-digit number.',
+                status: 400,
+                message: 'Invalid mobile number. It must be a 10-digit number.'
             });
         }
 
-        // Find existing user by email or mobile number
-        const user = await userModel.findOne({
-            $or: [{ email }, { mobileNumber }]
-        }).lean().exec();
-
-        // If user exists, log them in
+        // Check if user already exists by email or mobile number
+        let user = await userModel.findOne({ $or: [{ email }, { mobileNumber }] }).lean().exec();
+        // If user exists, login them in
         if (user) {
-            const token = generateTokenAndSetCookie(user, res);
+            const token = generateToken(user);
+            const deviceId = crypto.createHash("sha256")
+                .update(req.ip + req.headers["user-agent"])
+                .digest("hex");
+            await createSession(user, token, deviceId); // Create a session for the user
+
+            res.cookie('userToken', token, {
+                httpOnly: true,
+                secure: true,
+                maxAge: 1000 * 60 * 60 * 48, // 2 days
+                sameSite: 'Strict',
+            });
+
+            // Clear node-cache
+            clearCache("node-cache");
+
             return res.status(200).json({
                 success: true,
-                message: 'User logged in successfully',
+                status: 200,
+                message: 'Logged in successfully...!',
                 userId: user._id,
-                token,
+                token
             });
         }
 
-        // Create new user
+        // If user doesn't exist, create new user
         const newUser = new userModel({
             name: name || `User_${crypto.randomBytes(4).toString('hex')}`,
             email: email || generateRandomEmail(),
             password,
-            username: username || `${(name || 'User').split(' ').join('_')}_${crypto.randomBytes(2).toString('hex')}`,
+            username: username || `${(name || 'User').split(' ')
+                .join('_')}_${crypto.randomBytes(2).toString('hex')}`,
             mobileNumber: mobileNumber || generateRandomMobileNumber(),
             isVerified: true
         });
         await newUser.save();
 
-        // Log in the new user
-        const token = generateTokenAndSetCookie(newUser, res);
-        res.status(200).json({
-            success: true,
-            message: 'User registered and logged in successfully',
-            userId: newUser._id,
-            token,
+        const token = generateToken(newUser);
+        const deviceId = crypto.createHash("sha256")
+            .update(req.ip + req.headers["user-agent"])
+            .digest("hex");
+        await createSession(newUser, token, deviceId); // Create a session for the new user
+
+        res.cookie('userToken', token, {
+            httpOnly: true,
+            secure: true,
+            maxAge: 1000 * 60 * 60 * 48, // 2 days
+            sameSite: 'Strict',
         });
 
+        // Clear node-cache
+        clearCache("node-cache");
+
+        res.status(200).json({
+            success: true,
+            status: 200,
+            message: 'Logged in successfully...!',
+            userId: newUser._id,
+            token
+        });
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: 'Server error' });
-    }
+        next(error); // Pass the error to the next middleware
+    };
 };
 
 // -------------- Verify User -------------------
-exports.verifyUser = async (req, res) => {
+exports.verifyUser = async (req, res, next) => {
     const { email, code } = req.body;
 
     try {
@@ -202,58 +191,65 @@ exports.verifyUser = async (req, res) => {
         if (!user_data) {
             return res.status(400).json({
                 success: false,
+                status: 400,
                 message: 'Invalid or expired verification code!',
             });
         }
-
         const { Code, ...userDetails } = user_data;
 
         // Check if the verification code matches
         if (parseInt(code) !== Code) {
             return res.status(400).json({
                 success: false,
+                status: 400,
                 message: 'Incorrect verification code.',
             });
         }
 
         // Create new user and save
-        const user = new userModel({
-            ...userDetails,
-            isVerified: true,
-        });
+        const user = new userModel({ ...userDetails, isVerified: true });
         await user.save();
 
         // Delete temporary user data after successful verification
         temporaryStorage.delete(email);
 
-        const token = generateTokenAndSetCookie(user, res);
+        const token = generateToken(user);
+        const deviceId = crypto.createHash("sha256")
+            .update(req.ip + req.headers["user-agent"])
+            .digest("hex"); // or generate a custom unique device ID
+        await createSession(user, token, deviceId); // Create a session for the user
+
+        res.cookie('userToken', token, {
+            httpOnly: true,
+            secure: true,
+            maxAge: 1000 * 60 * 60 * 48, // 2 days
+            sameSite: 'Strict',
+        });
+
+        // Clear node-cache
+        clearCache("node-cache");
 
         // Respond with success
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'Logged in successfully.',
             userId: user._id,
             token,
         });
-
     } catch (error) {
-        console.error('Error verifying user:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred during user verification',
-            error: error.message,
-        });
-    }
+        next(error);
+    };
 };
 
 // -------------- Forget password -----------------
-exports.forgotPassword = async (req, res) => {
+exports.forgotPassword = async (req, res, next) => {
     const { email } = req.body;
 
     try {
         const user = await userModel.findOne({ email });
         if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found!' });
+            return res.status(404).json({ success: false, status: 404, message: 'User not found!' });
         };
 
         // Generate OTP and expiration (valid for 10 minutes)
@@ -262,23 +258,20 @@ exports.forgotPassword = async (req, res) => {
         user.otpExpiration = Date.now() + 10 * 60 * 1000; // 10 minutes from now
         await user.save();
 
-        // Send OTP via email
-        await transporter.sendMail({
-            to: user.email,
-            from: 'support@example.com',
-            subject: 'Your OTP for Password Reset',
-            html: `<p>Your OTP is <strong>${otp}</strong>. It is valid for 10 minutes.</p>`
-        });
+        const data = {
+            subject: '🔐 Your OTP for Password Reset',
+            otp,
+        };
+        sendOtpEmail(email, data);
 
-        res.status(200).json({ success: true, message: 'OTP sent to your email!' });
+        res.status(200).json({ success: true, status: 200, message: 'OTP sent to your email!' });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ success: false, message: 'Error sending OTP' });
+        next(error);
     };
 };
 
 // -------------- Reset password ------------------
-exports.resetPassword = async (req, res) => {
+exports.resetPassword = async (req, res, next) => {
     const { email, newPassword } = req.body;
 
     try {
@@ -289,7 +282,7 @@ exports.resetPassword = async (req, res) => {
         });
 
         if (!user) {
-            return res.status(400).json({ success: false, message: 'User not found!' });
+            return res.status(400).json({ success: false, status: 400, message: 'User not found!' });
         };
 
         user.password = newPassword;
@@ -297,34 +290,57 @@ exports.resetPassword = async (req, res) => {
         user.otpExpiration = null;
         await user.save();
 
-        res.status(200).json({ success: true, message: 'Password reset successfully!', user });
+        // Clear node-cache
+        clearCache("node-cache");
+
+        res.status(200).json({
+            success: true,
+            status: 200,
+            message: 'Password reset successfully!',
+            user
+        });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ success: false, message: 'Error resetting password' });
+        next(error);
     };
 };
 
 // --------------- Verify Otp ------------------- 
-exports.verifyOtp = async (req, res) => {
+exports.verifyOtp = async (req, res, next) => {
     try {
         const { email, otp } = req.body;
-        if (!email || !otp) return res.status(400).json({ success: false, message: 'Email and OTP are required!' });
+        if (!email || !otp) return res.status(400).json({
+            success: false,
+            status: 400,
+            message: 'Email and OTP are required!'
+        });
 
-        const user = await userModel.findOne({ email, otp });
-        if (!user) return res.status(404).json({ success: false, message: 'User not found!' });
+        const user = await userModel.findOne({ email, otp }).lean();
+        if (!user) return res.status(404).json({
+            success: false,
+            status: 404,
+            message: 'User not found!'
+        });
 
         if (user.otp !== otp || user.otpExpiration <= Date.now()) {
-            return res.status(400).json({ success: false, message: 'Invalid or expired OTP!' });
+            return res.status(400).json({
+                success: false,
+                status: 400,
+                message: 'Invalid or expired OTP!'
+            });
         };
 
-        res.status(200).json({ success: true, message: 'OTP verified successfully!' });
+        res.status(200).json({
+            success: true,
+            status: 200,
+            message: 'OTP verified successfully!'
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Internal server error!', error: error.message });
-    }
+        next(error);
+    };
 };
 
 // -------------- Resend otp -------------------
-exports.resendOtp = async (req, res) => {
+exports.resendOtp = async (req, res, next) => {
     const { email } = req.body;
 
     try {
@@ -344,35 +360,32 @@ exports.resendOtp = async (req, res) => {
             user.otpExpiration = Date.now() + 10 * 60 * 1000; // New OTP expires in 10 minutes
             await user.save();
 
-            // Send OTP via email
-            await transporter.sendMail({
-                to: user.email,
-                from: process.env.EMAIL,
-                subject: 'Your Resent OTP for Password Reset',
-                html: `<p>Your new OTP is <strong>${newOTP}</strong>. It is valid for 10 minutes.</p>`
-            });
+            const data = {
+                subject: '🔐 Your OTP for Password Reset',
+                otp: newOTP,
+            };
+            sendOtpEmail(email, data);
 
             return res.status(200).json({
                 success: true,
+                status: 200,
                 message: 'New OTP has been sent to your email!',
             });
         } else {
             // If the current OTP is still valid, do not generate a new one
             return res.status(400).json({
                 success: false,
+                status: 400,
                 message: 'The current OTP is still valid. Please wait until it expires.'
             });
         };
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while resending OTP',
-        });
+        next(error);
     };
 };
 
 // -------------- Resend verification code --------------------
-exports.resendVerificationCode = async (req, res) => {
+exports.resendVerificationCode = async (req, res, next) => {
     const { email } = req.body;
     try {
         const user = await temporaryStorage.get(email);
@@ -387,7 +400,8 @@ exports.resendVerificationCode = async (req, res) => {
         if (user.isVerified) {
             return res.status(400).json({
                 success: false,
-                message: "User is already verified",
+                status: 400,
+                message: "Already verified",
             });
         };
 
@@ -398,92 +412,86 @@ exports.resendVerificationCode = async (req, res) => {
         temporaryStorage.delete(email);
         temporaryStorage.set(email, user);
 
-        const mailOptions = {
-            from: process.env.EMAIL,
-            to: email,
-            subject: 'Account Verification',
-            text: `Your verification code is: ${Code}`,
+        const data = {
+            verificationCode,
+            subject: '🔐 Verify Your Account & Unlock Exclusive Features!'
         };
-
-        transporter.sendMail(mailOptions, (err, info) => {
-            if (err) return console.error(err);
-            console.log('Verification email sent: ' + info.response);
-        });
+        sendVerificationEmail(email, data);
 
         return res.status(200).json({
             success: true,
-            message: "Verification code resent successfully",
+            status: 200,
+            message: "Verification code resent successfully!",
         });
     } catch (error) {
-        console.error("Error resending verification code:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Server error while resending verification code",
-        });
+        next(error);
     };
 };
 
 // -------------- Login User ---------------------
-exports.loginUser = async (req, res) => {
+exports.loginUser = async (req, res, next) => {
     try {
         const { email, password } = req.body;
 
+        // 🔹 Find user by email
         const user = await userModel.findOne({ email });
-
-        if (!user || !(await user.comparePassword(password))) {
+        if (!user) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid email or password',
+                status: 401,
+                message: "Invalid email or password",
             });
-        };
+        }
 
-        const token = jwt.sign(
-            { email: user.email, role: user.role, _id: user._id },
-            process.env.USER_SECRET_KEY,
-            { expiresIn: '2d' },
-        );
+        // 🔹 Validate password securely
+        const isPasswordValid = await user.comparePassword(password);
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                status: 401,
+                message: "Invalid email or password",
+            });
+        }
 
-        res.cookie('userToken', token, {
+        // 🔹 Generate JWT Token
+        const token = generateToken(user);
+        const deviceId = crypto.createHash("sha256")
+            .update(req.ip + req.headers["user-agent"])
+            .digest("hex");
+        await createSession(user, token, deviceId); // Create session for user
+
+        // 🔹 Set token in secure HTTP-only cookie
+        res.cookie("userToken", token, {
             httpOnly: true,
             secure: true,
-            maxAge: 1000 * 60 * 60 * 48,
-            sameSite: 'Lax',
-            path: '/',
+            maxAge: 1000 * 60 * 60 * 48, // 2 days
+            sameSite: "Strict",
         });
 
         res.status(200).json({
             success: true,
-            message: 'User logged in successful...!',
+            message: "Logged in successfully!",
             userId: user._id,
             token,
         });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'error occured during login',
-        });
-    };
+        next(error);
+    }
 };
 
 // -------------- Chek Mobile Number --------------
-exports.checkMobileNumber = async (req, res) => {
+exports.checkMobileNumber = async (req, res, next) => {
     try {
         const { mobileNumber } = req.body;
-
-        // Validate mobile number existence and format
-        if (!mobileNumber || !/^\d{10}$/.test(mobileNumber)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Valid 10-digit mobile number is required.',
-            });
-        }
 
         // Check if the mobile number already exists in the database
         const userExists = await userModel.exists({ mobileNumber });
 
+        clearCache('node-cache');
+
         return res.status(200).json({
             success: true,
+            status: 200,
             message: userExists
                 ? 'Mobile number already registered.'
                 : 'Mobile number not registered.',
@@ -491,55 +499,40 @@ exports.checkMobileNumber = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error checking mobile number:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Server error while checking mobile number.',
-            error: error.message,
-        });
-    }
+        next(error);
+    };
 };
 
 // ------------- Logout User -----------------
-exports.logoutUser = async (req, res) => {
+exports.logoutUser = async (req, res, next) => {
     try {
-        const userToken = req.cookies?.userToken;
-
-        // Check if userToken exists in cookies
+        const userToken = req.headers.authorization?.split(' ')[1] || req.cookies?.userToken;
         if (!userToken) {
             return res.status(400).json({
                 success: false,
-                message: 'User is already logged out!',
+                status: 400,
+                message: 'Already logged out!',
             });
-        }
+        };
 
-        // Clear the userToken cookie
-        res.clearCookie('userToken', {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'Lax',
-            path: '/',
-        });
+        const decoded = jwt.verify(userToken, process.env.USER_SECRET_KEY);
+        await Session.findOneAndDelete({ userId: decoded._id });
 
         // Send success response
         return res.status(200).json({
             success: true,
-            message: 'User logged out successfully.',
+            message: 'Logged out successfully.',
+            status: 200,
             token: userToken,
         });
 
     } catch (error) {
-        console.error('Logout exception:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Failed to log out due to a server error.',
-            error: error.message,
-        });
-    }
+        next(error);
+    };
 };
 
 // ---------------- login with google ----------------- 
-exports.redirectToGoogleProfile = async (req, res) => {
+exports.redirectToGoogleProfile = async (req, res, next) => {
     try {
         const googleUrl = client.generateAuthUrl({
             access_type: 'offline',
@@ -550,20 +543,18 @@ exports.redirectToGoogleProfile = async (req, res) => {
         });
         res.status(200).json({
             success: true,
-            message: 'Past this url into the browser',
+            message: 'Paste this URL into the browser for authentication',
             googleUrl,
         });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'error during generate auth url',
-        });
-    };
+        next(error);
+    }
 };
-
-exports.getGoogleProfile = async (req, res) => {
+exports.getGoogleProfile = async (req, res, next) => {
     const { code } = req.query;
+    if (!code) {
+        return res.status(400).json({ success: false, message: 'No code provided' });
+    };
 
     try {
         const { tokens } = await client.getToken(code);
@@ -571,63 +562,76 @@ exports.getGoogleProfile = async (req, res) => {
 
         const ticket = await client.verifyIdToken({
             idToken: tokens.id_token,
-            audience: process.env.GOOGLE_CLIENT_ID,
+            audience: process.env.CLIENT_ID,
         });
+
         const payload = ticket.getPayload();
         const userId = payload['sub'];
         const email = payload['email'];
         const name = payload['name'];
+        const picture = payload['picture'];
 
-        const token = jwt.sign(
-            { email, role: 'user', _id: userId },
-            process.env.USER_SECRET_KEY,
-            { expiresIn: '2d' }
-        );
+        let user_ = await userModel.findOne({ email });
+        if (!user_) {
+            user_ = new userModel({
+                name,
+                email,
+                username: `User_${crypto.randomBytes(2).toString('hex')}`,
+                profile_Picture: picture,
+            });
+            await user_.save();
+        };
+
+        const user = { email, role: user_.role, _id: user_._id };
+        const token = generateToken(user);
+        const deviceId = crypto.createHash("sha256")
+            .update(req.ip + req.headers["user-agent"])
+            .digest("hex");
+        await createSession(user, token, deviceId);
 
         res.cookie('userToken', token, {
             httpOnly: true,
             secure: true,
             maxAge: 1000 * 60 * 60 * 48,
-            sameSite: 'Lax',
-            path: '/',
+            sameSite: 'Strict',
         });
+
+        clearCache("node-cache");
 
         res.status(200).json({
             success: true,
-            message: 'User logged in successful...',
+            message: 'Logged in successfully!',
+            status: 200,
             userId,
             token,
         });
     } catch (error) {
-        console.error('Error during authentication:', error);
-        res.status(500).json({ success: false, message: 'Authentication failed' });
-    };
+        next(error);
+    }
 };
 
 // -------------------- login with facebook -------------------
-exports.redirectToFacebookProfile = (req, res) => {
+exports.redirectToFacebookProfile = (req, res, next) => {
     try {
-        const fbAuthUrl = `https://www.facebook.com/v12.0/dialog/oauth?client_id=${process.env.FACEBOOK_APP_ID}&redirect_uri=${process.env.FACEBOOK_REDIRECT_URI}&scope=email`;
+        const client_id = process.env.FACEBOOK_APP_ID;
+        const redirect_uri = process.env.FACEBOOK_REDIRECT_URI;
+
+        const fbAuthUrl = `https://www.facebook.com/v12.0/dialog/oauth?client_id=${client_id}&redirect_uri=${redirect_uri}&scope=email`;
 
         res.status(200).json({
             success: true,
-            message: 'Paste this url into the browser',
+            status: 200,
+            message: 'Paste this url into the browser for auth',
             fbAuthUrl,
         });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'error occured while redirect to fecebook profile',
-        });
+        next(error);
     };
 };
-
-exports.getFacebookProfile = async (req, res) => {
+exports.getFacebookProfile = async (req, res, next) => {
     const { code } = req.query;
-
     if (!code) {
-        return res.status(400).json({ error: 'No code provided' });
+        return res.status(400).json({ success: false, message: 'No code provided' });
     };
 
     try {
@@ -646,57 +650,76 @@ exports.getFacebookProfile = async (req, res) => {
                 access_token: accessToken,
             },
         });
-        const { id, email } = userResponse.data;
-        const token = jwt.sign(
-            { email, role: 'user', _id: id },
-            process.env.USER_SECRET_KEY,
-            { expiresIn: '2d' }
-        );
+        const { name, email } = userResponse.data;
+
+        let user_ = await userModel.findOne({ email });
+        if (!user_) {
+            user_ = new userModel({
+                name,
+                email,
+                username: `User_${crypto.randomBytes(2).toString('hex')}`,
+            });
+            await user_.save();
+        };
+
+        const user = { email, role: user_.role, _id: user_._id }
+        const token = generateToken(user);
+        const deviceId = crypto.createHash("sha256")
+            .update(req.ip + req.headers["user-agent"])
+            .digest("hex");
+        await createSession(user, token, deviceId); // Create a session for the user
 
         res.cookie('userToken', token, {
             httpOnly: true,
             secure: true,
-            maxAge: 1000 * 60 * 60 * 48,
-            sameSite: 'Lax',
-            path: '/',
+            maxAge: 1000 * 60 * 60 * 48, // 2 days
+            sameSite: 'Strict',
         });
+
+        // Clear node-cache
+        clearCache("node-cache");
 
         res.status(200).json({
             success: true,
-            message: 'User logged in successful...',
+            message: 'Logged in successful...!',
             userId: id,
             token,
         });
-
     } catch (error) {
-        console.error('Error during Facebook authentication:', error);
-        res.status(500).json({ success: false, message: 'Authentication failed' });
+        next(error);
     };
 };
 
 // -------------------- user profile ---------------------
 
-exports.userProfile = async (req, res) => {
+exports.userProfile = async (req, res, next) => {
     try {
-        const profile = await userModel.findById(req.user._id);
+        const profile = await userModel.findById(req.user._id)
+            .select('-createdAt -updatedAt -__v -otp -otpExpiration -role -isVerified -password')
+            .lean();
 
         if (!profile) {
-            return res.status(404).json({ success: false, message: 'Profile not found.' });
-        }
+            return res.status(404).json({ success: false, status: 404, message: 'Profile not found.' });
+        };
 
-        res.status(200).json({ success: true, message: 'Profile fetched successfully.', profile });
+        res.status(200).json({
+            success: true,
+            status: 200,
+            message: 'Profile fetched successfully.',
+            profile
+        });
     } catch (error) {
-        console.error('Error fetching user profile:', error);
-        res.status(500).json({ success: false, message: 'Error occurred while fetching the user profile.' });
-    }
+        next(error);
+    };
 };
 
-exports.updateUser = async (req, res) => {
+exports.updateUser = async (req, res, next) => {
     try {
         const userId = req.user ? req.user._id : req.query.userId;
         if (!userId) {
             return res.status(400).json({
                 success: false,
+                status: 400,
                 message: "userId not found",
             });
         };
@@ -707,15 +730,18 @@ exports.updateUser = async (req, res) => {
         if (!user) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: 'User not found!',
             });
         };
 
         if (profilePicture) {
-            const isValidURL = /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(profilePicture);
+            const isValidURL =
+                /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(profilePicture);
             if (!isValidURL) {
                 return res.status(400).json({
                     success: false,
+                    status: 400,
                     message: 'Invalid profile picture URL!',
                 });
             };
@@ -725,27 +751,27 @@ exports.updateUser = async (req, res) => {
         Object.assign(user, userData);
         await user.save();
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
-            message: 'User updated successfully...',
+            status: 200,
+            message: 'Updated successfully...',
             user,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while updating the profile',
-            error: error.message,
-        });
+        next(error);
     };
 };
 
-exports.deleteUser = async (req, res) => {
+exports.deleteUser = async (req, res, next) => {
     try {
         const userId = req.user ? req.user._id : req.query.userId;
         if (!userId) {
             return res.status(404).json({
                 success: true,
+                status: 404,
                 message: "userId not found",
             });
         };
@@ -753,20 +779,21 @@ exports.deleteUser = async (req, res) => {
         if (!deleteUser) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: 'User not found!',
             });
         };
+
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
-            message: 'User deleted successfully...',
+            status: 200,
+            message: 'Deleted successfully...',
             deleteUser,
         });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'error occured while deleting the profile',
-            error: error.message,
-        });
+        next(error);
     };
 };

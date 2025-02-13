@@ -1,82 +1,70 @@
-const fs = require('fs').promises;
 const Category = require('../../models/adminModel/category.adminModel');
-const { uploadImage, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
+const { deleteImageOnCloudinary, uploadImageOnCloudinary } = require('../../utils/uploadUtil');
+const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
-const categoryOptions = {
-    folder: 'Categories',
-    transformation: [
-        { width: 1080, height: 1080, crop: 'fill' }
-    ],
-};
-
-exports.createCategory = async (req, res) => {
+exports.createCategory = async (req, res, next) => {
     try {
-        let { name, description, status, image } = req.body;
-
-        // Handle image upload or URL validation
-        if (req.files?.image) {
-            image = req.files.image.tempFilePath;
-        } else if (image && !/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
-            return res.status(400).json({ success: false, message: 'Invalid image URL!' });
-        } else {
-            return res.status(400).json({ success: false, message: 'Image or image URL is required!' });
-        }
+        let { name } = req.body;
 
         // Check for existing category
-        if (await Category.findOne({ name })) {
-            return res.status(409).json({ success: false, message: 'Category already exists.' });
-        }
-
-        // Create and validate the category
-        const tempCategory = new Category({ name, description, status });
-        const validationError = tempCategory.validateSync();
-        if (validationError) {
-            return res.status(400).json({
+        if (await Category.findOne({ name }).lean()) {
+            return res.status(409).json({
                 success: false,
-                message: 'Validation Error',
-                errors: Object.values(validationError.errors).map(err => err.message),
+                status: 409,
+                message: 'Category already exists.'
             });
         }
 
-        // Upload image if provided
-        const imageData = image && await uploadImage(image, categoryOptions);
+        let imageData = { url: null, public_id: null };
+        if (req.file) {
+            const data = await uploadImageOnCloudinary(req.file.path, 'VleCategories');
+            imageData.url = data.secure_url;
+            imageData.public_id = data.public_id;
+        }
+
         const category = new Category({
             name,
-            description,
-            public_id: imageData.public_id,
             image_url: imageData.url,
-            status,
+            public_id: imageData.public_id,
         });
-
         await category.save();
 
-        res.status(201).json({ success: true, message: 'Category created successfully.', category });
+        // Clear node-cache
+        clearCache("node-cache");
+
+        res.status(201).json({
+            success: true,
+            status: 201,
+            message: 'Category created successfully.',
+            category
+        });
     } catch (error) {
-        console.error('Error creating category:', error);
-        res.status(500).json({ success: false, message: 'An error occurred while creating the category.' });
-    }
+        next(error);
+    };
 };
 
-exports.getAllCategories = async (req, res) => {
+exports.getAllCategories = async (req, res, next) => {
     try {
         const page = Math.max(1, parseInt(req.query.page) || 1);
         const limit = Math.max(1, parseInt(req.query.limit) || 12);
         const skip = (page - 1) * limit;
 
         const [categories, totalCategory] = await Promise.all([
-            Category.find({}, { __v: 0, createdAt: 0, updatedAt: 0 })
+            Category.find({}, { __v: 0, createdAt: 0, updatedAt: 0, public_id: 0 })
                 .sort({ createdAt: -1 })
                 .skip(skip)
-                .limit(limit),
+                .limit(limit)
+                .lean(),
             Category.countDocuments()
         ]);
 
         if (!categories.length) {
-            return res.status(404).json({ success: false, message: 'No categories found!' });
+            return res.status(404).json({ success: false, status: 404, message: 'No categories found!' });
         }
 
         res.status(200).json({
             success: true,
+            status: 200,
             message: "Categories fetched successfully.",
             totalCategory,
             totalPages: Math.ceil(totalCategory / limit),
@@ -84,92 +72,89 @@ exports.getAllCategories = async (req, res) => {
             categories,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: "An error occurred while fetching categories." });
-    }
+        next(error);
+    };
 };
 
-exports.getCategory = async (req, res) => {
+exports.getCategory = async (req, res, next) => {
     try {
         const { categoryId } = req.query;
-        const category = await Category.findById(categoryId);
+        const category = await Category.findById(categoryId)
+            .select('-__v -createdAt -updatedAt -public_id')
+            .lean();
         if (!category) {
             return res.status(404).json({
                 success: true,
+                status: 404,
                 message: 'category not found!',
             });
         };
         res.status(200).json({
             success: true,
+            status: 200,
             message: "category fetched successfully...",
             category,
         });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: true,
-            message: "error occured during fetching the category",
-        });
+        next(error);
     };
 };
 
-exports.updateCategory = async (req, res) => {
+exports.updateCategory = async (req, res, next) => {
     const { categoryId } = req.query;
-    let { name, description, status, image } = req.body;
+    let { name, status } = req.body;
 
     try {
-        const categoryData = await Category.findById(categoryId);
+        const categoryData = await Category.findById(categoryId).lean();
         if (!categoryData) {
-            return res.status(404).json({ success: false, message: 'Category not found!' });
-        }
-
-        // Validate image
-        if (req.files && req.files.image) {
-            image = req.files.image.tempFilePath;
-        } else if (image && !/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
-            return res.status(400).json({ success: false, message: 'Invalid image URL!' });
+            return res.status(404).json({ success: false, status: 404, message: 'Category not found!' });
         }
 
         // Prepare updates
         const updates = {
             name: name || categoryData.name,
-            description: description || categoryData.description,
             status: status !== undefined ? status : categoryData.status,
             updatedAt: Date.now(),
         };
 
         // Handle image upload if provided
-        if (image) {
+        if (req.file) {
             await deleteImageOnCloudinary(categoryData.public_id);
-            const imageData = await uploadImage(image, categoryOptions);
-            updates.public_id = imageData.public_id;
-            updates.image_url = imageData.url;
-            if (req.files.image) await fs.unlink(req.files.image.tempFilePath);
+            const data = await uploadImageOnCloudinary(req.file.path, 'VleCategories');
+            updates.url = data.secure_url;
+            updates.public_id = data.public_id;
         } else {
             updates.public_id = categoryData.public_id;
             updates.image_url = categoryData.image_url;
         }
 
-        const updatedCategory = await Category.findByIdAndUpdate(categoryId, updates, { new: true, runValidators: true });
+        const updatedCategory = await Category.findByIdAndUpdate(
+            categoryId,
+            updates,
+            { new: true, runValidators: true }
+        );
+
+        // Clear node-cache
+        clearCache("node-cache");
 
         res.status(200).json({
             success: true,
+            status: 200,
             message: "Category updated successfully...",
             category: updatedCategory,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: "An error occurred during category update." });
-    }
+        next(error);
+    };
 };
 
-exports.deleteCategories = async (req, res) => {
+exports.deleteCategories = async (req, res, next) => {
     try {
         const { categoryId } = req.query;
 
         const category = await Category.findByIdAndDelete(categoryId);
         if (!category) {
-            return res.status(404).json({ success: false, message: "Category not found" });
+            return res.status(404).json({ success: false, status: 404, message: "Category not found" });
         }
 
         // Delete image from Cloudinary
@@ -177,37 +162,38 @@ exports.deleteCategories = async (req, res) => {
             await deleteImageOnCloudinary(category.public_id);
         }
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
+            status: 200,
             message: "Category deleted successfully...",
             category,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: "Error occurred while deleting the category." });
-    }
+        next(error);
+    };
 };
 
-exports.getCategoryOption = async (req, res) => {
+exports.getCategoryOption = async (req, res, next) => {
     try {
-        const categoryOptions = await Category.find().select('name').sort({ createdAt: -1 });
+        const categoryOptions = await Category.find().select('name').sort({ createdAt: -1 }).lean();
         if (categoryOptions.length === 0) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: 'Category Option not found!',
             })
         };
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'Category option fetched successfully...!',
             totalCategory: categoryOptions.length,
             categoryOptions,
         });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'error occured while fetching the category options',
-        });
+        next(error);
     };
 };

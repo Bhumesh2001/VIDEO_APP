@@ -1,67 +1,61 @@
 const mongoose = require('mongoose');
 
+// Comment Schema
 const commentSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: true,
+        index: true // Index for userId in comments to speed up queries filtering by user
     },
     content: {
         type: String,
-        required: [true, 'Comment content is required'],
-        minlength: [1, 'Comment must be at least 1 character long'],
-        maxlength: [500, 'Comment cannot exceed 500 characters']
     },
 }, { timestamps: true });
 
+// Article Schema
 const articleSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        index: true, // Index for userId to speed up searches by user
     },
     title: {
         type: String,
-        required: [true, 'Title is required'],
-        trim: true,
-        minlength: [10, 'Title must be at least 10 characters long'],
-        maxlength: [200, 'Title cannot exceed 200 characters'],
+        index: { unique: true, sparse: true }, // Unique index on title
+        trim: true
     },
     description: {
         type: String,
-        required: [true, 'Description is required'],
-        minlength: [50, 'Description must be at least 50 characters long'],
-        maxlength: [5000, 'Description cannot exceed 5000 characters'],
+        trim: true,
     },
     image: {
         type: String,
-        validate: {
-            validator: function (v) {
-                return /\.(jpg|jpeg|png|gif)$/i.test(v);
-            },
-            message: 'Image URL must be a valid format (jpg, jpeg, png, gif)',
-        },
-        required: [true, 'Image is required'],
     },
     public_id: {
         type: String,
-        required: true,
-        unique: true,
     },
     likes: {
         type: [mongoose.Schema.Types.ObjectId],
         ref: 'User',
-        default: []
+        default: [],
+        index: true, // Index likes for faster lookup when checking if a user liked an article
     },
     comments: [commentSchema],
-}, { timestamps: true }
-);
+}, { timestamps: true });
 
-articleSchema.index({ title: 1 }, { unique: true });
-articleSchema.index({ likes: 1 }, { sparse: true });
-articleSchema.index({ 'comments.userId': 1 });
-articleSchema.index({ timestamps: 1 });
+// Add compound indexes based on frequently used queries
+articleSchema.index({ userId: 1, title: 1 });  // Efficient search by user and title
+articleSchema.index({ 'comments.userId': 1 }); // Index for searching comments by userId
 
+// Create indexes for better performance on likes and comments
+articleSchema.index({ likes: 1 }, { sparse: true }); // Only index when likes are present
+articleSchema.index({ 'comments.createdAt': -1 }); // Index comment timestamp for quick sorting
+
+// Add an index for efficient searches based on article's creation time
+articleSchema.index({ createdAt: -1 });
+
+// Model
 const Article = mongoose.model('Article', articleSchema);
 
 module.exports = Article;

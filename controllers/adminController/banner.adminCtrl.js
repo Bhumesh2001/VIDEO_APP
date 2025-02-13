@@ -1,206 +1,137 @@
-const fs = require('fs').promises;
 const Banner = require('../../models/adminModel/banner.adminModlel');
-const { uploadImage, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
+const { deleteImageOnCloudinary, uploadImageOnCloudinary } = require('../../utils/uploadUtil');
+const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
-const bannerOptions = {
-    folder: 'Banners',
-    transformation: [
-        { width: 1280, height: 720, crop: 'fill' }
-    ],
-};
-
-exports.createBanner = async (req, res) => {
-    let { title, description, image, status } = req.body;
-    let imageData = null;  // Initialize imageData here to use later for cleanup
+exports.createBanner = async (req, res, next) => {
+    let imageData = { url: null, public_id: null };  // Initialize imageData here to use later for cleanup
 
     try {
-        const existingBanner = await Banner.findOne({ title });
-
-        if (existingBanner) {
-            return res.status(409).json({
-                success: false,
-                message: 'Banner already exists!',
-            });
-        };
-
-        // Check if image file or URL is provided
-        if (!(req.files && req.files.image) && !req.body.image) {
-            return res.status(400).json({
-                success: false,
-                message: 'Image file or image URL is required!',
-            });
-        };
-
-        // Handle image file upload or URL validation
-        if (req.files && req.files.image) {
-            image = req.files.image.tempFilePath;
-        } else {
-            // Validate image URL format
-            const isValidImageUrl = /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image);
-            if (!isValidImageUrl) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid image URL!',
-                });
-            };
-        };
-
-        if (image) imageData = await uploadImage(image, bannerOptions);
-
-        if (req.files.image) await fs.unlink(req.files.image.tempFilePath);
-
-        const bannerObj = {
-            title,
-            description,
-            public_id: imageData.public_id,
-            image: imageData.url,
-            status,
+        if (req.file) {
+            const data = await uploadImageOnCloudinary(req.file.path, 'VleBanners');
+            imageData.url = data.secure_url;
+            imageData.public_id = data.public_id;
         };
 
         // Save new banner to the database
-        const newBanner = new Banner(bannerObj);
+        const newBanner = new Banner({
+            image: imageData.url,
+            public_id: imageData.public_id,
+        });
         await newBanner.save();
+
+        // Clear node-cache
+        clearCache("node-cache");
 
         // Respond with success message
         res.status(201).json({
             success: true,
+            status: 201,
             message: 'Banner created successfully',
             banner: newBanner,
         });
-
     } catch (error) {
-        console.error('Error creating banner:', error);
-
-        // Cleanup the image from Cloudinary if it was uploaded but there was a failure
-        if (imageData && imageData.public_id) deleteImageOnCloudinary(imageData.public_id);
-
-        // Handle validation errors
-        if (error.name === 'ValidationError') {
-            const validationErrors = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({
-                success: false,
-                message: 'Validation Error',
-                errors: validationErrors,
-            });
-        };
-
-        // Handle duplicate error
-        if (error.code === 11000) {
-            return res.status(409).json({
-                success: false,
-                message: 'Banner already exists!',
-            });
-        };
-
-        // General server error response
-        res.status(500).json({
-            success: false,
-            message: 'Server Error',
-            error: error.message,
-        });
+        next(error);
     };
 };
 
-exports.getAllBanners = async (req, res) => {
+exports.getAllBanners = async (req, res, next) => {
     try {
-        const page = parseInt(req.query.page, 10) || 1;
-        const limit = parseInt(req.query.limit, 10) || 12;
+        // Validate and parse pagination parameters
+        const page = Math.max(1, parseInt(req.query.page, 10)) || 1;
+        const limit = Math.max(1, parseInt(req.query.limit, 10)) || 12;
         const skip = (page - 1) * limit;
 
+        // Fetch banners and total count in parallel
         const [banners, totalBanners] = await Promise.all([
-            Banner.find({}, { __v: 0, createdAt: 0, updatedAt: 0 })
-                .sort({ publishedAt: -1 })
+            Banner.find({})
+                .select('-__v -createdAt -updatedAt -public_id') // Exclude unnecessary fields
+                .sort({ publishedAt: -1 }) // Sort by publishedAt in descending order
                 .skip(skip)
-                .limit(limit),
-            Banner.countDocuments(),
+                .limit(limit)
+                .lean(),
+            Banner.countDocuments(), // Get total count of banners
         ]);
 
+        // Check if banners exist
+        if (!banners.length) {
+            return res.status(200).json({
+                success: true,
+                status: 200,
+                message: 'No banners found!',
+                totalBanners: 0,
+                totalPages: 0,
+                page,
+                banners: [],
+            });
+        }
+
+        // Return response
         res.status(200).json({
             success: true,
-            message: 'Banners fetched successfully...',
+            status: 200,
+            message: 'Banners fetched successfully!',
             totalBanners,
             totalPages: Math.ceil(totalBanners / limit),
             page,
             banners,
         });
     } catch (error) {
-        console.error(error);  // Log error for debugging
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
-exports.getSingleBanner = async (req, res) => {
+exports.getSingleBanner = async (req, res, next) => {
     const { bannerId } = req.query;
 
     try {
-        const banner = await Banner.findById(bannerId).exec();
+        const banner = await Banner.findById(bannerId)
+            .select('-createdAt -updatedAt -__v -public_id')
+            .lean();
         if (!banner) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: 'Banner not found'
             });
         };
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'banner fetched successfully...',
             banner,
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
+        next(error);
     };
 };
 
-exports.updateBanner = async (req, res) => {
+exports.updateBanner = async (req, res, next) => {
     const { bannerId } = req.query;
-    let { title, description, image, status } = req.body;
-    let imageData = null;
+    let { status } = req.body;
+    let imageData = { url: null, public_id: null };
 
     try {
         // Check for existing banner
-        const bannerData = await Banner.findById(bannerId);
+        const bannerData = await Banner.findById(bannerId).lean();
         if (!bannerData) {
-            return res.status(404).json({ success: false, message: 'Banner not found!' });
+            return res.status(404).json({ success: false, status: 404, message: 'Banner not found!' });
         }
 
-        // Handle file upload or image URL
-        if (req.files && req.files.image) {
-            image = req.files.image.tempFilePath;
-        } else if (image && !/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image)) {
-            return res.status(400).json({ success: false, message: 'Invalid image URL!' });
+        // Upload new image if provided
+        if (req.file) {
+            if (bannerData.public_id) await deleteImageOnCloudinary(bannerData.public_id);
+            const data = await uploadImageOnCloudinary(req.file.path, 'VleBanners');
+            imageData.url = data.secure_url;
+            imageData.public_id = data.public_id;
         }
 
         // Prepare banner updates
         const bannerUpdates = {
-            title,
-            description,
-            status,
+            status: status ? status : bannerData.status,
             updatedAt: Date.now(),
-            image: bannerData.image,
-            public_id: bannerData.public_id,
+            image: imageData.url ? imageData.url : bannerData.image,
+            public_id: imageData.public_id ? imageData.public_id : bannerData.public_id,
         };
-
-        // Upload new image if provided
-        if (image) {
-            if (bannerData.public_id) {
-                await deleteImageOnCloudinary(bannerData.public_id);
-            }
-            imageData = await uploadImage(image, bannerOptions);
-            bannerUpdates.image = imageData.url;
-            bannerUpdates.public_id = imageData.public_id;
-
-            // Remove temporary image file if uploaded
-            if (req.files.image) {
-                await fs.unlink(req.files.image.tempFilePath);
-            }
-        }
 
         // Update the banner
         const updatedBanner = await Banner.findByIdAndUpdate(bannerId, bannerUpdates, {
@@ -208,27 +139,21 @@ exports.updateBanner = async (req, res) => {
             runValidators: true,
         });
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'Banner updated successfully',
             banner: updatedBanner,
         });
     } catch (error) {
-        console.error(error);
-
-        if (imageData && imageData.public_id) {
-            await deleteImageOnCloudinary(imageData.public_id);
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message,
-        });
-    }
+        next(error);
+    };
 };
 
-exports.deleteBanner = async (req, res) => {
+exports.deleteBanner = async (req, res, next) => {
     const { bannerId } = req.query;
 
     try {
@@ -236,6 +161,7 @@ exports.deleteBanner = async (req, res) => {
         if (!banner) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: 'Banner not found'
             });
         };
@@ -243,16 +169,16 @@ exports.deleteBanner = async (req, res) => {
         const public_id = banner.public_id;
         if (public_id) await deleteImageOnCloudinary(public_id);
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'Banner deleted successfully',
             banner,
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
+        next(error);
     };
 };

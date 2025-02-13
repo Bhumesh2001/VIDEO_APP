@@ -1,108 +1,126 @@
-const { cloudinary } = require('../config/cloudinary');
+const multer = require("multer");
 const fs = require('fs');
-const axios = require('axios');
-const stream = require('stream');
-const { promisify } = require('util');
+const path = require("path");
+const { cloudinary } = require('../config/cloudinary');
 
-const pipeline = promisify(stream.pipeline);
-const CHUNK_SIZE = 100 * 1024 * 1024; // 100MB chunks
+// 🔹 Disk Storage Setup (Sabhi Files Save Honge)
+const storage = multer.diskStorage({
+    destination: "uploads/", // File temporary save hogi
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + "_" + file.originalname);
+    },
+});
+exports.upload = multer({ storage });
 
-function isValidUrl(string) {
-    try {
-        new URL(string);
-        return true;
-    } catch (_) {
-        return false;
-    }
-};
+// 🔹 Function to Delete All Files in Uploads Directory
+exports.clearTempFiles = async () => {
+    const files = fs.readdirSync("uploads/");
 
-exports.uploadVideo = async (input, options = {}) => {
-    try {
-        let uploadOptions = {
-            resource_type: "video",
-            chunk_size: CHUNK_SIZE,
-            ...options,
-        };
-
-        const isUrl = isValidUrl(input);
-
-        if (isUrl) {
-            return uploadFromUrl(input, uploadOptions);
-        } else {
-            return uploadFromFile(input, uploadOptions);
+    // Function to delete file with retry logic
+    const deleteFileWithRetry = async (filePath) => {
+        let attempt = 0;
+        while (attempt < 3) {
+            try {
+                fs.unlinkSync(filePath);
+                console.log(`Deleted file: ${filePath}`);
+                return;
+            } catch (deleteError) {
+                attempt++;
+                if (attempt < 3) {
+                    console.error(`Attempt ${attempt} failed, retrying...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Retry after 1 second
+                } else {
+                    console.error(`Failed to delete file after 3 attempts: ${deleteError.message}`);
+                }
+            }
         }
-    } catch (error) {
-        console.error('Error uploading video:', error.message);
-        throw new Error(`Failed to upload video: ${error.message}`);
-    }
+    };
+
+    // Iterate through files and delete them
+    for (const file of files) {
+        await deleteFileWithRetry(path.join("uploads/", file));
+    };
 };
 
-exports.uploadImage = async (input, options = {}) => {
+// 🔹 Upload Video using Streams
+exports.uploadVideoOnCloudinary = async (filePath, folder) => {
+    return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+            {
+                resource_type: "video",
+                chunk_size: 10000000, // 6MB chunks for stability
+                timeout: 300000, // 5 min timeout
+                folder: folder || "VleVideos",
+            },
+            (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }
+        );
+
+        // 🔹 Read file as a stream & pipe to Cloudinary
+        fs.createReadStream(filePath).pipe(uploadStream);
+    });
+};
+
+// Delete video on cloudinary
+exports.deleteVideoOnCloudinary = async (publicId) => {
     try {
-        let uploadOptions = {
-            resource_type: "image",
-            ...options,
-        };
-
-        let isUrl;
-        try {
-            isUrl = isValidUrl(input);
-        } catch (e) {
-            isUrl = false;
-        };
-
-        if (isUrl) {
-            return uploadFromUrl(input, uploadOptions);
-        } else {
-            return uploadFromFile(input, uploadOptions);
-        };
+        await cloudinary.uploader.destroy(publicId, {
+            resource_type: "video",
+        });
     } catch (error) {
-        console.error('Error uploading image:', error.message);
-        throw new Error(`Failed to upload image: ${error.message}`);
+        console.error("Delete Error:", error.message);
     }
 };
 
-async function uploadFromFile(filePath, uploadOptions) {
-    const fileStream = fs.createReadStream(filePath);
-
-    return new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
-            if (error) return reject(error);
-            resolve({
-                public_id: result.public_id,
-                url: result.secure_url,
-            });
-        });
-
-        pipeline(fileStream, uploadStream).catch(reject);
-    });
-};
-
-async function uploadFromUrl(url, uploadOptions) {
-    const { data } = await axios({
-        method: 'get',
-        url: url,
-        responseType: 'stream',
-        timeout: 60000,
-    });
-
-    return new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
-            if (error) return reject(error);
-            resolve({
-                public_id: result.public_id,
-                url: result.secure_url,
-            });
-        });
-
-        pipeline(data, uploadStream).catch(reject);
-    });
-};
-
+// Function to delete the image on cloudinary
 exports.deleteImageOnCloudinary = async (publicId) => {
     try {
         await cloudinary.uploader.destroy(publicId);
     } catch (error) {
         throw new Error(`Error deleting image: ${error.message}`);
-    };
+    }
+};
+
+// 🔹 Cloudinary File Upload (Using File Path)
+exports.uploadImageOnCloudinary = async (filePath, folder = "") => {
+    try {
+        if (!fs.existsSync(filePath)) throw new Error("File not found!");
+
+        // 🔹 Upload the file from disk
+        const result = await cloudinary.uploader.upload(filePath, {
+            resource_type: "auto", // Auto-detect file type (image, video, etc.)
+            folder: folder,        // Optional: Store in a specific folder
+            format: "webp",        // Convert images to WebP (better compression)
+            transformation: [{ width: 800, height: 450, crop: "limit", quality: "auto" }],
+        });
+
+        // 🔹 Delete file from disk after upload
+        fs.unlinkSync(filePath);
+
+        return result;
+    } catch (error) {
+        console.error("Cloudinary Upload Error:", error.message);
+        throw new Error("File upload failed");
+    }
+};
+
+// 🔹 Optimized Upload Function
+exports.uploadVideoFromURL = async (videoURL, folder) => {
+    if (!videoURL) throw new Error("Video URL is required!");
+
+    try {
+        const data = await cloudinary.uploader.upload(videoURL, {
+            resource_type: "video",
+            folder: folder || "VleVideos",
+            chunk_size: 12000000, // 12MB chunks for stability
+            timeout: 300000, // 5 min timeout
+        });
+
+        return data;
+    } catch (error) {
+        console.error("Upload Error:", error.message);
+        throw new Error("Cloudinary upload failed. Please try again.");
+    }
 };

@@ -21,28 +21,37 @@ const settingController = require('../controllers/adminController/settingCtrl');
 const { adminAuthentication } = require('../middlewares/adminMiddleware/auth.adminMdlwr');
 const {
     validateObjectIds,
-    validateRequiredFields
+    validateFields,
 } = require('../middlewares/adminMiddleware/validate.adminMidlwr');
 const { cacheMiddleware } = require('../middlewares/userMiddleware/redisMidlwr');
+const adminValidation = require('../validation/adminValidation');
+const { upload } = require('../utils/uploadUtil');
 
 // ****************** login/signup routes ******************
 
 adminRouter.post(
     '/create-admin',
-    validateRequiredFields(['username', 'email', 'password']),
+    validateFields(adminValidation.adminValidationRules),
     adminController.createAdmin
 );
 adminRouter.post(
     '/login-admin',
-    validateRequiredFields(['email', 'password']),
+    validateFields(adminValidation.adminLoginValidationRules),
     adminController.loginAdmin
 );
 
 // ******************* profile routes *****************
 
 adminRouter.get('/profile', adminAuthentication, adminController.adminProfile);
-adminRouter.put('/update-profile', adminAuthentication, adminController.updateProfile);
+adminRouter.put(
+    '/update-profile',
+    adminAuthentication,
+    upload.single('profilePicture'),
+    validateFields(adminValidation.validateUpdateAdminData),
+    adminController.updateProfile
+);
 adminRouter.post('/logout', adminAuthentication, adminController.logoutAdmin);
+adminRouter.get("/get-token", adminController.getToken);
 
 // ****************** Countact Us routes **********************
 
@@ -73,13 +82,12 @@ adminRouter.delete(
 );
 
 // ******************* video routes ********************
-
 adminRouter.post(
     '/upload-video',
     adminAuthentication,
-    videoController.uploadVideoToCloudinary
+    upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]),
+    videoController.uploadVideo
 );
-adminRouter.post('/mega/upload-video', adminAuthentication, videoController.uploadVideoToMega);
 adminRouter.get('/videos', adminAuthentication, cacheMiddleware, videoController.getAllVideos);
 adminRouter.get(
     '/videos-by-category',
@@ -87,13 +95,21 @@ adminRouter.get(
     cacheMiddleware,
     videoController.getAllVideosByCategory
 );
+adminRouter.put(
+    '/update-video/:videoId',
+    adminAuthentication,
+    upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]),
+    videoController.updateVideo
+);
+adminRouter.delete('/delete-video/:videoId', adminAuthentication, videoController.deleteVideo);
 
 // ******************** Category routes ********************
 
 adminRouter.post(
     '/create-category',
     adminAuthentication,
-    validateRequiredFields(['name', 'description', 'status']),
+    upload.single('image'),
+    validateFields(adminValidation.categoryValidationRules),
     categoryController.createCategory
 );
 adminRouter.get(
@@ -113,6 +129,7 @@ adminRouter.put(
     '/update-category',
     adminAuthentication,
     validateObjectIds(['categoryId']),
+    upload.single('image'),
     categoryController.updateCategory
 );
 adminRouter.delete(
@@ -126,14 +143,13 @@ adminRouter.get(
     adminAuthentication,
     cacheMiddleware,
     categoryController.getCategoryOption
-)
+);
 
 // ***************** create user by admin routes *********************
 
 adminRouter.post(
     '/create-user',
     adminAuthentication,
-    validateRequiredFields(['name', 'email', 'password', 'mobileNumber']),
     userAdminController.createUserByAdmin
 );
 adminRouter.get('/users', adminAuthentication, cacheMiddleware, userAdminController.getAllUsersByAdmin);
@@ -162,7 +178,8 @@ adminRouter.delete(
 adminRouter.post(
     '/create-article',
     adminAuthentication,
-    validateRequiredFields(['title', 'description']),
+    upload.single('image'),
+    validateFields(adminValidation.articleValidationRules),
     articleController.createArticle
 );
 adminRouter.get('/articls', adminAuthentication, cacheMiddleware, articleController.getAllArticles);
@@ -177,6 +194,7 @@ adminRouter.put(
     '/update-article',
     adminAuthentication,
     validateObjectIds(['articleId']),
+    upload.single('image'),
     articleController.updateArticle
 );
 adminRouter.delete(
@@ -191,7 +209,8 @@ adminRouter.delete(
 adminRouter.post(
     '/create-story',
     adminAuthentication,
-    validateRequiredFields(['title', 'caption']),
+    upload.single('image'),
+    validateFields(adminValidation.storyValidationRules),
     storyController.createStoryByAdmin
 );
 adminRouter.get('/stories', adminAuthentication, cacheMiddleware, storyController.getAllStoriesByAdmin);
@@ -206,6 +225,7 @@ adminRouter.put(
     '/update-story',
     adminAuthentication,
     validateObjectIds(['storyId']),
+    upload.single('image'),
     storyController.updateStoryByAdmin
 );
 adminRouter.delete(
@@ -219,7 +239,8 @@ adminRouter.delete(
 adminRouter.post(
     '/create-banner',
     adminAuthentication,
-    validateRequiredFields(['title', 'description']),
+    upload.single('image'),
+    validateFields(adminValidation.bannerValidationRules),
     bannerController.createBanner
 );
 adminRouter.get('/banners', adminAuthentication, cacheMiddleware, bannerController.getAllBanners);
@@ -234,6 +255,7 @@ adminRouter.put(
     '/update-banner',
     adminAuthentication,
     validateObjectIds(['bannerId']),
+    upload.single('image'),
     bannerController.updateBanner
 );
 adminRouter.delete(
@@ -248,7 +270,7 @@ adminRouter.delete(
 adminRouter.post(
     '/create-subscription',
     adminAuthentication,
-    validateRequiredFields(['planName', 'planType', 'price', 'features', 'discount']),
+    validateFields(adminValidation.subscriptionPlanValidationRules),
     subscriptionController.createSubscriptionPlan
 );
 adminRouter.get(
@@ -291,7 +313,7 @@ adminRouter.get(
 adminRouter.post(
     '/create-coupon',
     adminAuthentication,
-    validateRequiredFields(['expirationDate', 'maxUsage']),
+    validateFields(adminValidation.couponValidationRules),
     couponController.createCoupon
 );
 adminRouter.get('/coupons', adminAuthentication, cacheMiddleware, couponController.getCoupons);
@@ -318,7 +340,11 @@ adminRouter.delete(
 // ******************** setting routes ******************
 
 adminRouter.route('/setting/general')
-    .post(adminAuthentication, settingController.saveGeneralSettings)
+    .post(
+        adminAuthentication,
+        upload.fields([{ name: "siteLogo", maxCount: 1 }, { name: "siteFavicon", maxCount: 1 }]),
+        settingController.saveGeneralSettings
+    )
     .get(adminAuthentication, cacheMiddleware, settingController.getGeneralSettings)
 
 adminRouter.route('/setting/smtp')

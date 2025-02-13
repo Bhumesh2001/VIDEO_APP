@@ -4,59 +4,42 @@ const mongoose = require('mongoose');
 const generalSettingsSchema = new mongoose.Schema({
     siteName: {
         type: String,
-        required: [true, 'Site name is required'],
         trim: true,
-        minlength: [3, 'Site name must be at least 3 characters long'],
-        maxlength: [100, 'Site name must be less than 100 characters long'],
+        required: true,
     },
     siteLogo: {
         public_id: {
             type: String,
-            required: [true, 'Site logo public ID is required'],
+            required: true,
         },
         url: {
             type: String,
-            required: [true, 'Site logo URL is required'],
-            validate: {
-                validator: function (v) {
-                    return /^https?:\/\/.+/i.test(v); // Validate URL format
-                },
-                message: 'Site logo must be a valid URL',
-            },
+            required: true,
         },
     },
     siteKeywords: {
         type: String,
         trim: true,
-        maxlength: [255, 'Keywords must be less than 255 characters long'],
     },
     siteFavicon: {
         public_id: {
             type: String,
-            required: [true, 'Site favicon public ID is required'],
+            required: true,
         },
         url: {
             type: String,
-            required: [true, 'Site favicon URL is required'],
-            validate: {
-                validator: function (v) {
-                    return /^https?:\/\/.+/i.test(v); // Validate URL format
-                },
-                message: 'Site favicon must be a valid URL',
-            },
+            required: true,
         },
     },
     email: {
         type: String,
-        required: [true, 'Email is required'],
+        required: true,
         trim: true,
         lowercase: true,
-        match: [/.+\@.+\..+/, 'Please enter a valid email address'],
     },
     _description: {
         type: String,
         trim: true,
-        maxlength: [500, 'Description must be less than 500 characters long'],
     },
     headerCode: {
         type: String,
@@ -69,60 +52,29 @@ const generalSettingsSchema = new mongoose.Schema({
     copyrightText: {
         type: String,
         trim: true,
-        maxlength: [100, 'Copyright text must be less than 100 characters long'],
     },
     socialMediaLinks: {
         facebook: {
             type: String,
             trim: true,
-            validate: {
-                validator: function (v) {
-                    return v === '' || /^https?:\/\/.+/i.test(v); // Validate URL or allow empty
-                },
-                message: 'Facebook URL must be a valid URL or empty',
-            },
         },
         twitter: {
             type: String,
             trim: true,
-            validate: {
-                validator: function (v) {
-                    return v === '' || /^https?:\/\/.+/i.test(v); // Validate URL or allow empty
-                },
-                message: 'Twitter URL must be a valid URL or empty',
-            },
         },
         instagram: {
             type: String,
             trim: true,
-            validate: {
-                validator: function (v) {
-                    return v === '' || /^https?:\/\/.+/i.test(v); // Validate URL or allow empty
-                },
-                message: 'Instagram URL must be a valid URL or empty',
-            },
         },
     },
     appDownloadLinks: {
         googlePlay: {
             type: String,
             trim: true,
-            validate: {
-                validator: function (v) {
-                    return v === '' || /^https?:\/\/.+/i.test(v); // Validate URL or allow empty
-                },
-                message: 'Google Play URL must be a valid URL or empty',
-            },
         },
         appStore: {
             type: String,
             trim: true,
-            validate: {
-                validator: function (v) {
-                    return v === '' || /^https?:\/\/.+/i.test(v); // Validate URL or allow empty
-                },
-                message: 'App Store URL must be a valid URL or empty',
-            },
         },
     },
 }, { timestamps: true });
@@ -132,26 +84,23 @@ const generalSettingsSchema = new mongoose.Schema({
 const smtpEmailSettingsSchema = new mongoose.Schema({
     smtpHost: {
         type: String,
-        required: [true, 'SMTP Host is required.'],
+        required: true,
     },
     smtpPort: {
         type: Number,
-        required: [true, 'SMTP Port is required.'],
-        min: [1, 'Port must be a positive number.'],
-        max: [65535, 'Port must be less than 65536.'], // Valid range for TCP ports
+        required: true,
     },
     smtpEmail: {
         type: String,
-        required: [true, 'SMTP Email is required.'],
-        match: [/.+@.+\..+/, 'Please enter a valid email address.'], // Basic email format validation
+        required: true,
     },
     smtpPassword: {
         type: String,
-        required: [true, 'SMTP Password is required.'],
+        required: true,
     },
     encryptionType: {
         type: String,
-        required: [true, 'Encryption Type is required.'],
+        required: true,
         enum: {
             values: ['SSL', 'TLS', 'NONE'],
             message: 'Encryption Type must be either SSL, TLS, or NONE.'

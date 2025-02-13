@@ -8,58 +8,48 @@ const ivLength = Number(process.env.IV_LENGTH);
 const adminSchema = new mongoose.Schema({
     username: {
         type: String,
-        required: [true, 'Username is required'],
         unique: true,
-        minlength: [4, 'Username must be at least 4 characters long'],
-        maxlength: [20, 'Username must not exceed 20 characters'],
         trim: true,
+        index: true, // Index for fast search
     },
     email: {
         type: String,
-        required: [true, 'Email is required'],
         unique: true,
         lowercase: true,
         trim: true,
-        match: [/\S+@\S+\.\S+/, 'Please enter a valid email address'],
+        index: true, // Index for fast search
     },
     password: {
         type: String,
-        required: [true, 'Password is required'],
-        minlength: [8, 'Password must be at least 8 characters long'],
     },
     phone: {
         type: String,
-        required: [true, 'Phone number is required'],
         unique: true,
-        validate: {
-            validator: function (v) {
-                return /^\+?[1-9]\d{1,14}$/.test(v);
-            },
-            message: props => `${props.value} is not a valid phone number!`
-        },
+        index: true, // Index for fast search
     },
     role: {
         type: String,
         enum: ['superadmin', 'admin', 'moderator'],
         default: 'admin',
+        index: true, // Index for role-based searches
     },
     profilePicture: {
         url: {
             type: String,
-            validate: {
-                validator: function (v) {
-                    return /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(v);
-                },
-                message: props => `${props.value} is not a valid image URL!`
-            },
             default: 'https://example.com/default-profile-picture.png',
         },
         public_id: {
             type: String,
-            required: [true, 'public_id is required!'],
+            index: true, // Index for searching by public_id if required
         }
     },
 }, { timestamps: true });
+
+// Adding compound index to improve performance for username & email lookups
+adminSchema.index({ username: 1, email: 1 });
+
+// Adding compound index for phone & role search (if needed for queries)
+adminSchema.index({ phone: 1, role: 1 });
 
 // Method to encrypt password
 adminSchema.methods.encryptPassword = function (password) {
@@ -67,7 +57,7 @@ adminSchema.methods.encryptPassword = function (password) {
     const cipher = crypto.createCipheriv(algorithm, Buffer.from(secretKey, 'utf8'), iv);
     let encrypted = cipher.update(password, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    
+
     return iv.toString('hex') + ':' + encrypted;
 };
 

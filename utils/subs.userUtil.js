@@ -1,216 +1,155 @@
-const cron = require('node-cron');
-const moment = require('moment');
-const mongoose = require('mongoose');
+const cron = require("node-cron");
+const mongoose = require("mongoose");
+const User = require("../models/userModel/userModel");
+const Category = require("../models/adminModel/category.adminModel");
+const SingleCategorySubscriptionModel = require("../models/userModel/subs.user.Model");
+const AllCategorySubscriptionModel = require("../models/userModel/allSubs.userModel");
+const { sendNotificationEmail, sendNotificationEmail2 } = require("../services/emailService");
 
-const SingleCategorySubscriptionModel = require('../models/userModel/subs.user.Model');
-const AllCategorySubscriptionModel = require('../models/userModel/allSubs.userModel');
-const Category = require('../models/adminModel/category.adminModel');
-const userModel = require('../models/userModel/userModel');
-const { sendNotification } = require('../utils/email');
+// 📌 Ensure MongoDB Connection Before Running Queries
+const ensureDBConnection = async () => {
+    if (mongoose.connection.readyState !== 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+};
 
-// 1. Update Subscription Status
+// 📌 1. Update Subscription Status (Every 5 min)
 const updateSubscriptionStatus = async () => {
-    const now = moment().toDate();
+    await ensureDBConnection();
     try {
-        await SingleCategorySubscriptionModel.updateMany(
-            { expiryDate: { $lt: now }, status: 'active' },
-            { $set: { status: 'expired' } }
-        );
-
-        await AllCategorySubscriptionModel.updateMany(
-            { expiryDate: { $lt: now }, status: 'active' },
-            { $set: { status: 'expired' } }
-        );
-
+        const now = new Date();
+        await Promise.all([
+            SingleCategorySubscriptionModel.updateMany(
+                { expiryDate: { $lt: now }, status: "active" },
+                { $set: { status: "expired" } }
+            ),
+            AllCategorySubscriptionModel.updateMany(
+                { expiryDate: { $lt: now }, status: "active" },
+                { $set: { status: "expired" } }
+            ),
+        ]);
     } catch (error) {
-        console.error('Error updating subscription statuses:', error);
-    };
+        console.error("❌ Error updating subscription statuses:", error.message);
+    }
 };
 
-// 2. Delete pending subscription
+// 📌 2. Delete Pending Subscriptions (Every Hour)
 const deletePendingSubscription = async () => {
+    await ensureDBConnection();
     try {
-        const models = [SingleCategorySubscriptionModel, AllCategorySubscriptionModel];
-
-        await Promise.all(models.map(async (model) => {
-            await model.deleteMany({ paymentStatus: 'pending' });
-        }));
-
+        await Promise.all([
+            SingleCategorySubscriptionModel.deleteMany({ paymentStatus: "pending" }),
+            AllCategorySubscriptionModel.deleteMany({ paymentStatus: "pending" }),
+        ]);
     } catch (error) {
-        console.error('Error deleting pending subscriptions:', error);
+        console.error("❌ Error deleting pending subscriptions:", error.message);
     }
 };
 
-// 3. Send Expiry Reminders
+// 📌 3. Send Expiry Reminder Emails (Every 10 min)
 const sendExpiryReminder = async () => {
-    const now = moment();
-    const reminderDate = now.add(3, 'days').toDate();
-
+    await ensureDBConnection();
     try {
-        const data = {
-            subject: 'Your subscription is expiring soon.',
-            text: `<pre>We hope this message finds you well.
-            We wanted to remind you that your subscription is due for renewal.
-            To continue enjoying our services without interruption, 
-            please take a moment to renew your subscription.
-            Thank you for being a valued part of our community. 
-            If you have any questions or need assistance, our support team is here to help.
-            </pre>`
-        };
+        const now = new Date();
+        const reminderDate = new Date();
+        reminderDate.setDate(now.getDate() + 3);
 
-        const singleCategoryExpiring = await SingleCategorySubscriptionModel.find({
-            expiryDate: { $lte: reminderDate, $gt: now.toDate() },
-            status: 'active',
-        });
+        const subscriptions = await Promise.all([
+            SingleCategorySubscriptionModel.find({ expiryDate: { $lte: reminderDate, $gt: now }, status: "active" }, "userId").lean(),
+            AllCategorySubscriptionModel.find({ expiryDate: { $lte: reminderDate, $gt: now }, status: "active" }, "userId").lean(),
+        ]);
 
-        singleCategoryExpiring.forEach(async subscription => {
-            const user = await userModel.findById(subscription.userId);
-            sendNotification(user.email, data);
-        });
+        const uniqueUserIds = [...new Set([...subscriptions[0], ...subscriptions[1]].map(s => s.userId))];
 
-        const allCategoryExpiring = await AllCategorySubscriptionModel.find({
-            expiryDate: { $lte: reminderDate, $gt: now.toDate() },
-            status: 'active',
-        });
+        if (uniqueUserIds.length === 0) return;
 
-        allCategoryExpiring.forEach(async subscription => {
-            const user = await userModel.findById(subscription.userId);
-            sendNotification(user.email, data);
-        });
-        
-    } catch (error) {
-        console.error('Error checking expiring subscriptions:', error);
-    };
-};
+        const users = await User.find({ _id: { $in: uniqueUserIds } }, "email").lean();
 
-// 4. Mark Subscriptions as Expired
-const markSubscriptionsAsExpired = async () => {
-    try {
-        const models = [SingleCategorySubscriptionModel, AllCategorySubscriptionModel];
-
-        await Promise.all(models.map(async (model) => {
-            const expiredSubscriptions = await model.find({
-                paymentStatus: 'completed',
-                status: 'active',
-                expiryDate: { $lt: new Date() }
-            });
-
-            for (const subscription of expiredSubscriptions) {
-                const user = await userModel.findById(subscription.userId);
-                if (user) {
-                    const data = {
-                        subject: 'Subscription expired!',
-                        text: `Your subscription has expired. Please renew to continue enjoying our services`,
-                    }
-                    sendNotification(user.email, data);
-                };
-            }
-        }));
+        await Promise.all(users.map(user =>
+            sendNotificationEmail(user.email, { subject: "Your subscription is expiring soon.", renewLink: "https://example.com" })
+        ));
 
     } catch (error) {
-        console.error('Error processing subscriptions:', error);
+        console.error("❌ Error sending expiry reminders:", error.message);
     }
 };
 
-// 1. Update subscription status (runs every minute)
-cron.schedule('* * * * *', updateSubscriptionStatus);
+// 📌 4. Mark Expired Subscriptions & Send Emails (Every 15 min)
+const markSubscriptionsAsExpired = async () => {
+    await ensureDBConnection();
+    try {
+        const now = new Date();
+        const subscriptions = await Promise.all([
+            SingleCategorySubscriptionModel.find({ expiryDate: { $lt: now }, status: "active", paymentStatus: "completed" }, "userId").lean(),
+            AllCategorySubscriptionModel.find({ expiryDate: { $lt: now }, status: "active", paymentStatus: "completed" }, "userId").lean(),
+        ]);
 
-// 2. Send expiry reminders (runs every minutes)
-cron.schedule('* * * * *', sendExpiryReminder);
+        const uniqueUserIds = [...new Set([...subscriptions[0], ...subscriptions[1]].map(s => s.userId))];
 
-// 3. Mark expired subscriptions (runs every minutes)
-cron.schedule('* * * * *', markSubscriptionsAsExpired);
+        if (uniqueUserIds.length === 0) return;
 
-// 4. Delete pending subscriptions (runs every hour)
-cron.schedule('0 * * * *', deletePendingSubscription);
+        const users = await User.find({ _id: { $in: uniqueUserIds } }, "email name expiryDate").lean();
 
-// convert to iso date format
+        await Promise.all(users.map(user =>
+            sendNotificationEmail2(user.email, {
+                subject: "Subscription expired!",
+                renewLink: "https://example.com",
+                expiryDate: user.expiryDate,
+                username: user.name,
+            })
+        ));
+
+    } catch (error) {
+        console.error("❌ Error processing expired subscriptions:", error.message);
+    }
+};
+
+// 📌 Schedule Cron Jobs
+cron.schedule("*/5 * * * *", updateSubscriptionStatus);
+cron.schedule("*/10 * * * *", sendExpiryReminder);
+cron.schedule("*/15 * * * *", markSubscriptionsAsExpired);
+cron.schedule("0 * * * *", deletePendingSubscription);
+
+// 📌 Convert to ISO Date Format
 exports.convertToISODate = (dateString) => {
-    // Use a regex to identify the date format
     const regexFormats = [
-        {
-            regex: /(\d{1,2})\/(\d{1,2})\/(\d{4})/,
-            parse: (d, m, y) => new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)
-        }, // DD/MM/YYYY
-        {
-            regex: /(\d{1,2})-(\d{1,2})-(\d{4})/,
-            parse: (d, m, y) => new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)
-        }, // DD-MM-YYYY
-        {
-            regex: /(\d{1,2})\/(\d{1,2})\/(\d{2})/,
-            parse: (d, m, y) => new Date(`20${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)
-        }, // DD/MM/YY
-        {
-            regex: /(\d{1,2})-(\d{1,2})-(\d{2})/,
-            parse: (d, m, y) => new Date(`20${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`)
-        }, // DD-MM-YY
-        {
-            regex: /(\d{1,2})\/(\d{1,2})\/(\d{4})/,
-            parse: (m, d, y) => new Date(`${y}-${d.padStart(2, '0')}-${m.padStart(2, '0')}`)
-        }, // MM/DD/YYYY
-        {
-            regex: /(\d{1,2})-(\d{1,2})-(\d{4})/,
-            parse: (m, d, y) => new Date(`${y}-${d.padStart(2, '0')}-${m.padStart(2, '0')}`)
-        }, // MM-DD-YYYY
-        // You can add more formats as necessary
+        { regex: /(\d{1,2})\/(\d{1,2})\/(\d{4})/, parse: (d, m, y) => `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}` },
+        { regex: /(\d{1,2})-(\d{1,2})-(\d{4})/, parse: (d, m, y) => `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}` },
     ];
 
     for (const { regex, parse } of regexFormats) {
         const match = dateString.match(regex);
         if (match) {
-            const date = parse(...match.slice(1));
-            // Validate the date
-            if (!isNaN(date.getTime())) {
-                return date;
-            } else {
-                throw new Error('Invalid date');
-            }
+            const date = new Date(parse(...match.slice(1)));
+            if (!isNaN(date.getTime())) return date;
         }
-    };
-
-    throw new Error('Invalid date format');
+    }
+    throw new Error("❌ Invalid date format");
 };
 
-// fetch and return the userSubscription 
+// 📌 Fetch User Subscription
 exports.UserSubscription = async (userId) => {
+    await ensureDBConnection();
     try {
-        if (!mongoose.Types.ObjectId.isValid(userId)) {
-            throw new Error('Invalid userId');
-        };
+        if (!mongoose.Types.ObjectId.isValid(userId)) throw new Error("❌ Invalid userId");
 
-        const [singleSubscription, allSubscription] = await Promise.all([
-            SingleCategorySubscriptionModel.findOne({
-                userId,
-                paymentStatus: 'completed',
-                status: 'active'
-            }).select('categoryId').lean().exec(),
-            AllCategorySubscriptionModel.findOne({
-                userId,
-                paymentStatus: 'completed',
-                status: 'active'
-            }).select('categoryId').lean().exec()
+        const subscription = await Promise.all([
+            SingleCategorySubscriptionModel.findOne({ userId, paymentStatus: "completed", status: "active" }).select("categoryId").lean(),
+            AllCategorySubscriptionModel.findOne({ userId, paymentStatus: "completed", status: "active" }).select("categoryId").lean(),
         ]);
 
-        const userSubscription = singleSubscription || allSubscription;
+        const userSubscription = subscription[0] || subscription[1];
 
-        if (!userSubscription) {
-            return null;
-        }
+        if (!userSubscription) return null;
 
-        if (mongoose.Types.ObjectId.isValid(userSubscription.categoryId)) {
-            const category = await Category.findById(userSubscription.categoryId).lean().exec();
-            return category || { name: 'unknown' };
-        } else {
-            return { name: 'all' };
-        }
+        return mongoose.Types.ObjectId.isValid(userSubscription.categoryId)
+            ? (await Category.findById(userSubscription.categoryId).lean()) || { name: "unknown" }
+            : { name: "all" };
     } catch (error) {
-        console.error('Error in UserSubscription:', error);
+        console.error("❌ Error in UserSubscription:", error);
         throw error;
     }
 };
 
-// is valid razorpay payment id or not
-exports.isValidRazorpayOrderId = (orderId) => {
-    const regex = /^order_[a-zA-Z0-9]{14}$/;
-    return regex.test(orderId);
-};
+// 📌 Validate Razorpay Order ID
+exports.isValidRazorpayOrderId = (orderId) => /^order_[a-zA-Z0-9]{14}$/.test(orderId);

@@ -20,35 +20,38 @@ const contactUserController = require('../controllers/userController/contact.use
 const { userAuthentication } = require('../middlewares/userMiddleware/userMidlwr');
 const {
     validateObjectIds,
-    validateRequiredFields
+    validateRequiredFields,
+    validateFields
 } = require('../middlewares/adminMiddleware/validate.adminMidlwr');
 const { cacheMiddleware } = require('../middlewares/userMiddleware/redisMidlwr');
-
+const userValidation = require('../validation/userValidation');
+const { upload } = require('../utils/uploadUtil');
 
 // ********************* login/signup routes **********************
 
 userRouter.post(
     '/register',
-    validateRequiredFields(['name', 'email', 'password', 'mobileNumber']),
+    validateFields(userValidation.validateUser),
     userController.registerUser
 );
 userRouter.post(
     '/register/email',
+    validateFields(userValidation.validateRegisterWithEmailOrPhone),
     userController.registerUserWithEmailOrPhone
 );
 userRouter.post(
     '/verify',
-    validateRequiredFields(['email', 'code']),
+    validateFields(userValidation.validatEmailAndCode),
     userController.verifyUser
 );
 userRouter.post(
     '/login',
-    validateRequiredFields(['email', 'password']),
-    cacheMiddleware,
+    validateFields(userValidation.validateLoginUser),
     userController.loginUser
 );
 userRouter.post(
     '/check-phone',
+    validateFields(userValidation.validatePhoneNumber),
     cacheMiddleware,
     userController.checkMobileNumber
 )
@@ -62,27 +65,27 @@ userRouter.get('/auth/facebook/callback', userController.getFacebookProfile);
 
 userRouter.post(
     '/forgot-password',
-    validateRequiredFields(['email']),
+    validateFields(userValidation.validateEmail),
     userController.forgotPassword
 );
 userRouter.post(
     '/reset-password',
-    validateRequiredFields(['email', 'newPassword']),
+    validateFields(userValidation.validateEmailAndNewPassword),
     userController.resetPassword
 );
 userRouter.post(
     '/resend-otp',
-    validateRequiredFields(['email']),
+    validateFields(userValidation.validateEmail),
     userController.resendOtp
 );
 userRouter.post(
     '/resend-code',
-    validateRequiredFields(['email']),
+    validateFields(userValidation.validateEmail),
     userController.resendVerificationCode
 );
 userRouter.post(
     '/verify-otp',
-    validateRequiredFields(['email', 'otp']),
+    validateFields(userValidation.validateEmailAndOTP),
     userController.verifyOtp
 );
 
@@ -97,9 +100,7 @@ userRouter.delete('/delete-profile', userAuthentication, userController.deleteUs
 userRouter.post(
     '/contat-us',
     userAuthentication,
-    validateRequiredFields([
-        'name', 'email', 'phone', 'city', 'district', 'state', 'country', 'pincode', 'message'
-    ]),
+    validateFields(userValidation.validateContactData),
     contactUserController.createContactUser
 );
 
@@ -107,9 +108,9 @@ userRouter.post(
 
 userRouter.get('/videos', userAuthentication, cacheMiddleware, videoUserController.getAllVideos);
 userRouter.get(
-    '/videos/by-category', 
-    userAuthentication, 
-    cacheMiddleware, 
+    '/videos/by-category',
+    userAuthentication,
+    cacheMiddleware,
     videoUserController.getAllVideosByCategory
 );
 
@@ -118,13 +119,13 @@ userRouter.get(
 userRouter.post(
     '/subscribe',
     userAuthentication,
-    validateRequiredFields(['categoryId', 'planId']),
+    validateFields(userValidation.validateCategoryAndPlan),
     subscriptionUserController.subscribeToCategoryOrAll
 );
 userRouter.post(
     '/subscription/update',
     userAuthentication,
-    validateRequiredFields(['paymentStatus']),
+    validateFields(userValidation.validateCategoryPlanPayment),
     subscriptionUserController.updateSubscriptionStatus
 );
 userRouter.get(
@@ -145,7 +146,7 @@ userRouter.get(
     userAuthentication,
     cacheMiddleware,
     subscriptionUserController.getSingleHistory
-)
+);
 
 // ****************** coupans routes *****************
 
@@ -153,7 +154,7 @@ userRouter.get('/coupon', userAuthentication, cacheMiddleware, couponUserControl
 userRouter.post(
     '/valid-coupon',
     userAuthentication,
-    validateRequiredFields(['couponCode', 'planId']),
+    validateFields(userValidation.validateCouponData),
     couponUserController.applyCoupon
 );
 
@@ -175,7 +176,8 @@ userRouter.get('/banners', userAuthentication, cacheMiddleware, bannerAdminContr
 userRouter.post(
     '/create-article',
     userAuthentication,
-    validateRequiredFields(['title', 'description']),
+    upload.single('image'),
+    validateFields(userValidation.validateArticle),
     articleUserController.createArticle
 );
 userRouter.get('/articles', userAuthentication, cacheMiddleware, articleUserController.getAllArticles);
@@ -190,6 +192,7 @@ userRouter.put(
     '/update-article',
     userAuthentication,
     validateObjectIds(['articleId']),
+    upload.single('image'),
     articleUserController.updateArticle
 );
 userRouter.delete(
@@ -204,6 +207,8 @@ userRouter.delete(
 userRouter.post(
     '/create-story',
     userAuthentication,
+    upload.single('image'),
+    validateFields(userValidation.validateStory),
     storyUserController.createStory
 );
 userRouter.get(
@@ -223,6 +228,7 @@ userRouter.put(
     '/update-story',
     userAuthentication,
     validateObjectIds(['storyId']),
+    upload.single('image'),
     storyUserController.updateStory
 );
 userRouter.delete(

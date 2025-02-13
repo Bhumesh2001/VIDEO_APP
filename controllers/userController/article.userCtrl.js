@@ -1,21 +1,14 @@
-const fs = require('fs').promises;
 const Article = require('../../models/adminModel/article.adminModel');
-const { uploadImage, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
+const { deleteImageOnCloudinary, uploadImageOnCloudinary } = require('../../utils/uploadUtil');
+const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
-const articleOptions = {
-    folder: 'Articles',
-    transformation: [
-        { width: 1200, height: 1200, crop: 'fill' }
-    ]
-};
-
-exports.createArticle = async (req, res) => {
-    const { title, description, image } = req.body;
+exports.createArticle = async (req, res, next) => {
+    const { title, description } = req.body;
     let imageData = { public_id: '', url: '' };
 
     try {
         // Check if the article with the same title already exists
-        const existingArticle = await Article.findOne({ title });
+        const existingArticle = await Article.findOne({ title }).lean();
         if (existingArticle) {
             return res.status(409).json({
                 success: false,
@@ -23,24 +16,10 @@ exports.createArticle = async (req, res) => {
             });
         };
 
-        // Handle file-based image upload
-        if (req.files && req.files.image) {
-            const imageFilePath = req.files.image.tempFilePath;
-            imageData = await uploadImage(imageFilePath, articleOptions);
-
-            // Delete temp file after upload
-            await fs.unlink(req.files.image.tempFilePath);
-        }
-        // Handle URL-based image upload
-        else if (image && /^(https?:\/\/.*\.(?:jpg|jpeg|png|gif|webp|bmp|tiff))$/i.test(image)) {
-            imageData.url = image;  // Use the image URL directly
-        }
-        // Invalid image input
-        else {
-            return res.status(400).json({
-                success: false,
-                message: 'Valid image file or URL is required!',
-            });
+        if (req.file) {
+            const data = await uploadImageOnCloudinary(req.file.path, 'VleArticles');
+            imageData.url = data.secure_url;
+            imageData.public_id = data.public_id;
         }
 
         // Create the new article
@@ -55,48 +34,20 @@ exports.createArticle = async (req, res) => {
         const article = new Article(articleData);
         await article.save();
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
             message: "Article created successfully!",
             article,
         });
-
     } catch (error) {
-        console.error(error);
-
-        // Cleanup: Remove the image from Cloudinary if article creation fails
-        if (imageData.public_id) {
-            await deleteImageOnCloudinary(imageData.public_id);
-        }
-
-        // Validation error handling
-        if (error.name === 'ValidationError') {
-            const validationErrors = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({
-                success: false,
-                message: 'Validation Error',
-                errors: validationErrors,
-            });
-        }
-
-        // Handle unique constraint violation (duplicate title)
-        if (error.code === 11000) {
-            return res.status(409).json({
-                success: false,
-                message: 'Article with this title already exists!',
-            });
-        }
-
-        // Server error
-        return res.status(500).json({
-            success: false,
-            message: 'Server error occurred while creating the article.',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
-exports.getAllArticles = async (req, res) => {
+exports.getAllArticles = async (req, res, next) => {
     try {
         const articles = await Article.aggregate([
             {
@@ -127,18 +78,12 @@ exports.getAllArticles = async (req, res) => {
             totalArticles,
             articles
         });
-
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'error occured while fetching the articles',
-            error: error.message,
-        });
+        next(error);
     };
 };
 
-exports.getSingleArticle = async (req, res) => {
+exports.getSingleArticle = async (req, res, next) => {
     try {
         const { articleId } = req.query;
 
@@ -156,22 +101,17 @@ exports.getSingleArticle = async (req, res) => {
             article,
         });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'error occured while fetching the articles',
-            error: error.message,
-        });
+        next(error);
     };
 };
 
-exports.updateArticle = async (req, res) => {
+exports.updateArticle = async (req, res, next) => {
     const { articleId } = req.query;
-    const { title, description, image } = req.body;
+    const { title, description } = req.body;
 
     try {
         // Check if article exists
-        const article = await Article.findOne({ userId: req.user._id, articleId }).exec();
+        const article = await Article.findOne({ userId: req.user._id, _id: articleId }).lean().exec();
         if (!article) {
             return res.status(404).json({
                 success: false,
@@ -181,23 +121,12 @@ exports.updateArticle = async (req, res) => {
 
         // Handle image upload (either URL or file)
         let imageData = { url: article.image, public_id: article.public_id }; // Default to existing image
-        if (req.files?.image || image) {
-            const imageInput = req.files?.image?.tempFilePath || image;
-
-            // Validate image URL if provided
-            if (typeof imageInput === 'string' && !/^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(imageInput)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid image URL!',
-                });
-            }
-
+        if (req.file) {
             // Delete old image and upload the new one
             if (article.public_id) await deleteImageOnCloudinary(article.public_id);
-            imageData = await uploadImage(imageInput, articleOptions);
-
-            // Clean up temporary file if applicable
-            if (req.files?.image) await fs.unlink(req.files.image.tempFilePath);
+            const data = await uploadImageOnCloudinary(req.file.path, 'VleArticles');
+            imageData.url = data.secure_url;
+            imageData.public_id = data.public_id;
         }
 
         // Build update object dynamically
@@ -215,6 +144,9 @@ exports.updateArticle = async (req, res) => {
             { new: true, runValidators: true }
         );
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         return res.status(200).json({
             success: true,
             message: 'Article updated successfully',
@@ -222,20 +154,13 @@ exports.updateArticle = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error updating article:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Error occurred while updating the article',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
-exports.deleteArticle = async (req, res) => {
+exports.deleteArticle = async (req, res, next) => {
     try {
         const { articleId } = req.query;
-
-        // Ensure articleId is provided
         if (!articleId) {
             return res.status(400).json({
                 success: false,
@@ -261,22 +186,20 @@ exports.deleteArticle = async (req, res) => {
             }
         }
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
             message: 'Article deleted successfully',
             article,
         });
     } catch (error) {
-        console.error('Error deleting article:', error);
-        res.status(500).json({
-            success: false,
-            message: 'An error occurred while deleting the article',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
-exports.likeArticle = async (req, res) => {
+exports.likeArticle = async (req, res, next) => {
     const { articleId } = req.query || req.body;
     const userId = req.user._id;
 
@@ -306,15 +229,11 @@ exports.likeArticle = async (req, res) => {
             article,
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error liking/unliking article',
-            error: error.message
-        });
+        next(error);
     };
 };
 
-exports.addComment = async (req, res) => {
+exports.addComment = async (req, res, next) => {
     const { articleId, content } = req.body;
     const userId = req.user._id;
 
@@ -335,27 +254,25 @@ exports.addComment = async (req, res) => {
         article.comments.push(comment);
         await article.save();
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(201).json({
             success: true,
             message: 'comments added successfully...',
             article,
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error adding comment',
-            error: error.message
-        });
+        next(error);
     };
 };
 
-exports.getAllComments = async (req, res) => {
+exports.getAllComments = async (req, res, next) => {
     const { articleId } = req.query || req.body;
 
     try {
         // Fetch the article and select the comments
-        const article = await Article.findById(articleId).select('comments');
-
+        const article = await Article.findById(articleId).select('comments').lean();
         if (!article) {
             return res.status(404).json({
                 success: false,
@@ -372,15 +289,11 @@ exports.getAllComments = async (req, res) => {
             comments: sortedComments,
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'An error occurred while retrieving comments.',
-            error: error.message
-        });
+        next(error);
     }
 };
 
-exports.editComment = async (req, res) => {
+exports.editComment = async (req, res, next) => {
     const { articleId, commentId, content } = req.body;
 
     if (!content || content.trim().length === 0) {
@@ -404,21 +317,20 @@ exports.editComment = async (req, res) => {
             });
         };
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
             message: 'Comment updated successfully.',
             article
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'An error occurred while updating the comment.',
-            error: error.message
-        });
+        next(error);
     };
 };
 
-exports.deleteComment = async (req, res) => {
+exports.deleteComment = async (req, res, next) => {
     const { articleId, commentId } = req.body || req.query;
 
     try {
@@ -435,16 +347,15 @@ exports.deleteComment = async (req, res) => {
             });
         };
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
             message: 'Comment deleted successfully.',
             article
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'An error occurred while deleting the comment.',
-            error: error.message
-        });
+        next(error);
     };
 };

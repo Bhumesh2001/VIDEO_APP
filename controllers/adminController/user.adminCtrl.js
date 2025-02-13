@@ -1,17 +1,16 @@
 const userModel = require('../../models/userModel/userModel');
 const crypto = require('crypto');
+const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
+const { isValidPassword } = require('../../utils/validateUtil');
 
 exports.createUserByAdmin = async (req, res) => {
     try {
         const { name, email, password, username, mobileNumber, status } = req.body;
-
-        // Strong password validation regex (at least one upper, one lower, one number, and one special character)
-        const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
-
-        if (!strongPasswordRegex.test(password)) {
+        if (!isValidPassword(password)) {
             return res.status(400).json({
                 success: false,
-                message: 'Password must be strong (include upper, lower, number, and special character)',
+                status: 400,
+                message: 'Password must be strong!',
             });
         }
 
@@ -23,80 +22,58 @@ exports.createUserByAdmin = async (req, res) => {
             mobileNumber,
             status: status ? status.toLowerCase() : 'inactive',
         });
-
         const savedUser = await newUser.save();
+
+        // Clear node-cache
+        clearCache("node-cache");
 
         res.status(201).json({
             success: true,
+            status: 200,
             message: "Account created successfully",
             user: savedUser,
         });
 
     } catch (error) {
-        console.error('Error creating user:', error);
-
-        if (error.name === 'ValidationError') {
-            const validationErrors = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({
-                success: false,
-                message: 'Validation Error',
-                errors: validationErrors,
-            });
-        }
-
-        if (error.code === 11000) {
-            return res.status(409).json({
-                success: false,
-                message: 'User with this email already exists',
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Server error occurred while creating user',
-            error: error.message,
-        });
-    }
+        next(error);
+    };
 };
 
-exports.getAllUsersByAdmin = async (req, res) => {
+exports.getAllUsersByAdmin = async (req, res, next) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const page = Math.max(1, parseInt(req.query.page)) || 1; // Ensure page is at least 1
+        const limit = Math.max(1, parseInt(req.query.limit)) || 10; // Ensure limit is at least 1
         const skip = (page - 1) * limit;
 
         // Fetch users with pagination and sorting
         const [users, totalUsers] = await Promise.all([
-            userModel.find({})
-                .sort({ createdAt: -1 })
+            userModel.find({}, {
+                name: 1,
+                email: 1,
+                mobileNumber: 1,
+                status: 1,
+                profile_Picture: 1,
+                status: 1
+            })
+                .sort({ createdAt: -1 }) // Ensure createdAt is indexed
                 .skip(skip)
-                .limit(limit),
-            userModel.countDocuments()
+                .limit(limit)
+                .lean(),
+            userModel.countDocuments(), // Count total users
         ]);
 
-        if (!users.length) {
-            return res.status(404).json({
-                success: false,
-                message: "No users found!",
-            });
-        }
-
+        // Return response
         res.status(200).json({
             success: true,
+            status: 200,
             message: "Users fetched successfully",
             totalUsers,
             totalPages: Math.ceil(totalUsers / limit),
             page,
             users,
         });
-
     } catch (error) {
-        console.error('Error fetching users:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while fetching users',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
@@ -104,25 +81,25 @@ exports.getSingleUserByAdmin = async (req, res) => {
     try {
         const { userId } = req.query;
 
-        const user = await userModel.findById(userId);
+        const user = await userModel.findById(userId)
+            .select('name email mobileNumber profile_Picture status')
+            .lean()
+            .exec();
         if (!user) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: "User not found!",
             });
         };
         res.status(200).json({
             success: true,
+            status: 404,
             message: "Users fetched successfully...",
             user,
         });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'error occured while fetching the user',
-            error,
-        });
+        next(error);
     };
 };
 
@@ -139,21 +116,22 @@ exports.updateUserByAdmin = async (req, res) => {
         if (!user) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: "User not found!",
             });
         };
+
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
+            status: 200,
             message: "User updated successfully...",
             user,
         });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'error occured while updating the user',
-            error,
-        });
+        next(error);
     };
 };
 
@@ -165,20 +143,21 @@ exports.deleteUserByAdmin = async (req, res) => {
         if (!user) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: "User not found!",
             });
         };
+
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
+            status: 200,
             message: "User deleted successfully...",
             user,
         });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: 'error occured while deleting the user',
-            error,
-        });
+        next(error);
     };
 };

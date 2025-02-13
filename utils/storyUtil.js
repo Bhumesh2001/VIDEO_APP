@@ -6,6 +6,6 @@ cron.schedule('0 * * * *', async () => {
         const now = new Date();
         await Story.deleteMany({ expirationTime: { $lt: now } });
     } catch (err) {
-        console.error('Error deleting expired stories:', err);
+        console.error('Error deleting expired stories:', err.message);
     };
 });

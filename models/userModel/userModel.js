@@ -12,7 +12,6 @@ const userSchema = new Schema({
         type: String,
         lowercase: true,
         trim: true,
-        match: [/\S+@\S+\.\S+/, 'Please provide a valid email address'],
     },
     password: {
         type: String,
@@ -25,13 +24,6 @@ const userSchema = new Schema({
     },
     mobileNumber: {
         type: String,
-        validate: {
-            validator: function (v) {
-                return /^\d{10}$/.test(v);
-            },
-            message: props =>
-                `${props.value} is not a valid mobile number! Mobile number should be 10 digits.`,
-        }
     },
     otp: {
         type: String,

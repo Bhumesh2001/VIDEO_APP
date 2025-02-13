@@ -1,10 +1,10 @@
 const ContactUseModel = require('../../models/userModel/contact.userModel');
+const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
 // Create a new contact user
-exports.createContactUser = async (req, res) => {
+exports.createContactUser = async (req, res, next) => {
+    const { name, email, phone, city, district, state, country, pincode, message } = req.body;
     try {
-        const { name, email, phone, city, district, state, country, pincode, message } = req.body;
-
         // Create contact user object with nested address
         const contactUser = new ContactUseModel({
             userId: req.user._id,
@@ -14,8 +14,10 @@ exports.createContactUser = async (req, res) => {
             address: { city, district, state, country, pincode },
             message
         });
-
         await contactUser.save();
+
+        // Clear node-cache
+        clearCache("node-cache");
 
         res.status(201).json({
             success: true,
@@ -23,29 +25,14 @@ exports.createContactUser = async (req, res) => {
             contactUser,
         });
     } catch (error) {
-        console.error('Error creating contact user:', error);
-
-        // Handle validation errors explicitly
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({
-                success: false,
-                message: 'Validation Error',
-                errors: Object.values(error.errors).map(err => err.message),
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Server error, failed to create contact user',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
 // Get all constact users
-exports.getAllContactUsers = async (req, res) => {
+exports.getAllContactUsers = async (req, res, next) => {
     try {
-        const users = await ContactUseModel.find();
+        const users = await ContactUseModel.find({}, { createdAt: 0, updatedAt: 0, __v: 0 }).lean();
         if (users.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -58,18 +45,18 @@ exports.getAllContactUsers = async (req, res) => {
             users,
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch contact users',
-            error: error.message,
-        });
+        next(error);
     };
 };
 
 // Get a contact user by ID
-exports.getContactUserById = async (req, res) => {
+exports.getContactUserById = async (req, res, next) => {
     try {
-        const contactUser = await ContactUseModel.findOne({ userId: req.params.userId }).exec();
+        const contactUser = await ContactUseModel.findOne(
+            { userId: req.params.userId },
+            { createdAt: 0, updatedAt: 0, __v: 0 })
+            .lean()
+            .exec();
         if (!contactUser) {
             return res.status(404).json({
                 success: false,
@@ -82,22 +69,12 @@ exports.getContactUserById = async (req, res) => {
             contactUser,
         });
     } catch (error) {
-        if (error.kind === 'ObjectId') {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid user ID',
-            });
-        };
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch contact user',
-            error: error.message,
-        });
+        next(error);
     };
 };
 
 // Update a contact user by ID
-exports.updateContactUserById = async (req, res) => {
+exports.updateContactUserById = async (req, res, next) => {
     try {
         const user = await ContactUseModel.findOneAndUpdate({ userId: req.params.userId }, req.body, {
             new: true,
@@ -111,29 +88,21 @@ exports.updateContactUserById = async (req, res) => {
             });
         };
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
             message: 'Contact user updated successfully',
             user,
         });
     } catch (error) {
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({
-                success: false,
-                message: 'Validation Error',
-                errors: Object.values(error.errors).map(err => err.message),
-            });
-        };
-        res.status(500).json({
-            success: false,
-            message: 'Failed to update contact user',
-            error: error.message,
-        });
+        next(error);
     };
 };
 
 // Delete a contact user by ID
-exports.deleteContactUserById = async (req, res) => {
+exports.deleteContactUserById = async (req, res, next) => {
     try {
         const user = await ContactUseModel.findOneAndDelete(
             { userId: req.params.userId },
@@ -147,15 +116,14 @@ exports.deleteContactUserById = async (req, res) => {
             });
         };
 
+        // Clear node-cache
+        clearCache("node-cache");
+
         res.status(200).json({
             success: true,
             message: 'Contact user deleted successfully',
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to delete contact user',
-            error: error.message,
-        });
+        next(error);
     };
 };

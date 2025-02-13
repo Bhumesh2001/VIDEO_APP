@@ -12,6 +12,7 @@ exports.adminAuthentication = async (req, res, next) => {
         if (decoded.role !== 'admin') {
             return res.status(403).json({
                 success: false,
+                status: 403,
                 message: 'Access denied.'
             });
         };
@@ -19,16 +20,6 @@ exports.adminAuthentication = async (req, res, next) => {
         req.admin = decoded;
         next();
     } catch (error) {        
-        const message = error.name === 'TokenExpiredError' ? 'Token has expired, please log in again.'
-            : error.name === 'JsonWebTokenError' ? 'Invalid token.'
-                : 'Internal server error.';
-
-        res.status(
-            error.name === 'TokenExpiredError' ||
-                error.name === 'JsonWebTokenError' ? 401 : 500)
-            .json({
-                success: false,
-                message
-            });
-    }
+        next(error);
+    };
 };

@@ -1,4 +1,3 @@
-const fs = require('fs').promises;
 const {
     GeneralSettings,
     SmtpEmailSettings,
@@ -9,103 +8,86 @@ const {
     MaintenanceModeSettings,
 } = require('../../models/adminModel/settingModel');
 
-const { uploadImage, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
+const { deleteImageOnCloudinary, uploadImageOnCloudinary } = require('../../utils/uploadUtil');
+const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
 // ****************** General settings ******************
 
-const siteLogoOptions = {
-    folder: 'SiteLogos',
-    transformation: [
-        { width: 250, height: 150, crop: 'fill' }
-    ]
-};
-const siteFaviconOptions = {
-    folder: 'SiteFavicons',
-    transformation: [
-        { width: 16, height: 16, crop: 'fill' }
-    ]
-};
-
-exports.saveGeneralSettings = async (req, res) => {
-    let { siteName, siteLogo, siteKeywords, siteFavicon, email, _description, headerCode, footerCode,
-        copyrightText, facebook, twitter, instagram, googlePlay, appStore } = req.body;
-
+exports.saveGeneralSettings = async (req, res, next) => {
     try {
-        const existingSettings = await GeneralSettings.findOne({});
+        const {
+            siteName, siteKeywords, email, _description, headerCode, footerCode,
+            copyrightText, facebook, twitter, instagram, googlePlay, appStore
+        } = req.body;
 
-        // Helper function to process both image files and URLs and upload to the cloud
-        const processImage = async (file, url, options) => {
-            if (existingSettings.siteLogo.public_id) {
-                await deleteImageOnCloudinary(existingSettings.siteLogo.public_id);
-            }
-            if (existingSettings.siteFavicon.public_id) {
-                await deleteImageOnCloudinary(existingSettings.siteFavicon.public_id);
-            }
-            if (file) {
-                const uploadedImage = await uploadImage(file.tempFilePath, options);
-                return { url: uploadedImage.url, public_id: uploadedImage.public_id };
-            } else if (url) {
-                const uploadedImage = await uploadImage(url, options);  // Upload the URL directly
-                return { url: uploadedImage.url, public_id: uploadedImage.public_id };
-            }
-            return { url: '', public_id: '' };
+        // Fetch existing settings (select only necessary fields)
+        const existingSettings = await GeneralSettings.findOne()
+            .select("siteLogo siteFavicon socialMediaLinks appDownloadLinks")
+            .lean();
 
-        };
+        // Extract uploaded files (if available)
+        const logoFile = req.files?.siteLogo?.[0]?.path || null;
+        const faviconFile = req.files?.siteFavicon?.[0]?.path || null;
 
-        // Check for file or URL for logo and favicon, process and upload them
-        const imageData = {
-            siteLogo: await processImage(req.files?.siteLogo, siteLogo, siteLogoOptions),
-            siteFavicon: await processImage(req.files?.siteFavicon, siteFavicon, siteFaviconOptions)
-        };
+        // Delete old images only if new ones are provided
+        if (logoFile && existingSettings?.siteLogo?.public_id) {
+            await deleteImageOnCloudinary(existingSettings.siteLogo.public_id);
+        }
+        if (faviconFile && existingSettings?.siteFavicon?.public_id) {
+            await deleteImageOnCloudinary(existingSettings.siteFavicon.public_id);
+        }
 
-        if(req.files.siteFavicon) await fs.unlink(req.files.siteFavicon.tempFilePath);
-        if(req.files.siteLogo) await fs.unlink(req.files.siteLogo.tempFilePath);
+        // Upload new images (only if a file exists)
+        const siteLogo = logoFile ? await uploadImageOnCloudinary(logoFile, "VleSiteLogos") : null;
+        const siteFavicon = faviconFile ? await uploadImageOnCloudinary(faviconFile, "VleSiteFavicons") : null;
 
-        // Prepare data for updating or creating settings
+        // Prepare update data
         const settingsData = {
             siteName: siteName || existingSettings?.siteName,
-
-            // Ensure the image data is handled correctly
-            siteLogo: imageData.siteLogo.url ? imageData.siteLogo : existingSettings?.siteLogo,
-            siteFavicon: imageData.siteFavicon.url ? imageData.siteFavicon : existingSettings?.siteFavicon,
-
+            siteLogo: siteLogo ? { url: siteLogo.secure_url, public_id: siteLogo.public_id } :
+                existingSettings?.siteLogo,
+            siteFavicon: siteFavicon ? { url: siteFavicon.secure_url, public_id: siteFavicon.public_id } :
+                existingSettings?.siteFavicon,
             siteKeywords: siteKeywords || existingSettings?.siteKeywords,
             email: email || existingSettings?.email,
             _description: _description || existingSettings?._description,
             headerCode: headerCode || existingSettings?.headerCode,
             footerCode: footerCode || existingSettings?.footerCode,
             copyrightText: copyrightText || existingSettings?.copyrightText,
-
-            // Merge nested objects for social media links and app download links
             socialMediaLinks: {
                 facebook: facebook || existingSettings?.socialMediaLinks?.facebook,
                 twitter: twitter || existingSettings?.socialMediaLinks?.twitter,
-                instagram: instagram || existingSettings?.socialMediaLinks?.instagram
+                instagram: instagram || existingSettings?.socialMediaLinks?.instagram,
             },
             appDownloadLinks: {
                 googlePlay: googlePlay || existingSettings?.appDownloadLinks?.googlePlay,
-                appStore: appStore || existingSettings?.appDownloadLinks?.appStore
+                appStore: appStore || existingSettings?.appDownloadLinks?.appStore,
             }
         };
 
-        // Save settings
-        const savedSettings = existingSettings ?
-            await GeneralSettings.findByIdAndUpdate(existingSettings._id, settingsData, { new: true }) :
-            await new GeneralSettings(settingsData).save();
+        // Upsert the settings (create if it doesn't exist, otherwise update)
+        const savedSettings = await GeneralSettings.findOneAndUpdate(
+            {},
+            settingsData,
+            { new: true, upsert: true }
+        );
 
-        res.status(existingSettings ? 200 : 201).json({
+        // Clear node-cache
+        clearCache("node-cache");
+
+        res.status(200).json({
             success: true,
-            message: existingSettings ? 'Settings updated successfully.' : 'Settings created successfully.',
+            message: "Settings updated successfully.",
             settings: savedSettings
         });
 
     } catch (error) {
-        console.error('Error saving general settings:', error);
-        res.status(500).json({ success: false, message: 'Error occurred while saving settings.', error: error.message });
+        console.log(error);
+        next(error);
     }
 };
 
-exports.getGeneralSettings = async (req, res) => {
+exports.getGeneralSettings = async (req, res, next) => {
     try {
         const settings = await GeneralSettings.findOne({}).lean().exec();
         if (!settings) {
@@ -113,20 +95,18 @@ exports.getGeneralSettings = async (req, res) => {
         }
         res.status(200).json({ success: true, message: 'General settings fetched successfully...', settings });
     } catch (error) {
-        console.error('Error fetching settings:', error);
-        res.status(500).json({ success: false, message: 'Error occurred while fetching settings.', error: error.message });
+        next(error);
     }
 };
 
 // ****************** SMTP setting *******************
 
-exports.saveSmtpSettings = async (req, res) => {
+exports.saveSmtpSettings = async (req, res, next) => {
     try {
         const { smtpHost, smtpPort, smtpEmail, smtpPassword, encryptionType } = req.body;
 
         // Check if settings already exist
         const existingSettings = await SmtpEmailSettings.findOne();
-
         if (existingSettings) {
             // Update existing settings
             existingSettings.smtpHost = smtpHost;
@@ -136,6 +116,9 @@ exports.saveSmtpSettings = async (req, res) => {
             existingSettings.encryptionType = encryptionType;
 
             const updatedSettings = await existingSettings.save();
+
+            // Clear node-cache
+            clearCache("node-cache");
 
             return res.status(200).json({
                 success: true,
@@ -151,8 +134,10 @@ exports.saveSmtpSettings = async (req, res) => {
                 smtpPassword,
                 encryptionType,
             });
-
             const savedSettings = await newSettings.save();
+
+            // Clear node-cache
+            clearCache("node-cache");
 
             return res.status(201).json({
                 success: true,
@@ -161,18 +146,13 @@ exports.saveSmtpSettings = async (req, res) => {
             });
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while creating/updating SMTP settings.',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
-exports.getSmtpSettings = async (req, res) => {
+exports.getSmtpSettings = async (req, res, next) => {
     try {
-        const settings = await SmtpEmailSettings.findOne();
+        const settings = await SmtpEmailSettings.findOne().lean();
 
         if (!settings) {
             return res.status(404).json({
@@ -187,23 +167,17 @@ exports.getSmtpSettings = async (req, res) => {
             settings,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while fetching SMTP settings.',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
 // ***************** social media settings ******************
 
-exports.saveSocialMediaSettings = async (req, res) => {
+exports.saveSocialMediaSettings = async (req, res, next) => {
     try {
         const { googleLogin, googleClientId, googleSecret, facebookLogin, facebookAppId, facebookClientSecret } = req.body;
 
         const existingSettings = await SocialMediaSettings.findOne();
-
         if (existingSettings) {
             // Update existing settings
             existingSettings.googleLogin = googleLogin;
@@ -214,6 +188,9 @@ exports.saveSocialMediaSettings = async (req, res) => {
             existingSettings.facebookClientSecret = facebookClientSecret;
 
             const updatedSettings = await existingSettings.save();
+
+            // Clear node-cache
+            clearCache("node-cache");
 
             return res.status(200).json({
                 success: true,
@@ -230,8 +207,10 @@ exports.saveSocialMediaSettings = async (req, res) => {
                 facebookAppId,
                 facebookClientSecret,
             });
-
             const savedSettings = await newSettings.save();
+
+            // Clear node-cache
+            clearCache("node-cache");
 
             return res.status(201).json({
                 success: true,
@@ -240,19 +219,13 @@ exports.saveSocialMediaSettings = async (req, res) => {
             });
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while creating/updating Social Media settings.',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
-exports.getSocialMediaSettings = async (req, res) => {
+exports.getSocialMediaSettings = async (req, res, next) => {
     try {
-        const settings = await SocialMediaSettings.findOne();
-
+        const settings = await SocialMediaSettings.findOne().lean();
         if (!settings) {
             return res.status(404).json({
                 success: false,
@@ -266,23 +239,17 @@ exports.getSocialMediaSettings = async (req, res) => {
             settings,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while fetching Social Media settings.',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
 // ******************* Menu settings ********************
 
-exports.saveMenuSettings = async (req, res) => {
+exports.saveMenuSettings = async (req, res, next) => {
     try {
         const { story, article, video__ } = req.body;
 
         const existingSettings = await MenuSettings.findOne();
-
         if (existingSettings) {
             // Update existing settings
             existingSettings.story = story;
@@ -290,6 +257,9 @@ exports.saveMenuSettings = async (req, res) => {
             existingSettings.video__ = video__;
 
             const updatedSettings = await existingSettings.save();
+
+            // Clear node-cache
+            clearCache("node-cache");
 
             return res.status(200).json({
                 success: true,
@@ -303,8 +273,10 @@ exports.saveMenuSettings = async (req, res) => {
                 article,
                 video__,
             });
-
             const savedSettings = await newSettings.save();
+
+            // Clear node-cache
+            clearCache("node-cache");
 
             return res.status(201).json({
                 success: true,
@@ -313,19 +285,13 @@ exports.saveMenuSettings = async (req, res) => {
             });
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while creating/updating menu settings.',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
-exports.getMenuSettings = async (req, res) => {
+exports.getMenuSettings = async (req, res, next) => {
     try {
-        const settings = await MenuSettings.findOne();
-
+        const settings = await MenuSettings.findOne().lean();
         if (!settings) {
             return res.status(404).json({
                 success: false,
@@ -339,23 +305,20 @@ exports.getMenuSettings = async (req, res) => {
             settings,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while fetching menu settings.',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
 // ******************* reCAPTCHA settings ********************
 
-exports.saveRecaptchaSettings = async (req, res) => {
+exports.saveRecaptchaSettings = async (req, res, next) => {
     try {
-        const { siteKey, secretKey, enableOnLogin, enableOnSignup, enableOnForgotPassword, enableOnContactUs } = req.body;
+        const {
+            siteKey, secretKey, enableOnLogin, enableOnSignup,
+            enableOnForgotPassword, enableOnContactUs
+        } = req.body;
 
         const existingSettings = await RecaptchaSettings.findOne();
-
         if (existingSettings) {
             // Update existing settings
             existingSettings.siteKey = siteKey;
@@ -366,6 +329,9 @@ exports.saveRecaptchaSettings = async (req, res) => {
             existingSettings.enableOnContactUs = enableOnContactUs;
 
             const updatedSettings = await existingSettings.save();
+
+            // Clear node-cache
+            clearCache("node-cache");
 
             return res.status(200).json({
                 success: true,
@@ -382,8 +348,10 @@ exports.saveRecaptchaSettings = async (req, res) => {
                 enableOnForgotPassword,
                 enableOnContactUs,
             });
-
             const savedSettings = await newSettings.save();
+
+            // Clear node-cache
+            clearCache("node-cache");
 
             return res.status(201).json({
                 success: true,
@@ -392,19 +360,13 @@ exports.saveRecaptchaSettings = async (req, res) => {
             });
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while creating/updating reCAPTCHA settings.',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
-exports.getRecaptchaSettings = async (req, res) => {
+exports.getRecaptchaSettings = async (req, res, next) => {
     try {
-        const settings = await RecaptchaSettings.findOne();
-
+        const settings = await RecaptchaSettings.findOne().lean();
         if (!settings) {
             return res.status(404).json({
                 success: false,
@@ -418,23 +380,20 @@ exports.getRecaptchaSettings = async (req, res) => {
             settings,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while fetching reCAPTCHA settings.',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
 // ***************** Website banner ads Settings ******************
 
-exports.saveBannerAdsSettings = async (req, res) => {
+exports.saveBannerAdsSettings = async (req, res, next) => {
     try {
-        const { homeTop, listTop, detailsTop, otherPagesTop, homeBottom, listBottom, detailsBottom, otherPagesBottom } = req.body;
+        const {
+            homeTop, listTop, detailsTop, otherPagesTop,
+            homeBottom, listBottom, detailsBottom, otherPagesBottom
+        } = req.body;
 
         const existingAds = await BannerAdsSettings.findOne({});
-
         if (existingAds) {
             // Update existing ads
             existingAds.homeTop = homeTop;
@@ -447,6 +406,9 @@ exports.saveBannerAdsSettings = async (req, res) => {
             existingAds.otherPagesBottom = otherPagesBottom;
 
             const updatedAds = await existingAds.save();
+
+            // Clear node-cache
+            clearCache("node-cache");
 
             return res.status(200).json({
                 success: true,
@@ -465,8 +427,10 @@ exports.saveBannerAdsSettings = async (req, res) => {
                 detailsBottom,
                 otherPagesBottom,
             });
-
             const savedAds = await newAds.save();
+
+            // Clear node-cache
+            clearCache("node-cache");
 
             return res.status(201).json({
                 success: true,
@@ -475,19 +439,13 @@ exports.saveBannerAdsSettings = async (req, res) => {
             });
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while creating/updating banner ads.',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
-exports.getBannerAdsSettings = async (req, res) => {
+exports.getBannerAdsSettings = async (req, res, next) => {
     try {
-        const settings = await BannerAdsSettings.findOne();
-
+        const settings = await BannerAdsSettings.findOne().lean();
         if (!settings) {
             return res.status(404).json({
                 success: false,
@@ -501,29 +459,26 @@ exports.getBannerAdsSettings = async (req, res) => {
             settings,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while fetching banner ads.',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
 // ***************** site mentainence setting ********************
 
-exports.saveMaintenanceModeSettings = async (req, res) => {
+exports.saveMaintenanceModeSettings = async (req, res, next) => {
     try {
         const { enabled, message } = req.body;
 
         const existingSettings = await MaintenanceModeSettings.findOne();
-
         if (existingSettings) {
             // Update existing settings
             existingSettings.enabled = enabled;
             existingSettings.message = message;
 
             const updatedSettings = await existingSettings.save();
+
+            // Clear node-cache
+            clearCache("node-cache");
 
             return res.status(200).json({
                 success: true,
@@ -536,8 +491,10 @@ exports.saveMaintenanceModeSettings = async (req, res) => {
                 enabled,
                 message,
             });
-
             const savedSettings = await newSettings.save();
+
+            // Clear node-cache
+            clearCache("node-cache");
 
             return res.status(201).json({
                 success: true,
@@ -546,19 +503,13 @@ exports.saveMaintenanceModeSettings = async (req, res) => {
             });
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while creating/updating maintenance mode settings.',
-            error: error.message,
-        });
+        next(error);
     }
 };
 
-exports.getMaintenanceModeSettings = async (req, res) => {
+exports.getMaintenanceModeSettings = async (req, res, next) => {
     try {
-        const settings = await MaintenanceModeSettings.findOne();
-
+        const settings = await MaintenanceModeSettings.findOne().lean();
         if (!settings) {
             return res.status(404).json({
                 success: false,
@@ -572,11 +523,6 @@ exports.getMaintenanceModeSettings = async (req, res) => {
             settings,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Error occurred while fetching maintenance mode settings.',
-            error: error.message,
-        });
+        next(error);
     }
 };

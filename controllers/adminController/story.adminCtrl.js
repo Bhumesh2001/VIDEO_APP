@@ -1,102 +1,73 @@
-const fs = require('fs').promises;
 const { faker } = require('@faker-js/faker');
 const Story = require('../../models/adminModel/story.adminModel');
-const { uploadImage, uploadVideo, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
+const { deleteImageOnCloudinary, uploadImageOnCloudinary } = require('../../utils/uploadUtil');
+const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
-const storyVideoOptions = {
-    folder: 'Stories',
-};
-const storyImageOptions = {
-    folder: 'Stories',
-    transformation: [
-        { width: 1080, height: 720, crop: 'fill' }
-    ]
-};
-
-exports.createStoryByAdmin = async (req, res) => {
-    let { video, image, title, caption, ...data } = req.body;
-    const videoFile = req.files?.video;
-    const imageFile = req.files?.image;
+exports.createStoryByAdmin = async (req, res, next) => {
+    let { image, title, caption, ...data } = req.body;
 
     let storyData = {
         userId: req.admin._id,
         title: title ? title : faker.lorem.sentence(),
-        caption: caption ? caption : faker.lorem.paragraph(),
-        video: { url: '', public_id: '' },
+        caption: caption,
         image: { url: '', public_id: '' },
         ...data
     };
 
-    if (!imageFile && !image) {
-        return res.status(400).json({ success: false, message: 'Either image file or image URL is required!' });
-    }
-
     try {
         // Check for existing story
-        const existingStory = await Story.findOne({ title }).exec();
+        const existingStory = await Story.findOne({ title }).lean();
         if (existingStory) {
-            return res.status(409).json({ success: false, message: 'Story already exists!' });
-        }
-
-        // Upload video
-        if (videoFile || video) {
-            const videoInput = videoFile ? videoFile.tempFilePath : video;
-            const { public_id, url } = await uploadVideo(videoInput, storyVideoOptions);
-            storyData.video = { public_id, url };
-
-            if (videoFile) await fs.unlink(videoFile.tempFilePath);
+            return res.status(409).json({ success: false, status: 409, message: 'Story already exists!' });
         }
 
         // Upload image
-        if (imageFile || image) {
-            const imageInput = imageFile ? imageFile.tempFilePath : image;
-            const { public_id, url } = await uploadImage(imageInput, storyImageOptions);
-            storyData.image = { public_id, url };
-
-            if (imageFile) await fs.unlink(imageFile.tempFilePath);
+        if (req.file) {
+            const data = await uploadImageOnCloudinary(req.file.path, 'VleStories');
+            storyData.image.url = data.secure_url;
+            storyData.image.public_id = data.public_id;
         }
 
         // Save the story
         const story = new Story(storyData);
         await story.save();
 
-        res.status(200).json({ success: true, message: 'Story created successfully!', story });
+        // Clear node-cache
+        clearCache("node-cache");
 
+        res.status(200).json({
+            success: true,
+            status: 200,
+            message: 'Story created successfully!',
+            story
+        });
     } catch (error) {
-        console.error('Error:', error);
-
-        // Clean up uploaded resources if needed
-        if (storyData.video.public_id) await deleteImageOnCloudinary(storyData.video.public_id);
-        if (storyData.image.public_id) await deleteImageOnCloudinary(storyData.image.public_id);
-
-        const errorMessage = error.name === 'ValidationError'
-            ? Object.values(error.errors).map(err => err.message).join(', ')
-            : 'Server Error';
-
-        res.status(500).json({ success: false, message: errorMessage });
-    }
+        next(error);
+    };
 };
 
-exports.getAllStoriesByAdmin = async (req, res) => {
+exports.getAllStoriesByAdmin = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 12;
         const skip = (page - 1) * limit;
 
         const [stories, totalStories] = await Promise.all([
-            Story.find({})
+            Story.find({}, { createdAt: 0, updatedAt: 0, __v: 0, public_id: 0 })
                 .sort({ createdAt: -1 })
                 .skip(skip)
-                .limit(limit),
+                .limit(limit)
+                .lean(),
             Story.countDocuments()
         ]);
 
         if (stories.length === 0) {
-            return res.status(404).json({ success: false, message: 'No stories found!' });
+            return res.status(404).json({ success: false, status: 404, message: 'No stories found!' });
         }
 
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'Stories fetched successfully...',
             totalStories,
             totalPages: Math.ceil(totalStories / limit),
@@ -104,114 +75,106 @@ exports.getAllStoriesByAdmin = async (req, res) => {
             stories,
         });
     } catch (error) {
-        console.error('Error fetching stories:', error);
-        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
-    }
+        next(error);
+    };
 };
 
-exports.getSingleStoryByAdmin = async (req, res) => {
+exports.getSingleStoryByAdmin = async (req, res, next) => {
     try {
         const { storyId } = req.query;
-
-        const story = await Story.findById(storyId).exec();
+        const story = await Story.findById(storyId)
+            .select('-createdAt -updatedAt -__v -public_id')
+            .lean();
         if (!story) {
             return res.status(404).json({
                 success: false,
-                message: 'story not found',
+                status: 404,
+                message: 'Story not found!',
             });
         };
 
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'Story fetched successfully...',
             story,
         });
-
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error occured during fetching the story',
-            error: error.message,
-        });
+        next(error);
     };
 };
 
-exports.updateStoryByAdmin = async (req, res) => {
+exports.updateStoryByAdmin = async (req, res, next) => {
     const { storyId } = req.query;
-    const { video, image, ...data } = req.body;
-    const videoFile = req.files?.video;
-    const imageFile = req.files?.image;
+    const { title, caption } = req.body;
+
+    let storyData = {
+        userId: req.admin._id,
+        title,
+        caption,
+        image: { url: '', public_id: '' },
+    };
 
     try {
-        const story = await Story.findById(storyId);
+        const story = await Story.findById(storyId).lean();
         if (!story) {
-            return res.status(404).json({ success: false, message: "Story not found!" });
-        }
-
-        const storyData = { ...data };
-
-        // Handle video upload
-        if (videoFile || video) {
-            if (story.video.public_id) await deleteImageOnCloudinary(story.video.public_id);
-            const videoInput = videoFile?.tempFilePath || video;
-            const videoResult = await uploadVideo(videoInput, storyVideoOptions);
-            storyData.video = { public_id: videoResult.public_id, url: videoResult.url };
-            if (videoFile) await fs.unlink(videoFile.tempFilePath);
-        } else {
-            // Keep existing video data if no new video is provided
-            storyData.video = { public_id: story.video.public_id, url: story.video.url };
-        }
+            return res.status(404).json({ success: false, status: 404, message: "Story not found!" });
+        };
 
         // Handle image upload
-        if (imageFile || image) {
+        if (req.file) {
             if (story.image.public_id) await deleteImageOnCloudinary(story.image.public_id);
-            const imageInput = imageFile?.tempFilePath || image;
-            const imageResult = await uploadImage(imageInput, storyImageOptions);
-            storyData.image = { public_id: imageResult.public_id, url: imageResult.url };
-            if (imageFile) await fs.unlink(imageFile.tempFilePath);
+            const data = await uploadImageOnCloudinary(req.file.path, 'VleStories');
+            storyData.image.url = data.secure_url;
+            storyData.image.public_id = data.public_id;
         } else {
-            // Keep existing image data if no new image is provided
             storyData.image = { public_id: story.image.public_id, url: story.image.url };
         }
 
-        const updatedStory = await Story.findByIdAndUpdate(storyId, storyData, { new: true, runValidators: true });
+        const updatedStory = await Story.findByIdAndUpdate(
+            storyId,
+            storyData,
+            { new: true, runValidators: true }
+        );
+
+        // Clear node-cache
+        clearCache("node-cache");
 
         res.status(200).json({
             success: true,
+            status: 200,
             message: 'Story updated successfully...',
             story: updatedStory,
         });
     } catch (error) {
-        console.error('Error updating story:', error);
-        res.status(500).json({ success: false, message: 'Error occurred while updating the story', error: error.message });
-    }
+        next(error);
+    };
 };
 
-exports.deleteStoryByAdmin = async (req, res) => {
+exports.deleteStoryByAdmin = async (req, res, next) => {
     try {
         const { storyId } = req.query;
-
         const story = await Story.findByIdAndDelete(storyId);
         if (!story) {
             return res.status(404).json({
                 success: true,
+                status: 404,
                 message: 'story not found!',
             });
         };
 
         if (story.image.public_id) await deleteImageOnCloudinary(story.image.public_id);
-        if (story.video.public_id) await deleteImageOnCloudinary(story.video.public_id);
+
+        // Clear node-cache
+        clearCache("node-cache");
 
         res.status(200).json({
             success: false,
+            status: 200,
             message: 'Story deleted successfully...',
             story,
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error occured during deletng the story',
-            error: error.message,
-        });
+        next(error);
     };
 };

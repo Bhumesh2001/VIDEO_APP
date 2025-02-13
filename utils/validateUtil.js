@@ -8,3 +8,8 @@ exports.isValidPassword = (password) => {
 exports.isValidImageUrl = (image) => {
     return /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(image);
 };
+
+exports.isValidURL = (url) => {
+    const regex = /^(https?:\/\/[^\s/$.?#].[^\s]*)$/i;
+    return regex.test(url);
+};
