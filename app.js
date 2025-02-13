@@ -136,6 +136,4 @@ if (cluster.isMaster) {
 
 } else {
     startServer(); // ✅ Start Worker Server
-}
-
-module.exports = app;
+};
