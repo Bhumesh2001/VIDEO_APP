@@ -76,8 +76,8 @@ const startServer = async () => {
         app.get('/', (req, res) => res.send('<h1>Welcome to Digital Vle App Backend</h1>'));
 
         // 📌 API Routes
-        app.use('/admin', adminRouter);
-        app.use('/user', userRouter);
+        app.use('/api/admin', adminRouter);
+        app.use('/api/user', userRouter);
 
         // 📌 404 Error Handling
         app.use((req, res, next) => {
@@ -138,4 +138,4 @@ if (cluster.isMaster) {
     startServer(); // ✅ Start Worker Server
 }
 
-module.exports = app;
+// module.exports = app;
