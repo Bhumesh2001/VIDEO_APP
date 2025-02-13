@@ -6,7 +6,6 @@ const couponSchema = new mongoose.Schema({
         type: String,
         trim: true,
         uppercase: true,
-        unique: true, // Ensures uniqueness of coupon codes
     },
     expirationDate: {
         type: Date,

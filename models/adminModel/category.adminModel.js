@@ -4,7 +4,6 @@ const categorySchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        unique: true, // Ensures unique names
         trim: true,
     },
     public_id: {
@@ -23,7 +22,7 @@ const categorySchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Indexes
-categorySchema.index({ name: 1 });    // Index for fast search on 'name'
+categorySchema.index({ name: 1 }, { unique: true });    // Index for fast search on 'name'
 categorySchema.index({ status: 1 });  // Index for filtering 'status' (active/inactive)
 
 const Category = mongoose.model('Category', categorySchema);
