@@ -7,9 +7,6 @@
     "start": "cross-env NODE_NO_WARNINGS=1 node app.js",
     "dev": "cross-env NODE_NO_WARNINGS=1 nodemon app.js"
   },
-  "engines": {
-    "node": "22.x"
-  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -44,7 +41,7 @@
     "os": "^0.1.2",
     "path": "^0.12.7",
     "razorpay": "^2.9.4",
-    "uuid": "^11.0.5",
-    "xss-clean": "^0.1.4"
+    "sanitize-html": "^2.14.0",
+    "uuid": "^11.0.5"
   }
 }
