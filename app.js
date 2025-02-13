@@ -76,6 +76,8 @@ const startServer = () => {
     app.listen(PORT, () => {
         console.log(`Worker ${process.pid} running at http://localhost:${PORT}`);
     });
+
+    module.exports = app;
 };
 
 // Clustering for Multi-Core CPU Usage
