@@ -13,7 +13,7 @@ const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
 const sanitizeHtml = require('sanitize-html');
-const morgan = require('morgan');
+// const morgan = require('morgan');
 
 // Import Configurations and Routes
 require('./config/cloudinary');
@@ -60,7 +60,7 @@ const startServer = async () => {
         app.use(mongoSanitize());
         app.use(compression({ level: 6 }));
         app.use(sanitizeRequestBody);
-        app.use(morgan('combined'));
+        // app.use(morgan('combined'));
 
         // 📌 Rate Limiting (Prevents Abuse)
         const apiLimiter = rateLimit({
