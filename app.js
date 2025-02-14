@@ -132,10 +132,8 @@ if (cluster.isMaster) {
     // 📌 Restart Worker If It Crashes (Prevents Infinite Loops)
     cluster.on('exit', (worker, code, signal) => {
         console.error(`💀 Worker ${worker.process.pid} died with code ${code}.`);
-        if (code !== 0 && !signal) {
-            console.log('♻️ Restarting worker...');
-            setTimeout(() => cluster.fork(), 3000); // Restart the worker
-        }
+        console.log('♻️ Restarting worker...');
+        setTimeout(() => cluster.fork(), 3000); // Restart the worker
     });
 } else {
     startServer(); // ✅ Start Worker Server
