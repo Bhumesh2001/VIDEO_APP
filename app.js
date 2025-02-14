@@ -46,7 +46,10 @@ const startServer = async () => {
 
         // 📌 Middleware: Security & Performance
         app.use(cors({
-            origin: "https://vle-app-frontend.onrender.com",
+            origin: [
+                "https://vle-app-frontend.onrender.com", 
+                // "http://localhost:3000",
+            ],
             methods: ['GET', 'POST', 'PUT', 'DELETE'],
             allowedHeaders: ['Content-Type', 'Authorization'],
             credentials: true,

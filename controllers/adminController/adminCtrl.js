@@ -180,7 +180,7 @@ exports.logoutAdmin = async (req, res, next) => {
 
         res.clearCookie('adminToken', {
             httpOnly: true,
-            secure: false,
+            secure: true,
             sameSite: 'Strict',
             path: '/',
         });
