@@ -47,7 +47,8 @@ const startServer = async () => {
         // 📌 Middleware: Security & Performance
         app.use(cors({
             origin: [
-                'https://video-app-0i3v.onrender.com', // Your production domain
+                'https://video-app-0i3v.onrender.com',,
+                "http://localhost:3000",
             ],
             methods: ['GET', 'POST', 'PUT', 'DELETE'],
             allowedHeaders: ['Content-Type', 'Authorization'],
@@ -131,7 +132,7 @@ if (cluster.isMaster) {
     // 📌 Restart Worker If It Crashes (Prevents Infinite Loops)
     cluster.on('exit', (worker, code, signal) => {
         console.error(`💀 Worker ${worker.process.pid} died with code ${code}.`);
-        if (code !== 0) {
+        if (code !== 0 && !signal) {
             console.log('♻️ Restarting worker...');
             setTimeout(() => cluster.fork(), 3000); // Restart the worker
         }
