@@ -54,7 +54,7 @@ exports.loginAdmin = async (req, res, next) => {
             httpOnly: true,
             secure: true,
             maxAge: 1000 * 60 * 60 * 48, // 2 days
-            sameSite: 'Strict',
+            sameSite: 'None',
         });
 
         // Respond with success
@@ -181,7 +181,7 @@ exports.logoutAdmin = async (req, res, next) => {
         res.clearCookie('adminToken', {
             httpOnly: true,
             secure: true,
-            sameSite: 'Strict',
+            sameSite: 'None',
             path: '/',
         });
 
