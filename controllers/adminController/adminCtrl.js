@@ -55,6 +55,8 @@ exports.loginAdmin = async (req, res, next) => {
             secure: true,
             maxAge: 1000 * 60 * 60 * 48, // 2 days
             sameSite: 'None',
+            domain: "https://vle-app-frontend.onrender.com",
+            path: "/",
         });
 
         // Respond with success
@@ -183,6 +185,7 @@ exports.logoutAdmin = async (req, res, next) => {
             secure: true,
             sameSite: 'None',
             path: '/',
+            domain: "https://vle-app-frontend.onrender.com",
         });
 
         res.status(200).json({
