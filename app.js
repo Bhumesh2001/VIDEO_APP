@@ -47,7 +47,7 @@ const startServer = async () => {
         // 📌 Middleware: Security & Performance
         app.use(cors({
             origin: [
-                "https://vle-app-frontend.onrender.com", 
+                "https://vle-app-frontend.onrender.com",
                 // "http://localhost:3000",
             ],
             methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -92,7 +92,7 @@ const startServer = async () => {
         app.use(errorMiddleware);
 
         // 📌 Start Server
-        const server = app.listen(PORT, () => {
+        const server = app.listen(PORT, async () => {
             console.log(`🚀 Worker ${process.pid} running at http://localhost:${PORT}`);
         });
 
