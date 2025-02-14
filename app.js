@@ -12,7 +12,8 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
-const sanitizeHtml = require('sanitize-html'); // ✅ Replaces `xss-clean`
+const sanitizeHtml = require('sanitize-html');
+const morgan = require('morgan');
 
 // Import Configurations and Routes
 require('./config/cloudinary');
@@ -25,6 +26,7 @@ const errorMiddleware = require('./middlewares/errorMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const isProduction = process.env.NODE_ENV === 'production';
 
 // 📌 Function to Sanitize Request Body (Prevents XSS)
 const sanitizeRequestBody = (req, res, next) => {
@@ -46,19 +48,19 @@ const startServer = async () => {
 
         // 📌 Middleware: Security & Performance
         app.use(cors({
-            origin: [
-                "https://vle-app-frontend.onrender.com",
-                // "http://localhost:3000",
-            ],
+            origin: isProduction
+                ? ["https://vle-app-frontend.onrender.com"]
+                : ["http://localhost:3000", "https://vle-app-frontend.onrender.com"],
             methods: ['GET', 'POST', 'PUT', 'DELETE'],
             allowedHeaders: ['Content-Type', 'Authorization'],
             credentials: true,
         }));
-        app.use(helmet()); // Secure HTTP headers
-        app.use(hpp()); // Prevent HTTP Parameter Pollution
-        app.use(mongoSanitize()); // Prevent NoSQL Injection
-        app.use(compression()); // Compress HTTP responses
-        app.use(sanitizeRequestBody); // ✅ Sanitize Input to Prevent XSS
+        app.use(helmet());
+        app.use(hpp());
+        app.use(mongoSanitize());
+        app.use(compression({ level: 6 }));
+        app.use(sanitizeRequestBody);
+        app.use(morgan('combined'));
 
         // 📌 Rate Limiting (Prevents Abuse)
         const apiLimiter = rateLimit({
@@ -72,8 +74,7 @@ const startServer = async () => {
             standardHeaders: true,
             legacyHeaders: false,
         });
-        // Uncomment below to enable rate limiting
-        // app.use(apiLimiter);
+        if (isProduction) app.use(apiLimiter);
 
         // 📌 Body Parsing & Cookies
         app.use(express.json());
@@ -101,30 +102,28 @@ const startServer = async () => {
         });
 
         // 📌 Graceful Shutdown Handling
-        process.on('SIGTERM', () => {
-            console.log('🚦 SIGTERM received. Shutting down gracefully...');
+        const gracefulShutdown = (signal) => {
+            console.log(`🚦 ${signal} received. Shutting down gracefully...`);
             server.close(() => {
                 console.log('🛑 Server closed.');
                 process.exit(0);
             });
-        });
-
-        process.on('SIGINT', () => {
-            console.log('🚦 SIGINT received. Shutting down gracefully...');
-            server.close(() => {
-                console.log('🛑 Server closed.');
-                process.exit(0);
-            });
-        });
+            setTimeout(() => {
+                console.error('🛑 Forcing shutdown...');
+                process.exit(1);
+            }, 5000); // Force shutdown after 5 seconds
+        };
+        process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+        process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
     } catch (error) {
-        console.error("❌ Server startup failed:", error.message);
+        console.error("❌ Server startup failed:", error);
         process.exit(1);
     }
 };
 
 // 📌 Clustering for Multi-Core CPU Usage
-if (cluster.isMaster) {
+if (isProduction && cluster.isMaster) {
     console.log(`👑 Master process ${process.pid} is running`);
     const numCPUs = os.cpus().length;
 
@@ -133,7 +132,7 @@ if (cluster.isMaster) {
         cluster.fork();
     }
 
-    // 📌 Restart Worker If It Crashes (Prevents Infinite Loops)
+    // 📌 Restart Worker If It Crashes
     cluster.on('exit', (worker, code, signal) => {
         console.error(`💀 Worker ${worker.process.pid} died with code ${code}.`);
         console.log('♻️ Restarting worker...');
@@ -141,4 +140,4 @@ if (cluster.isMaster) {
     });
 } else {
     startServer(); // ✅ Start Worker Server
-};
+}
