@@ -5,7 +5,6 @@ require('dotenv').config();
 const cluster = require('cluster');
 const os = require('os');
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');

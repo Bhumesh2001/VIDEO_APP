@@ -107,8 +107,7 @@ const greetings = [
 ];
 
 // Select a random greeting
-const randomGreeting =
-    greetings[Math.floor(Math.random() * greetings.length)];
+const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
 
 // Apply the greeting to the page
 document.getElementById("greetingText").innerText = randomGreeting.main;
