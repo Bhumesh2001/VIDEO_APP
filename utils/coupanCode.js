@@ -8,7 +8,7 @@ const { connectToDB } = require('../config/connect');
 const ensureDBConnection = async () => {
     if (mongoose.connection.readyState !== 1) {
         await connectToDB();
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // await new Promise(resolve => setTimeout(resolve, 2000));
     };
 };
 

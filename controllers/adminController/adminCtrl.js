@@ -54,7 +54,7 @@ exports.loginAdmin = async (req, res, next) => {
             httpOnly: true,
             secure: true,
             maxAge: 1000 * 60 * 60 * 48, // 2 days
-            sameSite: 'None',
+            sameSite: 'Strict',
         });
 
         // Respond with success
@@ -80,7 +80,7 @@ exports.getToken = (req, res, next) => {
 
         res.status(200).json({ success: true, token: token.adminToken });
     } catch (error) {
-        res.status(500).json({ success: true, message: "Internal Server Error!", error });
+        next(error);
     };
 };
 
@@ -181,7 +181,7 @@ exports.logoutAdmin = async (req, res, next) => {
         res.clearCookie('adminToken', {
             httpOnly: true,
             secure: true,
-            sameSite: 'None',
+            sameSite: 'Strict',
         });
 
         res.status(200).json({

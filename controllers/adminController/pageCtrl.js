@@ -1,0 +1,14 @@
+exports.renderIndex = (req, res) => res.render("index", { title: "Home" });
+exports.renderArticle = (req, res) => res.render("article", { title: "Article" });
+exports.renderBanner = (req, res) => res.render("banner", { title: "Banner" });
+exports.renderCategory = (req, res) => res.render("category", { title: "Category" });
+exports.renderCoupon = (req, res) => res.render("coupon", { title: "Coupon" });
+exports.renderDashboard = (req, res) => res.render("dashboard", { title: "Dashboard" });
+exports.renderLogout = (req, res) => res.render("logout", { title: "Logout" });
+exports.renderProfile = (req, res) => res.render("profile", { title: "Profile" });
+exports.renderSetting = (req, res) => res.render("setting", { title: "Settings" });
+exports.renderStory = (req, res) => res.render("story", { title: "Story" });
+exports.renderSubscription = (req, res) => res.render("subscription", { title: "Subscription" });
+exports.renderTerm = (req, res) => res.render("term", { title: "Terms & Conditions" });
+exports.renderUser = (req, res) => res.render("user", { title: "User Management" });
+exports.renderVideo = (req, res) => res.render("video", { title: "Videos" });

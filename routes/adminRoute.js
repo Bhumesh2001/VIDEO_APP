@@ -2,7 +2,7 @@ const express = require('express');
 const adminRouter = express();
 
 // ***************** admin controllers ******************
-
+const pageController = require("../controllers/adminController/pageCtrl");
 const adminController = require('../controllers/adminController/adminCtrl');
 const categoryController = require('../controllers/adminController/category.adminCtrl');
 const videoController = require('../controllers/adminController/video.adminCtrl');
@@ -26,6 +26,24 @@ const {
 const { cacheMiddleware } = require('../middlewares/userMiddleware/redisMidlwr');
 const adminValidation = require('../validation/adminValidation');
 const { upload } = require('../utils/uploadUtil');
+
+// ****************** Pages route ****************
+
+// Define routes for each page
+adminRouter.get("/", pageController.renderIndex);
+adminRouter.get("/page/article", pageController.renderArticle);
+adminRouter.get("/page/banner", pageController.renderBanner);
+adminRouter.get("/page/category", pageController.renderCategory);
+adminRouter.get("/page/coupon", pageController.renderCoupon);
+adminRouter.get("/page/dashboard", pageController.renderDashboard);
+adminRouter.get("/page/logout", pageController.renderLogout);
+adminRouter.get("/page/profile", pageController.renderProfile);
+adminRouter.get("/page/setting", pageController.renderSetting);
+adminRouter.get("/page/story", pageController.renderStory);
+adminRouter.get("/page/subscription", pageController.renderSubscription);
+adminRouter.get("/page/term", pageController.renderTerm);
+adminRouter.get("/page/user", pageController.renderUser);
+adminRouter.get("/page/video", pageController.renderVideo);
 
 // ****************** login/signup routes ******************
 

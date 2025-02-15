@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Digital-vle</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="/assets/images/favicon_logo.jpg"
+      type="image/x-icon"
+    />
+    <link rel="stylesheet" href="/css/index.css" />
+  </head>
+
+  <body>
+    <!-- header -->
+    <header class="header">
+      <div class="container-fluid fixed-top topbar">
+        <div class="row d-flex justify-content-center align-items-center h-100">
+          <div class="col-2 col-md-2 col-lg-2 logo-col p-1">
+            <img
+              src="/assets/images/new_logo.png"
+              class="img-fluid"
+              alt="logo"
+            />
+          </div>
+
+          <div class="col-10 col-md-10 col-lg-10 nav-col p-0">
+            <nav class="navbar navbar-expand-lg justify-content-between p-1">
+              <div class="toggle-btn d-lg-none d-md-block m-1">
+                <i class="fas fa-bars"></i>
+              </div>
+              <a
+                class="navbar-brand text-white px-md-3 px-sm-2 m-1"
+                id="nav-bar_"
+                href="#"
+              ></a>
+              <div class="dropdown px-md-3 px-sm-2 m-1">
+                <button
+                  class="profile-button dropdown-toggle bg-light"
+                  type="button"
+                  id="profileDropdown"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <img
+                    src="/assets/images/default_icon.png"
+                    draggable="false"
+                    alt="Profile"
+                    id="admin-profile-icon"
+                  />
+                </button>
+                <ul
+                  class="dropdown-menu dropdown-menu-end bg-dark border border-secondary"
+                  aria-labelledby="profileDropdown"
+                >
+                  <li>
+                    <a
+                      class="dropdown-item nav-link px-3 py-1 text-white"
+                      data-target="#admin_profile"
+                      draggable="false"
+                      href="/admin/page/profile"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        width="24px"
+                        height="24px"
+                      >
+                        <path
+                          d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+                        />
+                      </svg>
+                      Profile</a
+                    >
+                  </li>
+                  <li>
+                    <hr class="dropdown-divider border border-secondary" />
+                  </li>
+                  <li>
+                    <a
+                      class="dropdown-item px-3 py-1 text-white"
+                      id="logout-btn"
+                      draggable="false"
+                      href="#"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        width="24px"
+                        height="24px"
+                      >
+                        <path
+                          d="M16 13v-2H7V8l-5 4 5 4v-3h9zm7-9v14c0 1.1-.9 2-2 2H3c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h18c1.1 0 2 .9 2 2zM21 4H3v14h18V4z"
+                        />
+                      </svg>
+                      Logout</a
+                    >
+                  </li>
+                </ul>
+              </div>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- main -->
+    <main class="content">
+      <div class="container-fluid main-div-content">
+        <div class="row d-flex">
+          <!-- sidebar -->
+          <div
+            class="col d-none d-lg-block col-lg-2 col-md-3 col-6 sidebar px-0 py-3"
+          >
+            <a
+              draggable="false"
+              data-index="1"
+              href="/admin/page/dashboard"
+              class="nav-link sidebar-link active"
+              ><i class="fas fa-tachometer-alt"></i>
+              Dashboard
+            </a>
+            <a
+              draggable="false"
+              id="videos"
+              data-index="2"
+              class="nav-link sidebar-link"
+              href="/admin/page/video"
+              ><i class="fas fa-video"></i>
+              Videos
+            </a>
+            <a
+              draggable="false"
+              id="Article"
+              data-index="3"
+              class="nav-link sidebar-link"
+              href="/admin/page/article"
+              ><i class="fas fa-newspaper"></i>
+              Articles
+            </a>
+            <a
+              draggable="false"
+              id="user"
+              data-index="4"
+              class="nav-link sidebar-link"
+              href="/admin/page/user"
+              ><i class="fas fa-users"></i>
+              Users
+            </a>
+            <a
+              draggable="false"
+              id="category"
+              data-index="5"
+              class="nav-link sidebar-link"
+              href="/admin/page/category"
+              ><i class="fas fa-list"></i>
+              Categories
+            </a>
+            <a
+              draggable="false"
+              data-index="6"
+              id="story"
+              class="nav-link sidebar-link"
+              href="/admin/page/story"
+              ><i class="fas fa-newspaper"></i>
+              Stories
+            </a>
+            <a
+              draggable="false"
+              id="subscription-plan"
+              data-index="7"
+              class="nav-link sidebar-link"
+              href="/admin/page/subscription"
+              ><i class="fas fa-calendar-alt"></i>
+              Subscription Plan
+            </a>
+            <a
+              draggable="false"
+              id="coupon"
+              data-index="8"
+              class="nav-link sidebar-link"
+              href="/admin/page/coupon"
+              ><i class="fas fa-ticket-alt"></i>
+              Coupons
+            </a>
+            <a
+              draggable="false"
+              id="banner"
+              data-index="9"
+              class="nav-link sidebar-link"
+              href="/admin/page/banner"
+              ><i class="fas fa-flag"></i>
+              Banners
+            </a>
+            <a
+              draggable="false"
+              data-index="10"
+              class="nav-link sidebar-link"
+              id="setting"
+              href="/admin/page/setting"
+              ><i class="fas fa-cogs"></i>
+              Settings
+            </a>
+            <a
+              draggable="false"
+              data-index="11"
+              class="nav-link sidebar-link"
+              href="/admin/page/term"
+              ><i class="fas fa-file-contract"></i>
+              T&C
+            </a>
+            <a
+              draggable="false"
+              data-index="12"
+              class="nav-link sidebar-link"
+              href="/admin/page/logout"
+              ><i class="fas fa-sign-out-alt"></i>
+              Logout
+            </a>
+          </div>
+
+          <!-- content -->
+          <div class="col-lg-10 offset-lg-2 px-3 content">
+            <!-- admin profile -->
+            <section class="admin-profile" id="admin_profile">
+              <div class="main-content">
+                <div class="container-fluid my-4 content-box">
+                  <div class="text-center mb-2">
+                    <img
+                      src="https://via.placeholder.com/150"
+                      alt="Profile Image"
+                      class="profile-image"
+                      id="profileImage"
+                    />
+                  </div>
+                  <form id="admin_profile_form" enctype="multipart/form-data">
+                    <div class="mb-3">
+                      <label for="username" class="form-label">Username</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="username"
+                        placeholder="Enter username"
+                        required
+                        name="username"
+                        autocomplete="off"
+                      />
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="email" class="form-label">Email</label>
+                      <input
+                        type="email"
+                        class="form-control"
+                        id="admin_email"
+                        placeholder="Enter email"
+                        required
+                        name="email"
+                        autocomplete="off"
+                      />
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="password" class="form-label">Password</label>
+                      <input
+                        type="password"
+                        class="form-control"
+                        id="password"
+                        placeholder="Enter password"
+                        required
+                        name="password"
+                        autocomplete="off"
+                      />
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="phone" class="form-label">Phone</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="phone"
+                        placeholder="Enter phone number"
+                        required
+                        name="phone"
+                        autocomplete="off"
+                      />
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="imageUpload" class="form-label"
+                        >Profile Image</label
+                      >
+                      <input
+                        type="file"
+                        class="form-control"
+                        id="imageUpload"
+                        accept="image/*"
+                        name="profilePicture"
+                      />
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                      <button
+                        type="button"
+                        id="back-profile-btn"
+                        class="btn btn-danger"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="submit"
+                        id="save-profile"
+                        class="btn btn-success"
+                      >
+                        Save
+                      </button>
+                      <button
+                        class="btn btn-success custom-btn d-none"
+                        type="button"
+                        id="profile-process-btn"
+                      >
+                        <span
+                          class="spinner-border spinner-border-sm"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="visually-hidden" role="status"
+                          >Loading...</span
+                        >
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <!-- Success model -->
+      <div
+        class="modal fade"
+        id="successModal"
+        tabindex="-1"
+        aria-labelledby="successModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content text-white bg-dark">
+            <div class="modal-header">
+              <h5 class="modal-title" id="successModalLabel">Success</h5>
+              <button
+                type="button"
+                class="btn-close text-white"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <span id="modalMessage"
+                >Your article has been submitted successfully!</span
+              >
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-success"
+                data-bs-dismiss="modal"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- footer -->
+    <footer class="footer"></footer>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/index.js"></script>
+  </body>
+</html>
