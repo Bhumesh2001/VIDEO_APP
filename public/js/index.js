@@ -4,8 +4,8 @@ const videoUploadField = document.getElementById("videoUploadField");
 const videoUrlField = document.getElementById("videoUrlField");
 const successModal = new bootstrap.Modal(document.getElementById('successModal'));
 
-// const baseUrl = 'https://vle-backend.onrender.com';
-const baseUrl = 'http://localhost:3001';
+const baseUrl = 'https://digital-vle.onrender.com';
+// const baseUrl = 'http://localhost:3001';
 let token_;
 
 // Sample data for the chart
