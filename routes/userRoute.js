@@ -330,4 +330,8 @@ userRouter.post(
     paymentGetwayController.verifyPayment
 );
 
+userRouter.get('/generate-qr', paymentGetwayController.generateUPIQRcode);
+userRouter.post('/save', userAuthentication, paymentGetwayController.saveTransaction);
+userRouter.get('/fetch', userAuthentication, paymentGetwayController.getTransactions);
+
 module.exports = userRouter;

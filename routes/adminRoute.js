@@ -103,6 +103,7 @@ adminRouter.delete(
 adminRouter.post(
     '/upload-video',
     adminAuthentication,
+    // validateFields(adminValidation.videoValidationRules),
     upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]),
     videoController.uploadVideo
 );

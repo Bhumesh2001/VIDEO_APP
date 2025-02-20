@@ -69,7 +69,7 @@ const startServer = async () => {
                 legacyHeaders: false,
             });
             // app.use(apiLimiter);
-        }
+        };
 
         // 📌 Body Parsing & Cookies
         app.use(express.json());
@@ -92,7 +92,7 @@ const startServer = async () => {
         app.use(errorMiddleware);
 
         // 📌 Start Server
-        const server = app.listen(PORT, () => {
+        const server = app.listen(PORT, async () => {
             console.log(`🚀 Worker ${process.pid} running at http://localhost:${PORT}`);
         });
 

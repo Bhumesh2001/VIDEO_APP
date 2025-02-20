@@ -108,35 +108,42 @@ exports.getVideoById = async (req, res, next) => {
 
 // Upload video on Cloudinary
 exports.uploadVideo = async (req, res, next) => {
-    const { title, description, category, video } = req.body;
     try {
-        if (!req.files) return res.status(404).json({ success: false, message: 'file is required' });
+        const { title, description, category, video } = req.body;
 
-        const thumbnailFile = req.files.thumbnail[0].path;
-        const videoFile = req.files.video[0].path;
+        // ✅ Process thumbnail
+        const thumbnailPath = req.files.thumbnail[0].path;
+        const imageData = await uploadImageOnCloudinary(thumbnailPath, "VleThumbnails");
+
+        // ✅ Process video (File Upload or URL Upload)
         let videoData;
-
-        const imageData = await uploadImageOnCloudinary(thumbnailFile, 'VleThumbnails');
-        if (video && isValidURL(video)) {
-            videoData = await uploadVideoFromURL(video, 'VleVideos')
+        if (isValidURL(video)) {
+            videoData = await uploadVideoFromURL(video, "VleVideos");  // 📌 Upload video from URL
         } else {
-            videoData = await uploadVideoOnCloudinary(videoFile, 'VleVideos');
+            const videoPath = req.files.video[0].path;
+            videoData = await uploadVideoOnCloudinary(videoPath, "VleVideos");  // 📌 Upload video from file
+
+            // ✅ Delete local file after upload
+            if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
         }
 
-        const videoData_ = await Video({
-            title, description, category,
+        // ✅ Save to DB
+        const newVideo = new Video({
+            title,
+            description,
+            category,
             thumbnail: { url: imageData.secure_url, publicId: imageData.public_id },
             video: { url: videoData.secure_url, publicId: videoData.public_id }
         });
-        await videoData_.save();
+        await newVideo.save();
 
-        clearCache('node-cache');
-        fs.unlinkSync(videoFile);
+        // ✅ Clear Cache
+        clearCache("node-cache");
 
         res.status(200).json({
             success: true,
             message: "Video uploaded successfully...!",
-            data: videoData_
+            data: newVideo
         });
     } catch (error) {
         next(error);
