@@ -9,10 +9,6 @@ const thumbnailPreview = document.getElementById("thumbnailPreview");
 const videoFileInput = document.getElementById("video_");
 const videoUrlInput = document.getElementById("video-url_");
 
-// const baseUrl = 'https://digital-vle.onrender.com';
-const baseUrl = 'http://localhost:3001';
-let token_;
-
 // Sample data for the chart
 const labels = [
     "User123",
@@ -457,7 +453,7 @@ function generateUniqueId(prefix = 'btn') {
 // function to handle admin logout
 async function adminLogout() {
     try {
-        const response = await fetch(`${baseUrl}/admin/logout`, {
+        const response = await fetch(`/admin/logout`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -466,7 +462,7 @@ async function adminLogout() {
         });
 
         if (response.ok) {
-            window.location.href = `${baseUrl}/admin`;
+            window.location.href = `/admin`;
         } else {
             console.error('Failed to log out:', response.statusText);
         };
@@ -477,7 +473,7 @@ async function adminLogout() {
 
 // Function to load user data and display it in the table
 async function loadUserData(page = 1, limit = 10) {
-    const data = await fetchData(`${baseUrl}/admin/users?page=${page}$limit=${limit}`);
+    const data = await fetchData(`/admin/users?page=${page}$limit=${limit}`);
     if (!data) return;
 
     const tbody = document.getElementById('t-body');
@@ -542,7 +538,7 @@ async function loadUserData(page = 1, limit = 10) {
 
 // funtion to load video data and display it on video section
 async function loadVideoData(page = 1, limit = 12) {
-    const data = await fetchData(`${baseUrl}/admin/videos?page=${page}&limit=${limit}`);
+    const data = await fetchData(`/admin/videos?page=${page}&limit=${limit}`);
     if (!data) return;
 
     const videoRow = document.getElementById('video-row');
@@ -599,7 +595,7 @@ async function loadVideoData(page = 1, limit = 12) {
 
 // function to load article data and display it on article section
 async function loadArticleData(page = 1, limit = 12) {
-    const data = await fetchData(`${baseUrl}/admin/articls?page=${page}&limit=${limit}`);
+    const data = await fetchData(`/admin/articls?page=${page}&limit=${limit}`);
     if (!data) return;
 
     const articleRow = document.getElementById('article-row');
@@ -660,7 +656,7 @@ async function loadArticleData(page = 1, limit = 12) {
 
 // function to load story data and display it on story section
 async function loadStoryData(page = 1, limit = 12) {
-    const data = await fetchData(`${baseUrl}/admin/stories?page${page}&limit${limit}`);
+    const data = await fetchData(`/admin/stories?page${page}&limit${limit}`);
     if (!data) return;
 
     const storyRow = document.getElementById('story-row');
@@ -718,7 +714,7 @@ async function loadStoryData(page = 1, limit = 12) {
 
 // function to load category data and display it on category section
 async function loadCategoryData(page = 1, limit = 12) {
-    const data = await fetchData(`${baseUrl}/admin/categories?page=${page}&limit=${limit}`);
+    const data = await fetchData(`/admin/categories?page=${page}&limit=${limit}`);
     if (!data) return;
 
     const categoryRow = document.getElementById('category-row');
@@ -775,7 +771,7 @@ async function loadCategoryData(page = 1, limit = 12) {
 
 // function to laod subscription data and display it on subscription section
 async function loadSubscriptionData() {
-    const data = await fetchData(`${baseUrl}/admin/subscriptions`);
+    const data = await fetchData(`/admin/subscriptions`);
     if (!data) return;
 
     const tableBody = document.getElementById('planTableBody');
@@ -850,7 +846,7 @@ async function loadSubscriptionData() {
 
 // functionn to load coupon data and display it on coupon section
 async function laodCouponData() {
-    const data = await fetchData(`${baseUrl}/admin/coupons`);
+    const data = await fetchData(`/admin/coupons`);
     if (!data) return;
 
     const tableBody = document.getElementById('couponTableBody');
@@ -892,7 +888,7 @@ async function laodCouponData() {
 
 // function to load the banner data and display it on banner section
 async function laodBannerData(page = 1, limit = 12) {
-    const data = await fetchData(`${baseUrl}/admin/banners?page=${page}&limit=${limit}`);
+    const data = await fetchData(`/admin/banners?page=${page}&limit=${limit}`);
     if (!data) return;
 
     function createBannerHtml(banner) {
@@ -940,7 +936,7 @@ async function laodBannerData(page = 1, limit = 12) {
 
 // function to load the category option and display it on video cateogory option
 async function loadCategoryOption() {
-    const data = await fetchData(`${baseUrl}/admin/category/options`);
+    const data = await fetchData(`/admin/category/options`);
     if (!data) return;
 
     const selectElement = document.querySelector('.category_option');
@@ -1000,7 +996,7 @@ async function updateDashboardElement(url, Data) {
 
 // function to laod the admin profile data and display it on admin profile section
 async function laodAdminProfileData() {
-    const data = await fetchData(`${baseUrl}/admin/profile`);
+    const data = await fetchData(`/admin/profile`);
     if (!data) return;
     document.getElementById('username').value = data.adminProfile.username;
     document.getElementById('admin_email').value = data.adminProfile.email;
@@ -1024,7 +1020,7 @@ async function fetchData(url) {
         });
 
         if (response.status === 401) {
-            window.location.href = `${baseUrl}/admin`;
+            window.location.href = `/admin`;
         }
 
         if (!response.ok) {
@@ -1058,7 +1054,7 @@ async function handleFormSubmission(
             body = new FormData(form);
         };
 
-        const response = await fetch(`${baseUrl}${url}`, {
+        const response = await fetch(`${url}`, {
             method,
             body: body,
             headers: headers,
@@ -1067,7 +1063,7 @@ async function handleFormSubmission(
         const data = await response.json();
 
         if (response.status === 401) {
-            window.location.href = `${baseUrl}/admin`;
+            window.location.href = `/admin`;
         }
 
         if (response.ok) {
@@ -1105,10 +1101,10 @@ async function submitSettingForm(form, url, isJson = false) {
     }
 
     try {
-        const response = await fetch(`${baseUrl}${url}`, options);
+        const response = await fetch(`${url}`, options);
 
         if (response.status === 401) {
-            window.location.href = `${baseUrl}/admin`;
+            window.location.href = `/admin`;
         }
 
         if (!response.ok) {
@@ -1128,18 +1124,18 @@ async function submitSettingForm(form, url, isJson = false) {
 async function fetchSettingData() {
     try {
         const endpoints = [
-            `${baseUrl}/admin/setting/general`,
-            `${baseUrl}/admin/setting/smtp`,
-            `${baseUrl}/admin/setting/social-media`,
-            `${baseUrl}/admin/setting/menu`,
-            `${baseUrl}/admin/setting/re-captcha`,
-            `${baseUrl}/admin/setting/banner-ads`,
-            `${baseUrl}/admin/setting/maintenance-mode`
+            `/admin/setting/general`,
+            `/admin/setting/smtp`,
+            `/admin/setting/social-media`,
+            `/admin/setting/menu`,
+            `/admin/setting/re-captcha`,
+            `/admin/setting/banner-ads`,
+            `/admin/setting/maintenance-mode`
         ];
 
         const responses = await Promise.all(endpoints.map(url => fetch(url, { credentials: 'include' })));
         if (responses.some(response => response.status === 401)) {
-            window.location.href = `${baseUrl}/admin`;
+            window.location.href = `/admin`;
         };
         const settingsData = await Promise.all(responses.map(res => res.json()));
 
@@ -1172,7 +1168,7 @@ async function apiCall({ url, method = "GET", data = null, headers = {} }) {
         const result = await response.json();
 
         if (response.status === 401) {
-            window.location.href = `${baseUrl}/admin`;
+            window.location.href = `/admin`;
         }
 
         return result;
@@ -1221,7 +1217,7 @@ const executeIfElementExists = () => {
 };
 
 // get data
-const url = `${baseUrl}/admin/dashboard-count`;
+const url = `/admin/dashboard-count`;
 const Data = {
     "total_user": "totalUser",
     "total_video": "totalVideo",

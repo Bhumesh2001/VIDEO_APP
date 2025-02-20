@@ -4,9 +4,6 @@ const loginSpinner = document.getElementById('loginSpinner');
 const togglePassword = document.getElementById("togglePassword");
 const passwordField = document.getElementById("password");
 
-// const baseUrl = 'https://digital-vle.onrender.com';
-const baseUrl = 'http://localhost:3001';
-
 document.getElementById('loginForm').addEventListener('submit', async function (event) {
     event.preventDefault();
 
@@ -19,7 +16,7 @@ document.getElementById('loginForm').addEventListener('submit', async function (
     loginBtn.style.backgroundColor = '#ff0000';
 
     try {
-        const response = await fetch(`${baseUrl}/admin/login-admin`, {
+        const response = await fetch(`/admin/login-admin`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -30,7 +27,7 @@ document.getElementById('loginForm').addEventListener('submit', async function (
         await response.json();
 
         if (response.ok) {
-            window.location.href = `${baseUrl}/admin/page/dashboard`;
+            window.location.href = `/admin/page/dashboard`;
             document.getElementById('loginForm').reset();
             removedisabledButton();
         } else {
