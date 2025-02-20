@@ -22,7 +22,6 @@ exports.clearTempFiles = async () => {
         while (attempt < 3) {
             try {
                 fs.unlinkSync(filePath);
-                console.log(`Deleted file: ${filePath}`);
                 return;
             } catch (deleteError) {
                 attempt++;

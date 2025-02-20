@@ -4,8 +4,8 @@ const loginSpinner = document.getElementById('loginSpinner');
 const togglePassword = document.getElementById("togglePassword");
 const passwordField = document.getElementById("password");
 
-const baseUrl = 'https://digital-vle.onrender.com';
-// const baseUrl = 'http://localhost:3001';
+// const baseUrl = 'https://digital-vle.onrender.com';
+const baseUrl = 'http://localhost:3001';
 
 document.getElementById('loginForm').addEventListener('submit', async function (event) {
     event.preventDefault();

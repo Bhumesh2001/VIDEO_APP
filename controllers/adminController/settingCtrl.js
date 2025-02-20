@@ -247,12 +247,12 @@ exports.getSocialMediaSettings = async (req, res, next) => {
 
 exports.saveMenuSettings = async (req, res, next) => {
     try {
-        const { story, article, video__ } = req.body;
+        const { story_, article, video__ } = req.body;
 
         const existingSettings = await MenuSettings.findOne();
         if (existingSettings) {
             // Update existing settings
-            existingSettings.story = story;
+            existingSettings.story_ = story_;
             existingSettings.article = article;
             existingSettings.video__ = video__;
 
@@ -269,7 +269,7 @@ exports.saveMenuSettings = async (req, res, next) => {
         } else {
             // Create new settings
             const newSettings = new MenuSettings({
-                story,
+                story_,
                 article,
                 video__,
             });

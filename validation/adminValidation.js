@@ -403,16 +403,6 @@ exports.validateGeneralSettings = [
         .isLength({ max: 500 })
         .withMessage('Description must be less than 500 characters long.'),
 
-    body('headerCode')
-        .optional()
-        .isString()
-        .trim(),
-
-    body('footerCode')
-        .optional()
-        .isString()
-        .trim(),
-
     body('copyrightText')
         .optional()
         .isString()

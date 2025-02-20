@@ -351,7 +351,7 @@
                           <div class="col-md-6">
                             <div class="mb-3">
                               <label for="siteName" class="form-label"
-                                >Site Name*</label
+                                >Site Name</label
                               >
                               <input
                                 type="text"
@@ -420,10 +420,12 @@
                                 alt="Favicon Preview"
                               />
                             </div>
+                          </div>
 
+                          <div class="col-md-6">
                             <div class="mb-3">
                               <label for="email" class="form-label"
-                                >Email*</label
+                                >Email</label
                               >
                               <input
                                 type="email"
@@ -437,7 +439,7 @@
                             </div>
 
                             <div class="mb-3">
-                              <label for="description" class="form-label"
+                              <label for="_description" class="form-label"
                                 >Description</label
                               >
                               <textarea
@@ -447,38 +449,6 @@
                                 placeholder="write description"
                                 aria-required="true"
                                 name="_description"
-                              ></textarea>
-                            </div>
-                          </div>
-
-                          <div class="col-md-6">
-                            <div class="mb-3">
-                              <label for="headerCode" class="form-label"
-                                >Header Code</label
-                              >
-                              <textarea
-                                class="form-control"
-                                id="headerCode"
-                                rows="3"
-                                placeholder="Enter header code"
-                                required
-                                aria-required="true"
-                                name="headerCode"
-                              ></textarea>
-                            </div>
-
-                            <div class="mb-3">
-                              <label for="footerCode" class="form-label"
-                                >Footer Code</label
-                              >
-                              <textarea
-                                class="form-control"
-                                id="footerCode"
-                                rows="3"
-                                placeholder="Enter footer code"
-                                required
-                                aria-required="true"
-                                name="footerCode"
                               ></textarea>
                             </div>
 
@@ -530,7 +500,7 @@
                         <div class="row">
                           <div class="col-12 text-start mt-2">
                             <button type="submit" class="btn btn-danger btn-sm">
-                              Save Settings
+                              Save
                             </button>
                           </div>
                         </div>
@@ -611,7 +581,7 @@
                           </select>
                         </div>
                         <button type="submit" class="btn btn-danger btn-sm">
-                          Save Settings
+                          Save
                         </button>
                       </form>
                     </div>
@@ -716,7 +686,7 @@
 
                         <!-- Submit Button -->
                         <button type="submit" class="btn btn-danger btn-sm">
-                          Save Settings
+                          Save
                         </button>
                       </form>
                     </div>
@@ -730,15 +700,15 @@
                     >
                       <form id="settingsForm_menu">
                         <div class="mb-3">
-                          <label for="story" class="form-label">Story</label>
+                          <label for="story_" class="form-label">Story</label>
                           <select
                             class="form-select"
-                            name="story"
-                            id="story"
+                            name="story_"
+                            id="story_"
                             required
                           >
                             <option value="true">ON</option>
-                            <option value="false">Off</option>
+                            <option value="false">OFF</option>
                           </select>
                         </div>
 
@@ -771,7 +741,7 @@
                         </div>
 
                         <button type="submit" class="btn btn-danger btn-sm">
-                          Save Settings
+                          Save
                         </button>
                       </form>
                     </div>
@@ -874,7 +844,7 @@
 
                         <!-- Submit Button -->
                         <button type="submit" class="btn btn-danger btn-sm">
-                          Save Settings
+                          Save
                         </button>
                       </form>
                     </div>
@@ -1057,7 +1027,7 @@
 
                         <!-- Submit Button -->
                         <button type="submit" class="btn btn-danger btn-sm">
-                          Save Settings
+                          Save
                         </button>
                       </form>
                     </div>
@@ -1099,7 +1069,7 @@
                           ></textarea>
                         </div>
                         <button type="submit" class="btn btn-danger btn-sm">
-                          Save Settings
+                          Save
                         </button>
                       </form>
                     </div>
@@ -1107,43 +1077,6 @@
                 </div>
               </div>
             </section>
-          </div>
-        </div>
-      </div>
-
-      <!-- Success model -->
-      <div
-        class="modal fade"
-        id="successModal"
-        tabindex="-1"
-        aria-labelledby="successModalLabel"
-        aria-hidden="true"
-      >
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content text-white bg-dark">
-            <div class="modal-header">
-              <h5 class="modal-title" id="successModalLabel">Success</h5>
-              <button
-                type="button"
-                class="btn-close text-white"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div class="modal-body">
-              <span id="modalMessage"
-                >Your article has been submitted successfully!</span
-              >
-            </div>
-            <div class="modal-footer">
-              <button
-                type="button"
-                class="btn btn-success"
-                data-bs-dismiss="modal"
-              >
-                Close
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -1157,6 +1090,43 @@
         </button>
       </div>
     </main>
+
+    <!-- Success model -->
+    <div
+      class="modal fade"
+      id="successModal"
+      tabindex="-1"
+      aria-labelledby="successModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white bg-dark">
+          <div class="modal-header">
+            <h5 class="modal-title" id="successModalLabel">Success</h5>
+            <button
+              type="button"
+              class="btn-close text-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <span id="modalMessage"
+              >Your article has been submitted successfully!</span
+            >
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-success"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- footer -->
     <footer class="footer"></footer>

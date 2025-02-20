@@ -366,58 +366,160 @@
 
             <!-- update the article -->
             <section class="update-article d-none" id="update-article">
-              <div class="main-content"></div>
+              <div class="main-content">
+                <div id="others-story" class="text-dark article my-4">
+                  <div class="card story-card">
+                    <!-- heading -->
+                    <h2 class="heading" id="edit-article">Edit Article</h2>
+
+                    <!-- fomrm -->
+                    <form id="article-form_" enctype="multipart/form-data">
+                      <div class="mb-3">
+                        <label for="title" class="form-label">Title</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="title"
+                          name="title"
+                          placeholder="Enter article title"
+                          required
+                          autocomplete="off"
+                        />
+                      </div>
+
+                      <div class="mb-3">
+                        <label for="content" class="form-label"
+                          >Description</label
+                        >
+                        <textarea
+                          class="form-control"
+                          id="content"
+                          name="description"
+                          rows="5"
+                          placeholder="Write your article content here..."
+                          autocomplete="off"
+                        ></textarea>
+                      </div>
+
+                      <div class="mb-2">
+                        <label for="image" class="form-label">Image</label>
+                        <input
+                          type="file"
+                          class="form-control"
+                          id="image"
+                          name="image"
+                          accept="image/*"
+                        />
+                        <small class="form-text"
+                          >Upload an image related to the article.</small
+                        >
+                      </div>
+
+                      <!-- article preview -->
+                      <img id="thumbnailPreview" class="mb-3" alt="Article" />
+
+                      <div class="text-center d-flex justify-content-between">
+                        <button
+                          type="button"
+                          id="back-article_btn_"
+                          class="btn btn-danger"
+                        >
+                          Back
+                        </button>
+
+                        <button
+                          type="submit"
+                          class="btn btn-success text-center"
+                          id="edit-article__btn"
+                        >
+                          Edit Article
+                        </button>
+
+                        <button
+                          class="btn btn-success custom-btn d-none"
+                          type="button"
+                          id="process-btn_"
+                        >
+                          <span
+                            class="spinner-border spinner-border-sm"
+                            aria-hidden="true"
+                          ></span>
+                          <span class="visually-hidden" role="status"
+                            >Loading...</span
+                          >
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
             </section>
           </div>
         </div>
       </div>
+    </main>
 
-      <!-- Success model -->
-      <div
-        class="modal fade"
-        id="successModal"
-        tabindex="-1"
-        aria-labelledby="successModalLabel"
-        aria-hidden="true"
-      >
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content text-white bg-dark">
-            <div class="modal-header">
-              <h5 class="modal-title" id="successModalLabel">Success</h5>
-              <button
-                type="button"
-                class="btn-close text-white"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div class="modal-body">
-              <span id="modalMessage"
-                >Your article has been submitted successfully!</span
-              >
-            </div>
-            <div class="modal-footer">
-              <button
-                type="button"
-                class="btn btn-success"
-                data-bs-dismiss="modal"
-              >
-                Close
-              </button>
-            </div>
+    <!-- Success model -->
+    <div
+      class="modal fade"
+      id="successModal"
+      tabindex="-1"
+      aria-labelledby="successModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white bg-dark">
+          <div class="modal-header">
+            <h5 class="modal-title" id="successModalLabel">Success</h5>
+            <button
+              type="button"
+              class="btn-close text-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <span id="modalMessage"
+              >Your article has been submitted successfully!</span
+            >
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-success"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- setting notification -->
-      <div class="notification" id="notification">
-        <h2 class="setting-title">🎉 Settings Saved!</h2>
-        <p class="setting-message">Your changes have been saved.</p>
-        <button class="setting_close_btn btn-sm" id="close-notify-btn">
-          Okay
-        </button>
+    <!-- ✅ Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content p-3">
+          <div class="delete-icon">🗑️</div>
+          <p class="mt-2">Are you sure?</p>
+          <div class="d-flex gap-2 justify-content-center mt-3">
+            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+              Cancel
+            </button>
+            <button class="btn btn-danger btn-sm" id="confirmDeleteBtn">
+              <span id="delete-text">Delete</span>
+              <div
+                class="spinner-border spinner-border-sm d-none"
+                id="spinner_"
+                role="status"
+              >
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
-    </main>
+    </div>
 
     <!-- footer -->
     <footer class="footer"></footer>

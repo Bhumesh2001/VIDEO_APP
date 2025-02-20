@@ -3,9 +3,14 @@ const uploadMethodRadios = document.querySelectorAll('input[name="uploadMethod"]
 const videoUploadField = document.getElementById("videoUploadField");
 const videoUrlField = document.getElementById("videoUrlField");
 const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+const thumbnailInput = document.getElementById("thumbnail_");
+const imageInput = document.getElementById("image");
+const thumbnailPreview = document.getElementById("thumbnailPreview");
+const videoFileInput = document.getElementById("video_");
+const videoUrlInput = document.getElementById("video-url_");
 
-const baseUrl = 'https://digital-vle.onrender.com';
-// const baseUrl = 'http://localhost:3001';
+// const baseUrl = 'https://digital-vle.onrender.com';
+const baseUrl = 'http://localhost:3001';
 let token_;
 
 // Sample data for the chart
@@ -139,6 +144,309 @@ document.querySelectorAll('.card-body').forEach((card) => {
     });
 });
 
+document.addEventListener("DOMContentLoaded", () => {
+    // ✅ Handle Edit Button Clicks
+    document.body.addEventListener("click", async (event) => {
+        if (!event.target.classList.contains("edit-class")) return;
+
+        const editId = event.target.getAttribute("data-id");
+        const sectionId = event.target.getAttribute("data-section-id");
+        const formId = event.target.getAttribute("data-form-id");
+        const backBtnId = event.target.getAttribute("data-back-btn-id");
+        const editBtnId = event.target.getAttribute('data-edit-btn-id');
+
+        const section = document.getElementById(sectionId);
+        const form = document.getElementById(formId);
+
+        toggleVisibility(section, form);
+        document.getElementById(backBtnId).addEventListener("click", () => goBack(section, form));
+
+        document.getElementById(editBtnId).setAttribute('data-edit-id', editId);
+
+        // ✅ Dynamically Call the Right Function
+        const loadFunctions = {
+            video: loadEditVideoData,
+            article: loadEditArticleData,
+            users: loadEditUserData,
+            categories: loadEditCategoryData,
+            stories: loadEditStoryData,
+            subscriptions: loadEditSubscriptionData,
+            coupons: loadEditCouponData,
+            banners: loadEditBannerData
+        };
+
+        if (loadFunctions[sectionId]) {
+            await loadFunctions[sectionId](editId);
+        }
+    });
+
+    // ✅ Handle File Previews (Image & Video)
+    document.body.addEventListener("change", (event) => {
+        const fileInput = event.target;
+        if (!fileInput || !fileInput.files.length) return;
+
+        const previewIdMap = {
+            "thumbnail_": "thumbnailPreview",
+            "image": "thumbnailPreview",
+            "image_": "thumbnailPreview",
+            "_image": "thumbnailPreview",
+            "bannerLink_": "thumbnailPreview"
+        };
+
+        if (previewIdMap[fileInput.id]) {
+            const preview = document.getElementById(previewIdMap[fileInput.id]);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.style.display = "block";
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        }
+    });
+
+    // ✅ Handle Video Preview
+    document.body.addEventListener("change", (event) => {
+        if (event.target.id !== "video_") return;
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const allowedFormats = ["video/mp4", "video/webm", "video/ogg"];
+        if (!allowedFormats.includes(file.type)) {
+            alert("Unsupported video format! Use MP4, WebM, or Ogg.");
+            return;
+        }
+
+        const blobUrl = URL.createObjectURL(file);
+        const videoPreview = document.getElementById("videoPreview");
+        updateVideoPreview(blobUrl);
+
+        videoPreview.onloadeddata = () => setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+    });
+
+    // ✅ Handle Video URL Input
+    document.body.addEventListener("input", (event) => {
+        if (event.target.id === "video-url_") {
+            let url = event.target.value.trim();
+            if (url && isYouTubeUrl(url)) updateVideoPreview(url);
+        }
+    });
+});
+
+// ✅ Function to Convert ISO Date to YYYY-MM-DD Format (Day, Month, Year)
+function formatDate(isoDate) {
+    const date = new Date(isoDate);
+
+    const day = date.getUTCDate().toString().padStart(2, "0"); // Day (01-31)
+    const month = (date.getUTCMonth() + 1).toString().padStart(2, "0"); // Month (01-12)
+    const year = date.getUTCFullYear(); // Year (YYYY)
+
+    return { day, month, year };
+};
+
+// ✅ Function to Fetch & Populate Form Data
+async function fetchAndPopulate(url, mapping) {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Failed to fetch data");
+
+        const data = await res.json();
+        if (!data || !data[mapping.key]) throw new Error("Data not found");
+
+        const entity = data[mapping.key];
+
+        Object.keys(mapping.fields).forEach((fieldId) => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                const value = entity[mapping.fields[fieldId]];
+
+                // ✅ Check if the field is a Date field and format it
+                if (field.type === "date" && value) {
+                    const { year, month, day } = formatDate(value);
+                    field.value = `${year}-${month}-${day}`; // Set formatted YYYY-MM-DD
+                } else {
+                    field.value = value || "";
+                }
+            }
+        });
+
+        if (mapping.imageField && entity[mapping.imageField]) {
+            const preview = document.getElementById("thumbnailPreview");
+            preview.src = entity[mapping.imageField];
+            preview.style.display = "block";
+        }
+
+        if (mapping.selectField && entity[mapping.selectField]) {
+            const select = document.getElementById(mapping.selectField);
+            select.value = entity[mapping.selectField] || "Active";
+        }
+    } catch (error) {
+        console.error(`Error loading ${mapping.key} data:`, error.message);
+    }
+};
+
+const loadEditArticleData = (articleId) =>
+    fetchAndPopulate(`/admin/article?articleId=${articleId}`, {
+        key: "article",
+        fields: {
+            "title": "title",
+            "content": "description"
+        },
+        imageField: "image"
+    });
+
+const loadEditUserData = (userId) =>
+    fetchAndPopulate(`/admin/user?userId=${userId}`, {
+        key: "user",
+        fields: {
+            "name": "name",
+            "email": "email",
+            "mobileNumber": "mobileNumber",
+            "status": "status"
+        }
+    });
+
+const loadEditCategoryData = (categoryId) =>
+    fetchAndPopulate(`/admin/category?categoryId=${categoryId}`, {
+        key: "category",
+        fields: {
+            "name_": "name",
+            "status_": "status"
+        },
+        imageField: "image_url"
+    });
+
+const loadEditSubscriptionData = (subscriptionId) =>
+    fetchAndPopulate(`/admin/subscription?subscriptionId=${subscriptionId}`, {
+        key: "subscription",
+        fields: {
+            "planName_": "planName",
+            "planType_": "planType",
+            "planPrice_": "price",
+            "discount_": "discount",
+            "planFeatures_": "features"
+        },
+        selectField: "status"
+    });
+
+const loadEditCouponData = (couponId) =>
+    fetchAndPopulate(`/admin/coupon?couponId=${couponId}`, {
+        key: "coupon",
+        fields: {
+            "couponCode_": "couponCode",
+            "expirationDate_": "expirationDate",
+            "maxUsage_": "maxUsage"
+        },
+        selectField: "status"
+    });
+
+// ✅ Function to Load Video Data
+const loadEditVideoData = async (videoId) => {
+    try {
+        const res = await fetchData(`/admin/video/${videoId}`);
+        if (!res) return;
+
+        const video = res.data;
+
+        // ✅ Populate Title & Description
+        document.getElementById("title_").value = video.title || "";
+        document.getElementById("_description").value = video.description || "";
+
+        // ✅ Populate Category (Ensuring it exists in select options)
+        const categorySelect = document.getElementById("category_");
+        if ([...categorySelect.options].some(opt => opt.value === video.category)) {
+            categorySelect.value = video.category;
+        } else {
+            // ✅ If category does not exist, add it dynamically
+            categorySelect.innerHTML += `<option value="${video.category}" selected>${video.category}</option>`;
+        }
+
+        // ✅ Show Existing Thumbnail (If Available)
+        const thumbnailPreview = document.getElementById("thumbnailPreview");
+        if (video.thumbnail?.url) {
+            thumbnailPreview.src = video.thumbnail.url;
+            thumbnailPreview.style.display = "block";
+        } else {
+            thumbnailPreview.style.display = "none";
+        }
+
+        // ✅ Handle Video Preview (File or URL)
+        const videoPreview = document.getElementById("videoPreview");
+        if (video.video?.url) {
+            videoPreview.src = video.video.url;
+            videoPreview.style.display = "block";
+        } else {
+            videoPreview.src = "";
+            videoPreview.style.display = "none";
+        }
+    } catch (error) {
+        console.error("Error loading video data:", error.message);
+    }
+};
+
+// ✅ Function to Load Story Data
+const loadEditStoryData = async (storyId) => {
+    try {
+        const res = await fetchData(`/admin/story?storyId=${storyId}`);
+        if (!res) return;
+
+        const story = res.story;
+
+        // ✅ Populate Title & Caption
+        document.getElementById("_story-title").value = story.title || "";
+        document.getElementById("_caption").value = story.caption || "";
+
+        // ✅ Show Existing Story Image
+        const thumbnailPreview = document.getElementById("thumbnailPreview");
+        if (story.image?.url) {
+            thumbnailPreview.src = story.image.url;
+            thumbnailPreview.style.display = "block";
+        } else {
+            thumbnailPreview.style.display = "none";
+        }
+    } catch (error) {
+        console.error("Error loading story data:", error.message);
+    }
+};
+
+// ✅ Function to Load Banner Data
+const loadEditBannerData = async (bannerId) => {
+    try {
+        const res = await fetchData(`/admin/banner?bannerId=${bannerId}`);
+        if (!res) return;
+
+        const banner = res.banner;
+
+        // ✅ Show Existing Banner Image
+        const bannerPreview = document.getElementById("thumbnailPreview");
+        if (banner.image) {
+            bannerPreview.src = banner.image;
+            bannerPreview.style.display = "block";
+        } else {
+            bannerPreview.style.display = "none";
+        }
+
+        // ✅ Set Status
+        const statusSelect = document.getElementById("bannerStatus_");
+        statusSelect.value = banner.status || "Active";
+    } catch (error) {
+        console.error("Error loading banner data:", error.message);
+    }
+};
+
+// ✅ Function to Update Video Preview
+function updateVideoPreview(videoUrl) {
+    if (videoUrl) {
+        const videoPreview = document.getElementById("videoPreview");
+        videoPreview.src = videoUrl;
+    }
+};
+
+// ✅ Function to Check if URL is a YouTube Link
+function isYouTubeUrl(url) {
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/;
+    return youtubeRegex.test(url);
+};
+
 // generate unique id
 function generateUniqueId(prefix = 'btn') {
     const timestamp = Date.now();
@@ -209,9 +517,22 @@ async function loadUserData(page = 1, limit = 10) {
             const button = document.createElement('button');
             button.innerText = action;
             button.setAttribute('data-id', user._id);
-            button.setAttribute('class', `btn btn-sm btn-${action === 'Edit' ? 'success' : 'danger'}`);
+
+            if (action === 'Edit') {
+                button.setAttribute('data-section-id', 'users');
+                button.setAttribute('data-form-id', 'edit_user');
+                button.setAttribute('data-back-btn-id', 'back-btn-user_');
+                button.setAttribute('data-edit-btn-id', 'edit-user__');
+            } else {
+                button.addEventListener("click", () => showDeletePopup(user._id, 'user'));
+            }
+
+            // ✅ Fix: Use classList.add() instead of setAttribute()
+            button.classList.add('btn', 'btn-sm', action === 'Edit' ? 'btn-success' : 'btn-danger', 'edit-class');
+
             div.appendChild(button);
         });
+
 
         tdActions.appendChild(div);
         tr.appendChild(tdActions);
@@ -226,7 +547,6 @@ async function loadVideoData(page = 1, limit = 12) {
 
     const videoRow = document.getElementById('video-row');
     const fragment = document.createDocumentFragment();
-
     videoRow.innerHTML = '';
 
     data.videos.forEach(video => {
@@ -250,10 +570,17 @@ async function loadVideoData(page = 1, limit = 12) {
         h5.classList.add('card-title', 'mb-3');
         h5.innerText = video.title;
         btnDiv.classList.add('btn-group');
-        editBtn.classList.add('btn', 'btn-sm', 'btn-success');
+        editBtn.classList.add('btn', 'btn-sm', 'btn-success', 'edit-class');
         deleteBtn.classList.add('btn', 'btn-sm', 'btn-danger');
+
         editBtn.setAttribute('data-id', video._id);
+        editBtn.setAttribute('data-section-id', 'video');
+        editBtn.setAttribute('data-form-id', 'edit_video');
+        editBtn.setAttribute('data-back-btn-id', 'back-btn_');
+        editBtn.setAttribute('data-edit-btn-id', 'video-form_');
+
         deleteBtn.setAttribute('data-id', video._id);
+        deleteBtn.addEventListener("click", () => showDeletePopup(video._id, 'video'));
         editBtn.innerText = 'Edit';
         deleteBtn.innerText = 'Delete';
 
@@ -277,7 +604,6 @@ async function loadArticleData(page = 1, limit = 12) {
 
     const articleRow = document.getElementById('article-row');
     const fragment = document.createDocumentFragment();
-
     articleRow.innerHTML = '';
 
     data.articles.forEach(article => {
@@ -303,10 +629,17 @@ async function loadArticleData(page = 1, limit = 12) {
         h5.innerText = article.title;
         cardBodyDiv.classList.add('card-body');
         btnDiv.classList.add('d-flex');
-        editBtn.classList.add('btn', 'btn-sm', 'btn-success', 'me-2', 'article-edit-btn');
+        editBtn.classList.add('btn', 'btn-sm', 'btn-success', 'me-2', 'article-edit-btn', "edit-class");
         deleteBtn.classList.add('btn', 'btn-sm', 'btn-danger');
+
         editBtn.setAttribute('data-id', article._id);
+        editBtn.setAttribute('data-section-id', 'article');
+        editBtn.setAttribute('data-form-id', 'update-article');
+        editBtn.setAttribute('data-back-btn-id', 'back-article_btn_');
+        editBtn.setAttribute('data-edit-btn-id', 'article-form_');
+
         deleteBtn.setAttribute('data-id', article._id);
+        deleteBtn.addEventListener("click", () => showDeletePopup(article._id, 'article'));
         editBtn.setAttribute('id', generateUniqueId());
         deleteBtn.setAttribute('id', generateUniqueId());
         editBtn.innerText = 'Edit';
@@ -332,7 +665,6 @@ async function loadStoryData(page = 1, limit = 12) {
 
     const storyRow = document.getElementById('story-row');
     const fragment = document.createDocumentFragment();
-
     storyRow.innerHTML = '';
 
     if (data.stories.length !== 0) {
@@ -357,10 +689,17 @@ async function loadStoryData(page = 1, limit = 12) {
             h5.classList.add('card-title', 'mb-3');
             h5.innerText = story.title;
             storyBtnDiv.classList.add('d-flex', 'gap-2');
-            storyEditBtn.classList.add('btn', 'btn-success', 'btn-sm');
+            storyEditBtn.classList.add('btn', 'btn-success', 'btn-sm', 'edit-class');
             storyDeleteBtn.classList.add('btn', 'btn-danger', 'btn-sm');
             storyEditBtn.setAttribute('data-id', story._id);
+
+            storyEditBtn.setAttribute('data-section-id', 'stories');
+            storyEditBtn.setAttribute('data-form-id', 'edit_story');
+            storyEditBtn.setAttribute('data-back-btn-id', 'back-story-btn_');
+            storyEditBtn.setAttribute('data-edit-btn-id', '_edit_story');
+
             storyDeleteBtn.setAttribute('data-id', story._id);
+            storyDeleteBtn.addEventListener("click", () => showDeletePopup(story._id, 'story'));
             storyEditBtn.innerText = 'Edit';
             storyDeleteBtn.innerText = 'Delete';
 
@@ -407,10 +746,17 @@ async function loadCategoryData(page = 1, limit = 12) {
         h5.classList.add('card-title', 'mb-3');
         h5.innerText = category.name;
         categoryBtnDiv.classList.add('d-flex', 'gap-2');
-        categoryEditBtn.classList.add('btn', 'btn-success', 'btn-sm');
+        categoryEditBtn.classList.add('btn', 'btn-success', 'btn-sm', 'edit-class');
         categoryDeleteBtn.classList.add('btn', 'btn-danger', 'btn-sm');
+
         categoryEditBtn.setAttribute('data-id', category._id);
+        categoryEditBtn.setAttribute('data-section-id', 'categories');
+        categoryEditBtn.setAttribute('data-form-id', 'edit_category');
+        categoryEditBtn.setAttribute('data-back-btn-id', 'category-back-btn_');
+        categoryEditBtn.setAttribute('data-edit-btn-id', 'categoryForm_');
+
         categoryDeleteBtn.setAttribute('data-id', category._id);
+        categoryDeleteBtn.addEventListener("click", () => showDeletePopup(category._id, 'category'));
         categoryEditBtn.innerText = 'Edit';
         categoryDeleteBtn.innerText = 'Delete';
 
@@ -471,13 +817,20 @@ async function loadSubscriptionData() {
         const actionDiv = document.createElement('div');
         actionDiv.className = "d-flex justify-content-start";
         const editButton = document.createElement('button');
-        editButton.className = 'btn btn-secondary btn-sm me-2';
+        editButton.className = 'btn btn-secondary btn-sm me-2 edit-class';
         editButton.textContent = 'Edit';
         const deleteButton = document.createElement('button');
         deleteButton.className = 'btn btn-danger btn-sm';
         deleteButton.textContent = 'Delete';
         editButton.setAttribute('data-id', plan._id);
+
+        editButton.setAttribute('data-section-id', 'subscriptions');
+        editButton.setAttribute('data-form-id', 'edit_subscription');
+        editButton.setAttribute('data-back-btn-id', 'back-subscription-btn_');
+        editButton.setAttribute('data-edit-btn-id', 'edit_subscription_');
+
         deleteButton.setAttribute('data-id', plan._id);
+        deleteButton.addEventListener("click", () => showDeletePopup(plan._id, 'subscription'));
         actionDiv.appendChild(editButton);
         actionDiv.appendChild(deleteButton);
         actionCell.appendChild(actionDiv);
@@ -517,8 +870,18 @@ async function laodCouponData() {
             <td><span class="badge bg-${coupon.status === 'Active' ? 'success' : 'danger'}">${coupon.status}</span></td>
             <td>
               <div class="d-flex justify-content-start">
-                <button class="btn btn-secondary btn-sm me-2" data-id="${coupon._id}" >Edit</button>
-                <button class="btn btn-danger btn-sm" data-id="${coupon._id}">Delete</button>
+                <button class="btn btn-secondary btn-sm me-2 edit-class" 
+                    data-id="${coupon._id}"
+                    data-section-id="coupons" 
+                    data-form-id="edit-coupon"
+                    data-back-btn-id="back-coupon-btn_"
+                    data-edit-btn-id="couponForm_">Edit
+                </button>
+
+                <button class="btn btn-danger btn-sm" 
+                    onclick="showDeletePopup('${coupon._id}', 'coupon')" 
+                    data-id="${coupon._id}">Delete
+                </button>
               </div>
             </td>
           </tr>
@@ -538,8 +901,17 @@ async function laodBannerData(page = 1, limit = 12) {
                 <div class="card">
                     <img src="${banner.image}" class="img-fluid rounded" alt="${banner.title}" />
                     <div class="card-body">
-                        <button class="btn btn-success btn-sm me-1" data-id="${banner._id}">Edit</button>
-                        <button class="btn btn-danger btn-sm" data-id="${banner._id}">Delete</button>
+                        <button class="btn btn-success btn-sm me-1 edit-class" 
+                            data-id="${banner._id}"
+                            data-section-id="banners" 
+                            data-form-id="edit_banner"
+                            data-back-btn-id="back-bnner-btn_"
+                            data-edit-btn-id="bannerForm_">Edit
+                        </button>
+                        <button class="btn btn-danger btn-sm" 
+                            onclick="showDeletePopup('${banner._id}', 'banner')" 
+                            data-id="${banner._id}">Delete
+                        </button>
                     </div>
                 </div>
             </div>
@@ -699,7 +1071,6 @@ async function handleFormSubmission(
         }
 
         if (response.ok) {
-            // successCallback(data);
             showModalWithMessage(data.message);
             form.reset();
             dataLoadCallback();
@@ -708,21 +1079,33 @@ async function handleFormSubmission(
         }
     } catch (error) {
         console.error("Error:", error);
-        showModalWithMessage('An unexpected error occurred.', 'error');
+        showModalWithMessage('An unexpected error occurred.');
     } finally {
         toggleProcessBtn(submitBtnId, processBtnId, false);
     };
 };
 
 // setting submission 
-async function submitSettingForm(form, url) {
-    const formData = new FormData(form);
+async function submitSettingForm(form, url, isJson = false) {
+    let options = {
+        method: 'POST',
+        credentials: 'include'
+    };
+
+    if (isJson) {
+        // ✅ Convert FormData to JSON
+        const formData = new FormData(form);
+        const jsonData = Object.fromEntries(formData.entries());
+
+        options.headers = { "Content-Type": "application/json" };
+        options.body = JSON.stringify(jsonData);
+    } else {
+        // ✅ Send FormData as it is (for file uploads)
+        options.body = new FormData(form);
+    }
+
     try {
-        const response = await fetch(`${baseUrl}${url}`, {
-            method: 'POST',
-            body: formData,
-            credentials: 'include'
-        });
+        const response = await fetch(`${baseUrl}${url}`, options);
 
         if (response.status === 401) {
             window.location.href = `${baseUrl}/admin`;
@@ -737,7 +1120,7 @@ async function submitSettingForm(form, url) {
 
     } catch (error) {
         console.error('Error submitting form:', error);
-        alert('Failed to save settings. Please try again.');
+        showModalWithMessage(error.message);
     }
 };
 
@@ -772,6 +1155,29 @@ async function fetchSettingData() {
         });
     } catch (error) {
         console.error('Error loading settings:', error);
+    }
+};
+
+// ✅ Dynamic API Call Function
+async function apiCall({ url, method = "GET", data = null, headers = {} }) {
+    try {
+        const options = {
+            method,
+            headers: { "Content-Type": "application/json", ...headers }
+        };
+
+        if (data) options.body = JSON.stringify(data);
+
+        const response = await fetch(url, options);
+        const result = await response.json();
+
+        if (response.status === 401) {
+            window.location.href = `${baseUrl}/admin`;
+        }
+
+        return result;
+    } catch (error) {
+        return error.message;
     }
 };
 
@@ -851,7 +1257,7 @@ function goBack(showElement, hideElement) {
     showElement.classList.add('d-block');
 };
 
-// check for element
+// back and toggle event listeners
 function doesElementExist(selector) {
     const element = document.querySelector(selector);
     return element !== null;
@@ -952,16 +1358,6 @@ function toggleProcessBtn(submitBtnId, processBtnId, isLoading) {
     };
 };
 
-// edit form toggle visibility
-
-// edit video from
-// if (doesElementExist('#video')) {
-//     const videoSection = document.getElementById('video');
-//     const editVideoPage = document.getElementById('edit_video');
-//     document.getElementById('edit-video').addEventListener('click', () => toggleVisibility(videoSection, editVideoPage));
-//     document.getElementById('back-btn_').addEventListener('click', () => goBack(videoSection, editVideoPage));
-// };
-
 // Event listeners for form submissions
 
 if (doesElementExist('#video-form')) {
@@ -970,7 +1366,6 @@ if (doesElementExist('#video-form')) {
         handleFormSubmission(
             e.target,
             "/admin/upload-video",
-            // (data) => console.log("Video uploaded successfully:", data),
             'video-process-btn',
             'add-video-btn',
             loadVideoData
@@ -984,7 +1379,6 @@ if (doesElementExist('#article-form')) {
         handleFormSubmission(
             e.target,
             "/admin/create-article",
-            // (data) => console.log("Article created successfully:", data),
             'process-btn',
             'article__btn',
             loadArticleData
@@ -998,7 +1392,6 @@ if (doesElementExist('#adduser__')) {
         handleFormSubmission(
             e.target,
             "/admin/create-user",
-            // (data) => console.log("User added successfully:", data),
             'user-process-btn',
             'add_user_btn',
             loadUserData,
@@ -1014,7 +1407,6 @@ if (doesElementExist('#categoryForm')) {
         handleFormSubmission(
             e.target,
             "/admin/create-category",
-            // (data) => console.log("Cateogy created successfully:", data),
             'category-process-btn',
             'add-category-btn',
             loadCategoryData
@@ -1028,7 +1420,6 @@ if (doesElementExist('#addNew_story')) {
         handleFormSubmission(
             e.target,
             "/admin/create-story",
-            // (data) => console.log("Story created successfully:", data),
             'story-process-btn',
             'addNew_story-btn',
             loadStoryData
@@ -1042,7 +1433,6 @@ if (doesElementExist('#add-new_subscription')) {
         handleFormSubmission(
             e.target,
             "/admin/create-subscription",
-            // (data) => console.log("Subscription plan created successfully:", data),
             'subscription-process-btn',
             'addNew_subscription-btn',
             loadSubscriptionData,
@@ -1058,7 +1448,6 @@ if (doesElementExist('#couponForm')) {
         handleFormSubmission(
             e.target,
             "/admin/create-coupon",
-            // (data) => console.log("Coupon created successfully:", data),
             'coupon-process-btn',
             'add-new-coupon-btn',
             laodCouponData,
@@ -1074,7 +1463,6 @@ if (doesElementExist('#bannerForm')) {
         handleFormSubmission(
             e.target,
             "/admin/create-banner",
-            // (data) => console.log("Banner created successfully:", data),
             'banner-process-btn',
             'add_new-banner-btn',
             laodBannerData,
@@ -1088,7 +1476,6 @@ if (doesElementExist('#admin_profile_form')) {
         handleFormSubmission(
             e.target,
             "/admin/update-profile",
-            // (data) => console.log("Profile updated successfully:", data),
             'profile-process-btn',
             'save-profile',
             laodAdminProfileData,
@@ -1124,6 +1511,13 @@ if (doesElementExist('#generateCouponBtn')) {
     document.getElementById('generateCouponBtn').addEventListener('click', function () {
         const randomCouponCode = Math.random().toString(36).substr(2, 8).toUpperCase();
         document.getElementById('couponCode').value = randomCouponCode;
+    });
+};
+
+if (doesElementExist('#generateCouponBtn_')) {
+    document.getElementById('generateCouponBtn_').addEventListener('click', function () {
+        const randomCouponCode = Math.random().toString(36).substr(2, 8).toUpperCase();
+        document.getElementById('couponCode_').value = randomCouponCode;
     });
 };
 
@@ -1190,6 +1584,7 @@ if (doesElementExist('#smtp-form')) {
         submitSettingForm(
             e.target,
             '/admin/setting/smtp',
+            true,
         );
     });
 };
@@ -1200,6 +1595,7 @@ if (doesElementExist('#settingsForm_social')) {
         submitSettingForm(
             e.target,
             '/admin/setting/social-media',
+            true,
         );
     });
 };
@@ -1210,6 +1606,7 @@ if (doesElementExist('#settingsForm_menu')) {
         submitSettingForm(
             e.target,
             '/admin/setting/menu',
+            true,
         );
     });
 };
@@ -1220,6 +1617,7 @@ if (doesElementExist('#recaptchaSettingsForm')) {
         submitSettingForm(
             e.target,
             '/admin/setting/re-captcha',
+            true,
         );
     });
 };
@@ -1230,6 +1628,7 @@ if (doesElementExist('#bannerAdsForm')) {
         submitSettingForm(
             e.target,
             '/admin/setting/banner-ads',
+            true,
         );
     });
 };
@@ -1240,6 +1639,132 @@ if (doesElementExist('#mentenence_settings_form')) {
         submitSettingForm(
             e.target,
             '/admin/setting/maintenance-mode',
+            true,
+        );
+    });
+};
+
+// event listener for update form submission
+
+if (doesElementExist('#video-form_')) {
+    document.querySelector("#video-form_").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const editId = e.target.getAttribute('data-edit-id');
+        handleFormSubmission(
+            e.target,
+            `/admin/update-video/${editId}`,
+            'video-process-btn_',
+            'edit-video-btn',
+            loadVideoData,
+            "PUT"
+        );
+    });
+};
+
+if (doesElementExist('#article-form_')) {
+    document.querySelector("#article-form_").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const editId = e.target.getAttribute('data-edit-id');
+        handleFormSubmission(
+            e.target,
+            `/admin/update-article?articleId=${editId}`,
+            'process-btn_',
+            'edit-article__btn',
+            loadArticleData,
+            "PUT"
+        );
+    });
+};
+
+if (doesElementExist('#edit-user__')) {
+    document.querySelector("#edit-user__").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const editId = e.target.getAttribute('data-edit-id');
+        handleFormSubmission(
+            e.target,
+            `/admin/update-user?userId=${editId}`,
+            'user-process-btn_',
+            'edit_user_btn',
+            loadUserData,
+            "PUT",
+            true,
+        );
+    });
+};
+
+if (doesElementExist('#categoryForm_')) {
+    document.querySelector("#categoryForm_").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const editId = e.target.getAttribute('data-edit-id');
+        handleFormSubmission(
+            e.target,
+            `/admin/update-category?categoryId=${editId}`,
+            'category-process-btn_',
+            'edit-category-btn',
+            loadCategoryData,
+            "PUT"
+        );
+    });
+};
+
+if (doesElementExist('#_edit_story')) {
+    document.querySelector("#_edit_story").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const editId = e.target.getAttribute('data-edit-id');
+        handleFormSubmission(
+            e.target,
+            `/admin/update-story?storyId=${editId}`,
+            'story-process-btn_',
+            'edit_story-btn',
+            loadStoryData,
+            "PUT"
+        );
+    });
+};
+
+if (doesElementExist('#edit_subscription_')) {
+    document.querySelector("#edit_subscription_").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const editId = e.target.getAttribute('data-edit-id');
+        handleFormSubmission(
+            e.target,
+            `/admin/update-subscription?subscriptionId=${editId}`,
+            'subscription-process-btn_',
+            'edit_subscription-btn',
+            loadSubscriptionData,
+            "PUT",
+            true,
+        );
+    });
+};
+
+if (doesElementExist('#couponForm_')) {
+    document.querySelector("#couponForm_").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const editId = e.target.getAttribute('data-edit-id');
+        handleFormSubmission(
+            e.target,
+            `/admin/update-coupon?couponId=${editId}`,
+            'coupon-process-btn_',
+            'edit-coupon-btn',
+            laodCouponData,
+            "PUT",
+            true,
+        );
+    });
+};
+
+if (doesElementExist('#bannerForm_')) {
+    document.querySelector("#bannerForm_").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const editId = e.target.getAttribute('data-edit-id');
+        handleFormSubmission(
+            e.target,
+            `/admin/update-banner?bannerId=${editId}`,
+            'banner-process-btn_',
+            'edit-banner-btn',
+            laodBannerData,
+            "PUT"
         );
     });
 };
@@ -1249,7 +1774,7 @@ if (doesElementExist('#mentenence_settings_form')) {
 function triggerNotification() {
     const notification = document.getElementById("notification");
     notification.style.display = "block";
-    setTimeout(closeNotification, 5000);
+    setTimeout(closeNotification, 3000);
 };
 
 function closeNotification() {
@@ -1287,4 +1812,54 @@ function previewThumbnail(event) {
         previewImage.src = "#";
         previewImage.style.display = "none";
     }
+};
+
+async function showDeletePopup(itemId, sectionId) {
+    const modal = new bootstrap.Modal(document.getElementById("deleteModal"));
+    modal.show();
+
+    const deleteText = document.getElementById('delete-text');
+    const spinner = document.getElementById('spinner_');
+    const confirmBtn = document.getElementById("confirmDeleteBtn");
+
+    confirmBtn.onclick = async () => {
+        deleteText.classList.add('d-none');
+        spinner.classList.remove('d-none');
+
+        const apiEndpoints = {
+            video: `/admin/delete-video/${itemId}`,
+            article: `/admin/delete-article?articleId=${itemId}`,
+            user: `/admin/delete-user?userId=${itemId}`,
+            category: `/admin/delete-category?categoryId=${itemId}`,
+            story: `/admin/delete-story?storyId=${itemId}`,
+            subscription: `/admin/delete-subscription?subscriptionId=${itemId}`,
+            coupon: `/admin/delete-coupon?couponId=${itemId}`,
+            banner: `/admin/delete-banner?bannerId=${itemId}`,
+        };
+
+        if (!apiEndpoints[sectionId]) return;
+
+        const data = await apiCall({ url: apiEndpoints[sectionId], method: 'DELETE' });
+
+        if (data?.success) {
+            modal.hide();
+            const refreshFunctions = {
+                video: loadVideoData,
+                article: loadArticleData,
+                user: loadUserData,
+                category: loadCategoryData,
+                story: loadStoryData,
+                subscription: loadSubscriptionData,
+                coupon: laodCouponData,
+                banner: laodBannerData
+            };
+            refreshFunctions[sectionId]?.();
+        } else {
+            handleApiError(data);
+            modal.hide();
+        }
+
+        deleteText.classList.remove('d-none');
+        spinner.classList.add('d-none');
+    };
 };

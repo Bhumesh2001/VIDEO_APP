@@ -10,16 +10,18 @@ const {
 const userModel = require('../../models/userModel/userModel');
 const Session = require('../../models/userModel/session.userModel');
 const { generateCode } = require('../../utils/resendOtp.userUtil');
-const { generateToken, createSession } = require('../../utils/token');
-const { isValidPassword } = require('../../utils/validateUtil');
+const {
+    generateToken,
+    createSession,
+    checkSession,
+    isValidEmail,
+    isValidMobileNumber
+} = require('../../utils/token');
+const { isValidPassword, isValidImageUrl } = require('../../utils/validateUtil');
 const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
 const { OAuth2Client } = require('google-auth-library');
-const client = new OAuth2Client(
-    process.env.CLIENT_ID,
-    process.env.ClIENT_SECRET,
-    process.env.CALLBACK_URL
-);
+const client = new OAuth2Client(process.env.CLIENT_ID, process.env.ClIENT_SECRET, process.env.CALLBACK_URL);
 const temporaryStorage = new Map();
 
 // --------------- Register User -----------------
@@ -39,7 +41,7 @@ exports.registerUser = async (req, res, next) => {
         };
 
         // Check for existing user
-        const existingUser = await userModel.findOne({ email }).lean().exec();
+        const existingUser = await userModel.findOne({ email }).lean();
         if (existingUser) {
             return res.status(400).json({ success: false, status: 400, message: 'User already exists' });
         }
@@ -55,9 +57,7 @@ exports.registerUser = async (req, res, next) => {
             Code: verificationCode,
             isVerified: false
         };
-        if (temporaryStorage.has(email)) {
-            temporaryStorage.delete(email);
-        };
+        temporaryStorage.delete(email);
         temporaryStorage.set(email, userData);
 
         const data = {
@@ -73,11 +73,9 @@ exports.registerUser = async (req, res, next) => {
             message: 'Please verify your email',
         });
 
-        // Set timeout for temporary data expiration (15 minutes)
+        // Set timeout for temporary data expiration (10 minutes)
         setTimeout(() => {
-            if (temporaryStorage.has(email)) {
-                temporaryStorage.delete(email);
-            };
+            temporaryStorage.delete(email);
         }, 10 * 60 * 1000);  // 10 minutes
 
     } catch (error) {
@@ -97,25 +95,33 @@ exports.registerUserWithEmailOrPhone = async (req, res, next) => {
                 status: 400,
                 message: 'Either email or mobile number is required'
             });
-        }
+        };
 
         // Validate email and mobile number formats
-        if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+        if (email && !isValidEmail(email)) {
             return res.status(400).json({ success: false, status: 400, message: 'Invalid email format.' });
-        }
+        };
 
-        if (mobileNumber && !/^\d{10}$/.test(mobileNumber)) {
+        if (mobileNumber && !isValidMobileNumber(mobileNumber)) {
             return res.status(400).json({
                 success: false,
                 status: 400,
                 message: 'Invalid mobile number. It must be a 10-digit number.'
             });
-        }
+        };
 
         // Check if user already exists by email or mobile number
         let user = await userModel.findOne({ $or: [{ email }, { mobileNumber }] }).lean().exec();
         // If user exists, login them in
         if (user) {
+            if (checkSession(user._id)) {
+                return res.status(409).json({
+                    success: false,
+                    status: 409,
+                    message: "Sorry! User is already logged in on another device.",
+                });
+            };
+
             const token = generateToken(user);
             const deviceId = crypto.createHash("sha256")
                 .update(req.ip + req.headers["user-agent"])
@@ -139,7 +145,7 @@ exports.registerUserWithEmailOrPhone = async (req, res, next) => {
                 userId: user._id,
                 token
             });
-        }
+        };
 
         // If user doesn't exist, create new user
         const newUser = new userModel({
@@ -177,7 +183,7 @@ exports.registerUserWithEmailOrPhone = async (req, res, next) => {
             token
         });
     } catch (error) {
-        next(error); // Pass the error to the next middleware
+        next(error);
     };
 };
 
@@ -195,9 +201,8 @@ exports.verifyUser = async (req, res, next) => {
                 message: 'Invalid or expired verification code!',
             });
         }
-        const { Code, ...userDetails } = user_data;
 
-        // Check if the verification code matches
+        const { Code, ...userDetails } = user_data;
         if (parseInt(code) !== Code) {
             return res.status(400).json({
                 success: false,
@@ -345,7 +350,6 @@ exports.resendOtp = async (req, res, next) => {
 
     try {
         const user = await userModel.findOne({ email });
-
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -392,6 +396,7 @@ exports.resendVerificationCode = async (req, res, next) => {
         if (!user) {
             return res.status(404).json({
                 success: false,
+                status: 404,
                 message: "User not found",
             });
         };
@@ -450,6 +455,14 @@ exports.loginUser = async (req, res, next) => {
                 success: false,
                 status: 401,
                 message: "Invalid email or password",
+            });
+        }
+
+        if (checkSession(user._id)) {
+            return res.status(409).json({
+                success: false,
+                status: 409,
+                message: "Sorry! User is already logged in on another device.",
             });
         }
 
@@ -518,6 +531,13 @@ exports.logoutUser = async (req, res, next) => {
         const decoded = jwt.verify(userToken, process.env.USER_SECRET_KEY);
         await Session.findOneAndDelete({ userId: decoded._id });
 
+        res.clearCookie('userToken', token, {
+            httpOnly: true,
+            secure: true,
+            maxAge: 1000 * 60 * 60 * 48, // 2 days
+            sameSite: 'Strict',
+        });
+
         // Send success response
         return res.status(200).json({
             success: true,
@@ -580,6 +600,14 @@ exports.getGoogleProfile = async (req, res, next) => {
                 profile_Picture: picture,
             });
             await user_.save();
+        };
+
+        if (checkSession(user._id)) {
+            return res.status(409).json({
+                success: false,
+                status: 409,
+                message: "Sorry! User is already logged in on another device.",
+            });
         };
 
         const user = { email, role: user_.role, _id: user_._id };
@@ -662,6 +690,14 @@ exports.getFacebookProfile = async (req, res, next) => {
             await user_.save();
         };
 
+        if (checkSession(user._id)) {
+            return res.status(409).json({
+                success: false,
+                status: 409,
+                message: "Sorry! User is already logged in on another device.",
+            });
+        };
+
         const user = { email, role: user_.role, _id: user_._id }
         const token = generateToken(user);
         const deviceId = crypto.createHash("sha256")
@@ -723,7 +759,6 @@ exports.updateUser = async (req, res, next) => {
                 message: "userId not found",
             });
         };
-
         const { profilePicture, ...userData } = req.body;
 
         const user = await userModel.findById(userId);
@@ -736,8 +771,7 @@ exports.updateUser = async (req, res, next) => {
         };
 
         if (profilePicture) {
-            const isValidURL =
-                /^(http|https):\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/i.test(profilePicture);
+            const isValidURL = isValidImageUrl(profilePicture);
             if (!isValidURL) {
                 return res.status(400).json({
                     success: false,
@@ -775,6 +809,7 @@ exports.deleteUser = async (req, res, next) => {
                 message: "userId not found",
             });
         };
+
         const deleteUser = await userModel.findByIdAndDelete(userId);
         if (!deleteUser) {
             return res.status(404).json({

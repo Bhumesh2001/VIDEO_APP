@@ -231,7 +231,7 @@
               Logout
             </a>
           </div>
-          
+
           <!-- content -->
           <div class="col-lg-10 offset-lg-2 px-3 content">
             <section class="story" id="stories">
@@ -348,47 +348,156 @@
                 </div>
               </div>
             </section>
-          </div>
-        </div>
-      </div>
 
-      <!-- Success model -->
-      <div
-        class="modal fade"
-        id="successModal"
-        tabindex="-1"
-        aria-labelledby="successModalLabel"
-        aria-hidden="true"
-      >
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content text-white bg-dark">
-            <div class="modal-header">
-              <h5 class="modal-title" id="successModalLabel">Success</h5>
-              <button
-                type="button"
-                class="btn-close text-white"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div class="modal-body">
-              <span id="modalMessage"
-                >Your article has been submitted successfully!</span
-              >
-            </div>
-            <div class="modal-footer">
-              <button
-                type="button"
-                class="btn btn-success"
-                data-bs-dismiss="modal"
-              >
-                Close
-              </button>
-            </div>
+            <!-- edit story -->
+            <section class="edit_story d-none" id="edit_story">
+              <div class="main-content">
+                <div class="container-fluid story-container my-4 px-1">
+                  <!-- heading -->
+                  <h2 class="text-center heading pt-4">Edit Story</h2>
+
+                  <!-- edit story form -->
+                  <form
+                    class="px-4 pb-4"
+                    id="_edit_story"
+                    enctype="multipart/form-data"
+                  >
+                    <div class="mb-3">
+                      <label for="_story-title" class="form-label">Title</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="_story-title"
+                        placeholder="Enter story title"
+                        required
+                        name="title"
+                        autocomplete="off"
+                      />
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="_caption" class="form-label">Caption</label>
+                      <textarea
+                        class="form-control"
+                        id="_caption"
+                        rows="3"
+                        placeholder="Enter caption"
+                        name="caption"
+                        autocomplete="off"
+                      ></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="_image" class="form-label">Image</label>
+                      <input
+                        type="file"
+                        class="form-control"
+                        id="_image"
+                        accept="image/*"
+                        name="image"
+                      />
+                    </div>
+
+                    <!-- Story preview -->
+                    <img id="thumbnailPreview" class="mb-3" alt="Story" />
+
+                    <div class="d-flex justify-content-between">
+                      <a href="#" id="back-story-btn_" class="btn btn-danger"
+                        >Back</a
+                      >
+
+                      <button
+                        type="submit"
+                        id="edit_story-btn"
+                        class="btn btn-success"
+                      >
+                        Edit Story
+                      </button>
+
+                      <button
+                        class="btn btn-success custom-btn d-none"
+                        type="button"
+                        id="story-process-btn_"
+                      >
+                        <span
+                          class="spinner-border spinner-border-sm"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="visually-hidden" role="status"
+                          >Loading...</span
+                        >
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       </div>
     </main>
+
+    <!-- Success model -->
+    <div
+      class="modal fade"
+      id="successModal"
+      tabindex="-1"
+      aria-labelledby="successModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white bg-dark">
+          <div class="modal-header">
+            <h5 class="modal-title" id="successModalLabel">Success</h5>
+            <button
+              type="button"
+              class="btn-close text-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <span id="modalMessage"
+              >Your article has been submitted successfully!</span
+            >
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-success"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ✅ Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content p-3">
+          <div class="delete-icon">🗑️</div>
+          <p class="mt-2">Are you sure?</p>
+          <div class="d-flex gap-2 justify-content-center mt-3">
+            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+              Cancel
+            </button>
+            <button class="btn btn-danger btn-sm" id="confirmDeleteBtn">
+              <span id="delete-text">Delete</span>
+              <div
+                class="spinner-border spinner-border-sm d-none"
+                id="spinner_"
+                role="status"
+              >
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- footer -->
     <footer class="footer"></footer>

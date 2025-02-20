@@ -3,7 +3,7 @@ const crypto = require('node:crypto');
 const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 const { isValidPassword } = require('../../utils/validateUtil');
 
-exports.createUserByAdmin = async (req, res) => {
+exports.createUserByAdmin = async (req, res, next) => {
     try {
         const { name, email, password, username, mobileNumber, status } = req.body;
         if (!isValidPassword(password)) {
@@ -77,14 +77,13 @@ exports.getAllUsersByAdmin = async (req, res, next) => {
     }
 };
 
-exports.getSingleUserByAdmin = async (req, res) => {
+exports.getSingleUserByAdmin = async (req, res, next) => {
     try {
         const { userId } = req.query;
 
         const user = await userModel.findById(userId)
-            .select('name email mobileNumber profile_Picture status')
-            .lean()
-            .exec();
+            .select('name email mobileNumber profile_Picture status password')
+            .lean();
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -103,7 +102,7 @@ exports.getSingleUserByAdmin = async (req, res) => {
     };
 };
 
-exports.updateUserByAdmin = async (req, res) => {
+exports.updateUserByAdmin = async (req, res, next) => {
     try {
         const { userId } = req.query;
         const updates = req.body;
@@ -135,7 +134,7 @@ exports.updateUserByAdmin = async (req, res) => {
     };
 };
 
-exports.deleteUserByAdmin = async (req, res) => {
+exports.deleteUserByAdmin = async (req, res, next) => {
     try {
         const { userId } = req.query;
 

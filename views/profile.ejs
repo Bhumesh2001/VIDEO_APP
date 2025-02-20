@@ -320,6 +320,7 @@
                       >
                         Back
                       </button>
+
                       <button
                         type="submit"
                         id="save-profile"
@@ -327,6 +328,7 @@
                       >
                         Save
                       </button>
+
                       <button
                         class="btn btn-success custom-btn d-none"
                         type="button"
@@ -348,44 +350,69 @@
           </div>
         </div>
       </div>
+    </main>
 
-      <!-- Success model -->
-      <div
-        class="modal fade"
-        id="successModal"
-        tabindex="-1"
-        aria-labelledby="successModalLabel"
-        aria-hidden="true"
-      >
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content text-white bg-dark">
-            <div class="modal-header">
-              <h5 class="modal-title" id="successModalLabel">Success</h5>
-              <button
-                type="button"
-                class="btn-close text-white"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div class="modal-body">
-              <span id="modalMessage"
-                >Your article has been submitted successfully!</span
-              >
-            </div>
-            <div class="modal-footer">
-              <button
-                type="button"
-                class="btn btn-success"
-                data-bs-dismiss="modal"
-              >
-                Close
-              </button>
-            </div>
+    <!-- Success model -->
+    <div
+      class="modal fade"
+      id="successModal"
+      tabindex="-1"
+      aria-labelledby="successModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white bg-dark">
+          <div class="modal-header">
+            <h5 class="modal-title" id="successModalLabel">Success</h5>
+            <button
+              type="button"
+              class="btn-close text-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <span id="modalMessage"
+              >Your article has been submitted successfully!</span
+            >
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-success"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
           </div>
         </div>
       </div>
-    </main>
+    </div>
+
+    <!-- ✅ Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content p-3">
+          <div class="delete-icon">🗑️</div>
+          <p class="mt-2">Are you sure?</p>
+          <div class="d-flex gap-2 justify-content-center mt-3">
+            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+              Cancel
+            </button>
+            <button class="btn btn-danger btn-sm" id="confirmDeleteBtn">
+              <span id="delete-text">Delete</span>
+              <div
+                class="spinner-border spinner-border-sm d-none"
+                id="spinner_"
+                role="status"
+              >
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- footer -->
     <footer class="footer"></footer>

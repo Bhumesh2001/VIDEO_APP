@@ -237,12 +237,17 @@
             <section class="category" id="categories">
               <div class="main-content">
                 <div class="container-fluid main_div p-3 my-3">
+                  <!-- heading -->
                   <div class="text-end mb-3">
                     <button id="category-btn" class="btn btn-danger">
                       Add New
                     </button>
                   </div>
+
+                  <!-- load data -->
                   <div class="row" id="category-row"></div>
+
+                  <!-- pagination -->
                   <nav aria-label="Page navigation example">
                     <ul class="pagination m-0" id="category-pagination">
                       <li class="page-item">
@@ -289,21 +294,6 @@
                       />
                     </div>
 
-                    <!-- <div class="mb-3">
-                      <label for="description" class="form-label"
-                        >Description</label
-                      >
-                      <textarea
-                        class="form-control"
-                        id="description"
-                        rows="4"
-                        placeholder="Enter category description"
-                        required
-                        autocomplete="off"
-                        name="description"
-                      ></textarea>
-                    </div> -->
-
                     <div class="mb-3">
                       <label for="status" class="form-label">Status</label>
                       <select
@@ -316,6 +306,7 @@
                         <option value="inactive">Inactive</option>
                       </select>
                     </div>
+
                     <div class="mb-3">
                       <label for="image" class="form-label">Upload Image</label>
                       <input
@@ -327,6 +318,7 @@
                         name="image"
                       />
                     </div>
+
                     <div class="d-flex justify-content-between">
                       <a href="#" id="category-back-btn" class="btn btn-danger"
                         >Back</a
@@ -357,56 +349,154 @@
                 </div>
               </div>
             </section>
+
+            <!-- edit category -->
+            <section class="edit_category d-none" id="edit_category">
+              <div class="main-content">
+                <div class="container-fluid my-4 new-category">
+                  <!-- heading -->
+                  <h2 class="text-center heading">Edit Category</h2>
+
+                  <!-- category edit form -->
+                  <form id="categoryForm_" enctype="multipart/form-data">
+                    <div class="mb-3">
+                      <label for="name_" class="form-label">Name</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="name_"
+                        placeholder="Enter category name"
+                        required
+                        autocomplete="off"
+                        name="name"
+                      />
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="status_" class="form-label">Status</label>
+                      <select
+                        class="form-select"
+                        name="status"
+                        id="status_"
+                        required
+                      >
+                        <option value="active" selected>Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="image_" class="form-label"
+                        >Upload Image</label
+                      >
+                      <input
+                        type="file"
+                        class="form-control"
+                        id="image_"
+                        accept="image/*"
+                        name="image"
+                      />
+                    </div>
+
+                    <!-- Category preview -->
+                    <img id="thumbnailPreview" class="mb-3" alt="Category" />
+
+                    <div class="d-flex justify-content-between">
+                      <a href="#" id="category-back-btn_" class="btn btn-danger"
+                        >Back</a
+                      >
+                      <button
+                        type="submit"
+                        id="edit-category-btn"
+                        class="btn btn-success"
+                      >
+                        Edit Category
+                      </button>
+
+                      <button
+                        class="btn btn-success custom-btn d-none"
+                        type="button"
+                        id="category-process-btn_"
+                      >
+                        <span
+                          class="spinner-border spinner-border-sm"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="visually-hidden" role="status"
+                          >Loading...</span
+                        >
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
-      </div>
-
-      <!-- Success model -->
-      <div
-        class="modal fade"
-        id="successModal"
-        tabindex="-1"
-        aria-labelledby="successModalLabel"
-        aria-hidden="true"
-      >
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content text-white bg-dark">
-            <div class="modal-header">
-              <h5 class="modal-title" id="successModalLabel">Success</h5>
-              <button
-                type="button"
-                class="btn-close text-white"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div class="modal-body">
-              <span id="modalMessage"
-                >Your article has been submitted successfully!</span
-              >
-            </div>
-            <div class="modal-footer">
-              <button
-                type="button"
-                class="btn btn-success"
-                data-bs-dismiss="modal"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- setting notification -->
-      <div class="notification" id="notification">
-        <h2 class="setting-title">🎉 Settings Saved!</h2>
-        <p class="setting-message">Your changes have been saved.</p>
-        <button class="setting_close_btn btn-sm" id="close-notify-btn">
-          Okay
-        </button>
       </div>
     </main>
+
+    <!-- Success model -->
+    <div
+      class="modal fade"
+      id="successModal"
+      tabindex="-1"
+      aria-labelledby="successModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white bg-dark">
+          <div class="modal-header">
+            <h5 class="modal-title" id="successModalLabel">Success</h5>
+            <button
+              type="button"
+              class="btn-close text-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <span id="modalMessage"
+              >Your article has been submitted successfully!</span
+            >
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-success"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ✅ Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content p-3">
+          <div class="delete-icon">🗑️</div>
+          <p class="mt-2">Are you sure?</p>
+          <div class="d-flex gap-2 justify-content-center mt-3">
+            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+              Cancel
+            </button>
+            <button class="btn btn-danger btn-sm" id="confirmDeleteBtn">
+              <span id="delete-text">Delete</span>
+              <div
+                class="spinner-border spinner-border-sm d-none"
+                id="spinner_"
+                role="status"
+              >
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- footer -->
     <footer class="footer"></footer>

@@ -41,14 +41,6 @@ const generalSettingsSchema = new mongoose.Schema({
         type: String,
         trim: true,
     },
-    headerCode: {
-        type: String,
-        trim: true,
-    },
-    footerCode: {
-        type: String,
-        trim: true,
-    },
     copyrightText: {
         type: String,
         trim: true,
@@ -142,7 +134,7 @@ const socialMediaSettingsSchema = new mongoose.Schema({
 // *******************  menu setting schema *******************
 
 const menuSettingsSchema = new mongoose.Schema({
-    story: {
+    story_: {
         type: Boolean,
         default: true,
     },

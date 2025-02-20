@@ -29,6 +29,7 @@ exports.helmetConfig = {
             "https://cdn-icons-png.flaticon.com",
             "data:"
         ], // Allow icons
+        mediaSrc: ["'self'", "blob:", "https://res.cloudinary.com"],
         scriptSrcAttr: ["'unsafe-inline'"],
     },
 };

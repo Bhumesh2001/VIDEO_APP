@@ -81,6 +81,31 @@ exports.getAllVideosByCategory = async (req, res, next) => {
     }
 };
 
+// Get video by id
+exports.getVideoById = async (req, res, next) => {
+    try {
+        // Fetch video details
+        const video = await Video.findById(req.params.videoId).lean();
+        if (!video) {
+            return res.status(404).json({ success: false, message: "Video not found" });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Video fetched successfully...!",
+            data: {
+                title: video.title,
+                description: video.description,
+                category: video.category,
+                thumbnail: video.thumbnail,
+                video: video.video || null, // If available
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // Upload video on Cloudinary
 exports.uploadVideo = async (req, res, next) => {
     const { title, description, category, video } = req.body;
@@ -148,6 +173,7 @@ exports.updateVideo = async (req, res, next) => {
         if (category) videoDoc.category = category;
 
         await videoDoc.save();
+        clearCache('node-cache');
         res.status(200).json({ success: true, message: "Video updated successfully!", data: videoDoc });
     } catch (error) {
         next(error);
@@ -168,6 +194,7 @@ exports.deleteVideo = async (req, res, next) => {
 
         // 🔹 Delete from Database
         await Video.findByIdAndDelete(videoId);
+        clearCache('node-cache');
 
         res.status(200).json({ success: true, message: "Video deleted successfully!" });
     } catch (error) {

@@ -8,9 +8,6 @@ const commentSchema = new mongoose.Schema({
     },
     content: {
         type: String,
-        required: true,
-        minlength: [1, 'Comment content cannot be empty.'],
-        maxlength: [500, 'Comment content cannot exceed 500 characters.'],
     },
 }, { timestamps: true });
 

@@ -65,7 +65,7 @@ exports.getAllVideosByCategory = async (req, res, next) => {
         if (!category) {
             return res.status(400).json({
                 success: false,
-                messagge: 'category is required',
+                message: 'category is required',
             });
         };
 
@@ -120,6 +120,36 @@ exports.getAllVideosByCategory = async (req, res, next) => {
     } catch (error) {
         next(error);
     };
+};
+
+// 🔥 Fetch Related Videos API
+exports.getRelatedVideos = async (req, res, next) => {
+    try {
+        const { videoId } = req.params;
+
+        // ✅ Get the Current Video
+        const currentVideo = await Video.findById(videoId).lean();
+        if (!currentVideo) {
+            return res.status(404).json({ success: false, message: "Video not found" });
+        }
+
+        // ✅ Find Related Videos by Matching Category & Tags
+        const relatedVideos = await Video.find({
+            _id: { $ne: videoId }, // Exclude current video
+            category: currentVideo.category,
+        })
+            .sort({ likes: -1 }) // Sort by most likes videos
+            .limit(10) // Limit to 10 results
+            .lean();
+
+        res.status(200).json({
+            success: true,
+            message: 'Related videos fetched successfully...!',
+            data: relatedVideos
+        });
+    } catch (error) {
+        next(error);
+    }
 };
 
 // like a video

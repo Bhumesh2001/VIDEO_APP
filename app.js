@@ -68,7 +68,7 @@ const startServer = async () => {
                 standardHeaders: true,
                 legacyHeaders: false,
             });
-            app.use(apiLimiter);
+            // app.use(apiLimiter);
         }
 
         // 📌 Body Parsing & Cookies
@@ -112,7 +112,7 @@ const startServer = async () => {
         process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
     } catch (error) {
-        console.error("❌ Server startup failed:", error);
+        console.error("Server startup failed:", error);
         process.exit(1);
     }
 };
@@ -131,7 +131,7 @@ if (cluster.isPrimary) {  // ✅ Fixed `isMaster` to `isPrimary`
     cluster.on('exit', (worker, code, signal) => {
         console.error(`💀 Worker ${worker.process.pid} died with code ${code || 'NULL'}.`);
         console.log('♻️ Restarting worker...');
-        setTimeout(() => cluster.fork(), 3000); // Restart worker after delay
+        setTimeout(() => cluster.fork(), 2000); // Restart worker after delay
     });
 } else {
     startServer(); // ✅ Start Worker Server

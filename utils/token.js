@@ -33,7 +33,12 @@ exports.generateToken = (user) => {
 
 // Helper function for session management
 exports.createSession = async (user, token, deviceId) => {
-    await Session.deleteMany({ userId: user._id }); // Delete old sessions
     const session = new Session({ userId: user._id, token, deviceId });
     await session.save();
+};
+
+exports.checkSession = async (userId) => {
+    const userSession = await Session.findOne({ userId }).lean();
+    if (userSession) return true;
+    return false;
 };

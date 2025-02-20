@@ -113,6 +113,12 @@ adminRouter.get(
     cacheMiddleware,
     videoController.getAllVideosByCategory
 );
+adminRouter.get(
+    '/video/:videoId',
+    adminAuthentication,
+    validateObjectIds(['videoId']),
+    videoController.getVideoById
+);
 adminRouter.put(
     '/update-video/:videoId',
     adminAuthentication,

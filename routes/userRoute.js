@@ -108,6 +108,12 @@ userRouter.post(
 
 userRouter.get('/videos', userAuthentication, cacheMiddleware, videoUserController.getAllVideos);
 userRouter.get(
+    "/videos/:videoId",
+    userAuthentication,
+    cacheMiddleware,
+    videoUserController.getRelatedVideos
+);
+userRouter.get(
     '/videos/by-category',
     userAuthentication,
     cacheMiddleware,

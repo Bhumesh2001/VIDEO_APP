@@ -13,3 +13,9 @@ exports.isValidURL = (url) => {
     const regex = /^(https?:\/\/[^\s/$.?#].[^\s]*)$/i;
     return regex.test(url);
 };
+
+// validate email
+exports.isValidEmail = (email) => /^\d{10}$/.test(email);
+
+// validate mobile number
+exports.isValidMobileNumber = (mobile) => /^\d{10}$/.test(mobile);

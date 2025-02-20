@@ -688,13 +688,29 @@ body {
 }
 
 /* thumbnail preview  */
-
 .thumbnail-preview {
   max-width: 150px;
   margin-top: 10px;
   border: 3px solid white;
   border-radius: 5px;
   width: 100px;
+}
+
+#thumbnailPreview {
+  max-width: 200px;
+  margin-top: 10px;
+  border: 3px solid white;
+  border-radius: 5px;
+  width: 150px;
+  height: 100px;
+}
+
+/* video preview css */
+#videoPreview {
+  height: 150px;
+  width: 250px;
+  border-radius: 10px;
+  background: #000;
 }
 
 /*  menu css */
@@ -771,6 +787,37 @@ body {
   }
 }
 
-.card img{
+.card img {
   height: 200px;
+}
+
+/* delete popup css */
+/* ✅ Modern Glassmorphism Effect */
+.modal-content {
+  background: rgba(30, 30, 30, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  color: #fff;
+  text-align: center;
+  border: 1px solid #495057;
+}
+
+/* ✅ Animated Delete Icon */
+.delete-icon {
+  font-size: 40px;
+  color: red;
+  animation: shake 0.6s infinite;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
 }

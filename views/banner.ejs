@@ -254,34 +254,6 @@
                 <div class="container-fluid my-4 new-banner">
                   <h2 class="h2 text-center heading">Add New Banner</h2>
                   <form id="bannerForm" enctype="multipart/form-data">
-                    <!-- <div class="mb-3">
-                      <label for="bannerTitle" class="form-label">Title</label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="bannerTitle"
-                        placeholder="Enter banner title"
-                        required
-                        autocomplete="off"
-                        name="title"
-                      />
-                    </div>
-                    
-                    <div class="mb-3">
-                      <label for="bannerDescription" class="form-label"
-                        >Description</label
-                      >
-                      <textarea
-                        class="form-control"
-                        id="bannerDescription"
-                        placeholder="Enter description"
-                        required
-                        autocomplete="off"
-                        name="description"
-                        rows="4"
-                      ></textarea>
-                    </div> -->
-
                     <div class="mb-3">
                       <label for="bannerLink" class="form-label">Image</label>
                       <input
@@ -297,7 +269,9 @@
                     </div>
 
                     <div class="mb-3">
-                      <label for="planStatus" class="form-label">Status</label>
+                      <label for="bannerStatus" class="form-label"
+                        >Status</label
+                      >
                       <select
                         class="form-select"
                         name="status"
@@ -344,56 +318,144 @@
                 </div>
               </div>
             </section>
+
+            <!-- edit banner -->
+            <section class="edit_banner d-none" id="edit_banner">
+              <div class="main-content">
+                <div class="container-fluid my-4 new-banner">
+                  <!-- banner heding -->
+                  <h2 class="h2 text-center heading">Edit Banner</h2>
+
+                  <!-- edit banner from -->
+                  <form id="bannerForm_" enctype="multipart/form-data">
+                    <div class="mb-3">
+                      <label for="bannerLink_" class="form-label">Image</label>
+                      <input
+                        type="file"
+                        class="form-control"
+                        id="bannerLink_"
+                        name="image"
+                      />
+                    </div>
+                    <!-- article preview -->
+                    <img id="thumbnailPreview" class="mb-3" alt="Banner Preview" />
+
+                    <div class="mb-3">
+                      <label for="bannerStatus_" class="form-label"
+                        >Status</label
+                      >
+                      <select
+                        class="form-select"
+                        name="status"
+                        id="bannerStatus_"
+                        required
+                      >
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                      <button
+                        type="button"
+                        id="back-bnner-btn_"
+                        class="btn btn-danger"
+                      >
+                        Back
+                      </button>
+
+                      <button
+                        type="submit"
+                        id="edit-banner-btn"
+                        class="btn btn-success"
+                      >
+                        Edit Banner
+                      </button>
+
+                      <button
+                        class="btn btn-success custom-btn d-none"
+                        type="button"
+                        id="banner-process-btn_"
+                      >
+                        <span
+                          class="spinner-border spinner-border-sm"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="visually-hidden" role="status"
+                          >Loading...</span
+                        >
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
-      </div>
-
-      <!-- Success model -->
-      <div
-        class="modal fade"
-        id="successModal"
-        tabindex="-1"
-        aria-labelledby="successModalLabel"
-        aria-hidden="true"
-      >
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content text-white bg-dark">
-            <div class="modal-header">
-              <h5 class="modal-title" id="successModalLabel">Success</h5>
-              <button
-                type="button"
-                class="btn-close text-white"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div class="modal-body">
-              <span id="modalMessage"
-                >Your article has been submitted successfully!</span
-              >
-            </div>
-            <div class="modal-footer">
-              <button
-                type="button"
-                class="btn btn-success"
-                data-bs-dismiss="modal"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- setting notification -->
-      <div class="notification" id="notification">
-        <h2 class="setting-title">🎉 Settings Saved!</h2>
-        <p class="setting-message">Your changes have been saved.</p>
-        <button class="setting_close_btn btn-sm" id="close-notify-btn">
-          Okay
-        </button>
       </div>
     </main>
+
+    <!-- Success model -->
+    <div
+      class="modal fade"
+      id="successModal"
+      tabindex="-1"
+      aria-labelledby="successModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white bg-dark">
+          <div class="modal-header">
+            <h5 class="modal-title" id="successModalLabel">Success</h5>
+            <button
+              type="button"
+              class="btn-close text-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <span id="modalMessage"
+              >Your article has been submitted successfully!</span
+            >
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-success"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ✅ Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content p-3">
+          <div class="delete-icon">🗑️</div>
+          <p class="mt-2">Are you sure?</p>
+          <div class="d-flex gap-2 justify-content-center mt-3">
+            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+              Cancel
+            </button>
+            <button class="btn btn-danger btn-sm" id="confirmDeleteBtn">
+              <span id="delete-text">Delete</span>
+              <div
+                class="spinner-border spinner-border-sm d-none"
+                id="spinner_"
+                role="status"
+              >
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- footer -->
     <footer class="footer"></footer>
