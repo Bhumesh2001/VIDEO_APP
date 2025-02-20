@@ -458,7 +458,7 @@ exports.loginUser = async (req, res, next) => {
             });
         }
 
-        if (checkSession(user._id)) {
+        if (await checkSession(user._id)) {
             return res.status(409).json({
                 success: false,
                 status: 409,
@@ -602,7 +602,7 @@ exports.getGoogleProfile = async (req, res, next) => {
             await user_.save();
         };
 
-        if (checkSession(user._id)) {
+        if (await checkSession(user._id)) {
             return res.status(409).json({
                 success: false,
                 status: 409,
@@ -690,7 +690,7 @@ exports.getFacebookProfile = async (req, res, next) => {
             await user_.save();
         };
 
-        if (checkSession(user._id)) {
+        if (await checkSession(user._id)) {
             return res.status(409).json({
                 success: false,
                 status: 409,

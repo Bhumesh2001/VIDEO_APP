@@ -39,6 +39,6 @@ exports.createSession = async (user, token, deviceId) => {
 
 exports.checkSession = async (userId) => {
     const userSession = await Session.findOne({ userId }).lean();
-    if (userSession) return true;
-    return false;
+    if (!userSession) return false;
+    return true;
 };
