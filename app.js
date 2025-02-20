@@ -77,7 +77,7 @@ const startServer = async () => {
         app.use(cookieParser());
 
         // 📌 Welcome Route
-        app.get('/', (req, res) => res.render('welcome'));
+        // app.get('/', (req, res) => res.render('welcome'));
 
         // 📌 API Routes
         app.use('/admin', adminRouter);
@@ -98,9 +98,7 @@ const startServer = async () => {
 
         // 📌 Graceful Shutdown Handling
         const gracefulShutdown = (signal) => {
-            console.log(`🚦 ${signal} received. Shutting down gracefully...`);
             server.close(() => {
-                console.log('🛑 Server closed.');
                 process.exit(0);
             });
             setTimeout(() => {
