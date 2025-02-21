@@ -178,7 +178,10 @@ exports.deleteCategories = async (req, res, next) => {
 
 exports.getCategoryOption = async (req, res, next) => {
     try {
-        const categoryOptions = await Category.find().select('name').sort({ createdAt: -1 }).lean();
+        const categoryOptions = await Category.find({ status: 'active' })
+            .select('name')
+            .sort({ createdAt: -1 })
+            .lean();
         if (categoryOptions.length === 0) {
             return res.status(404).json({
                 success: false,

@@ -92,7 +92,7 @@ const startServer = async () => {
         app.use(errorMiddleware);
 
         // 📌 Start Server
-        const server = app.listen(PORT, async () => {
+        app.listen(PORT, async () => {
             console.log(`🚀 Worker ${process.pid} running at http://localhost:${PORT}`);
         });
 

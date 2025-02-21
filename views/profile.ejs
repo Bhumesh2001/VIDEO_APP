@@ -275,15 +275,21 @@
 
                     <div class="mb-3">
                       <label for="password" class="form-label">Password</label>
-                      <input
-                        type="password"
-                        class="form-control"
-                        id="password"
-                        placeholder="Enter password"
-                        required
-                        name="password"
-                        autocomplete="off"
-                      />
+                      <div class="password-container">
+                        <input
+                          type="password"
+                          class="form-control"
+                          id="password"
+                          placeholder="Enter password"
+                          required
+                          name="password"
+                          autocomplete="off"
+                        />
+                        <i
+                          class="fas fa-eye toggle-password"
+                          id="toggle-pass"
+                        ></i>
+                      </div>
                     </div>
 
                     <div class="mb-3">
@@ -423,7 +429,7 @@
       crossorigin="anonymous"
     ></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
     <script src="/js/index.js"></script>
   </body>
 </html>

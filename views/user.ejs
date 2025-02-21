@@ -290,7 +290,6 @@
             <section class="add_new_user d-none" id="new_user">
               <div class="main-content">
                 <div class="container-fluid new__user my-4">
-
                   <!-- heading -->
                   <h2 class="text-center heading">Add New User</h2>
 
@@ -308,6 +307,7 @@
                         autocomplete="off"
                       />
                     </div>
+
                     <div class="mb-3">
                       <label for="email_" class="form-label">Email</label>
                       <input
@@ -320,18 +320,26 @@
                         autocomplete="off"
                       />
                     </div>
+
                     <div class="mb-3">
                       <label for="password_" class="form-label">Password</label>
-                      <input
-                        type="password"
-                        class="form-control"
-                        id="password_"
-                        placeholder="Enter your password"
-                        required
-                        name="password"
-                        autocomplete="off"
-                      />
+                      <div class="password-container">
+                        <input
+                          type="password"
+                          class="form-control"
+                          id="password_"
+                          placeholder="Enter your password"
+                          required
+                          name="password"
+                          autocomplete="off"
+                        />
+                        <i
+                          class="fas fa-eye toggle-password"
+                          id="toggle-pass"
+                        ></i>
+                      </div>
                     </div>
+
                     <div class="mb-3">
                       <label for="mobileNumber_" class="form-label"
                         >Mobile Number</label
@@ -346,6 +354,7 @@
                         autocomplete="off"
                       />
                     </div>
+
                     <div class="mb-3">
                       <label for="status_" class="form-label">Status</label>
                       <select
@@ -571,7 +580,7 @@
       crossorigin="anonymous"
     ></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
     <script src="/js/index.js"></script>
   </body>
 </html>

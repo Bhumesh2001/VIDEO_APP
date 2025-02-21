@@ -146,6 +146,7 @@ exports.uploadVideo = async (req, res, next) => {
             data: newVideo
         });
     } catch (error) {
+        console.log(error, '====');
         next(error);
     }
 };

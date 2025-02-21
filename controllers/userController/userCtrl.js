@@ -13,11 +13,14 @@ const { generateCode } = require('../../utils/resendOtp.userUtil');
 const {
     generateToken,
     createSession,
-    checkSession,
+    checkSession
+} = require('../../utils/token');
+const {
+    isValidPassword,
+    isValidImageUrl,
     isValidEmail,
     isValidMobileNumber
-} = require('../../utils/token');
-const { isValidPassword, isValidImageUrl } = require('../../utils/validateUtil');
+} = require('../../utils/validateUtil');
 const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
 const { OAuth2Client } = require('google-auth-library');
@@ -111,10 +114,9 @@ exports.registerUserWithEmailOrPhone = async (req, res, next) => {
         };
 
         // Check if user already exists by email or mobile number
-        let user = await userModel.findOne({ $or: [{ email }, { mobileNumber }] }).lean().exec();
-        // If user exists, login them in
+        let user = await userModel.findOne({ $or: [{ email }, { mobileNumber }] }).lean();
         if (user) {
-            if (checkSession(user._id)) {
+            if (await checkSession(user._id)) {
                 return res.status(409).json({
                     success: false,
                     status: 409,
@@ -529,7 +531,7 @@ exports.logoutUser = async (req, res, next) => {
         };
 
         const decoded = jwt.verify(userToken, process.env.USER_SECRET_KEY);
-        await Session.findOneAndDelete({ userId: decoded._id });
+        await Session.deleteMany({ userId: decoded._id });
 
         res.clearCookie('userToken', {
             httpOnly: true,
@@ -571,67 +573,87 @@ exports.redirectToGoogleProfile = async (req, res, next) => {
 };
 exports.getGoogleProfile = async (req, res, next) => {
     const { code } = req.query;
+
     if (!code) {
-        return res.status(400).json({ success: false, message: 'No code provided' });
-    };
+        return res.status(400).json({ success: false, message: 'No authorization code provided' });
+    }
 
     try {
+        // Get OAuth tokens
         const { tokens } = await client.getToken(code);
+        if (!tokens.id_token) throw new Error('No ID token received');
+
         client.setCredentials(tokens);
 
+        // Verify ID token
         const ticket = await client.verifyIdToken({
             idToken: tokens.id_token,
             audience: process.env.CLIENT_ID,
         });
-
         const payload = ticket.getPayload();
-        const userId = payload['sub'];
+
+        // Validate payload fields
+        const googleId = payload['sub'];
         const email = payload['email'];
-        const name = payload['name'];
-        const picture = payload['picture'];
+        const name = payload['name'] || 'Unnamed User';
+        const picture = payload['picture'] || null;
 
-        let user_ = await userModel.findOne({ email });
-        if (!user_) {
-            user_ = new userModel({
-                name,
-                email,
-                username: `User_${crypto.randomBytes(2).toString('hex')}`,
-                profile_Picture: picture,
-            });
-            await user_.save();
-        };
+        if (!email || !googleId) {
+            throw new Error('Invalid Google profile data');
+        }
 
-        if (await checkSession(user._id)) {
+        // Upsert user in one query
+        const user = await userModel.findOneAndUpdate(
+            { email },
+            {
+                $setOnInsert: {
+                    name,
+                    email,
+                    username: `User_${crypto.randomBytes(4).toString('hex')}`, // 8 chars, ~4M combos
+                    profile_Picture: picture,
+                    googleId, // Store for reference
+                },
+            },
+            { upsert: true, new: true, lean: true }
+        );
+
+        // Check for existing session
+        const sessionExists = await checkSession(user._id);
+        if (sessionExists) {
             return res.status(409).json({
                 success: false,
-                status: 409,
-                message: "Sorry! User is already logged in on another device.",
+                message: 'User already logged in on another device',
             });
-        };
+        }
 
-        const user = { email, role: user_.role, _id: user_._id };
-        const token = generateToken(user);
-        const deviceId = crypto.createHash("sha256")
-            .update(req.ip + req.headers["user-agent"])
-            .digest("hex");
-        await createSession(user, token, deviceId);
+        // Generate token and session
+        const tokenPayload = { email, role: user.role || 'user', _id: user._id };
+        const token = generateToken(tokenPayload);
 
+        const deviceId = crypto.createHash('sha256')
+            .update(`${req.ip}-${req.headers['user-agent']}-${Date.now()}`) // Add timestamp for uniqueness
+            .digest('hex');
+        await createSession(tokenPayload, token, deviceId);
+
+        // Set secure cookie
         res.cookie('userToken', token, {
             httpOnly: true,
             secure: true,
-            maxAge: 1000 * 60 * 60 * 48,
+            maxAge: 48 * 60 * 60 * 1000, // 48 hours
             sameSite: 'Strict',
         });
 
-        clearCache("node-cache");
+        // Clear cache if needed
+        clearCache('node-cache');
 
-        res.status(200).json({
+        // Response
+        return res.status(200).json({
             success: true,
-            message: 'Logged in successfully!',
-            status: 200,
-            userId,
+            message: 'Logged in successfully',
+            userId: user._id,
             token,
         });
+
     } catch (error) {
         next(error);
     }

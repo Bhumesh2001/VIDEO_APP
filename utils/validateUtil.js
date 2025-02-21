@@ -15,7 +15,7 @@ exports.isValidURL = (url) => {
 };
 
 // validate email
-exports.isValidEmail = (email) => /^\d{10}$/.test(email);
+exports.isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 // validate mobile number
 exports.isValidMobileNumber = (mobile) => /^\d{10}$/.test(mobile);
