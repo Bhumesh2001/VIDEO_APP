@@ -531,10 +531,9 @@ exports.logoutUser = async (req, res, next) => {
         const decoded = jwt.verify(userToken, process.env.USER_SECRET_KEY);
         await Session.findOneAndDelete({ userId: decoded._id });
 
-        res.clearCookie('userToken', token, {
+        res.clearCookie('userToken', {
             httpOnly: true,
             secure: true,
-            maxAge: 1000 * 60 * 60 * 48, // 2 days
             sameSite: 'Strict',
         });
 

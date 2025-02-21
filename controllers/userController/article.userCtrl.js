@@ -49,38 +49,51 @@ exports.createArticle = async (req, res, next) => {
 
 exports.getAllArticles = async (req, res, next) => {
     try {
-        const articles = await Article.aggregate([
+        const result = await Article.aggregate([
             {
-                $project: {
-                    userId: 1,
-                    title: 1,
-                    image: 1,
-                    description: 1,
-                    TotalLikes: { $size: "$likes" },
-                    TotalComments: { $size: "$comments" },
-                    likes: 1,
-                    comments: 1,
+                $sort: { createdAt: -1 } // Sort by creation date, descending
+            },
+            {
+                $facet: {
+                    articles: [
+                        {
+                            $project: {
+                                userId: 1,
+                                title: 1,
+                                image: 1,
+                                description: 1,
+                                TotalLikes: { $size: "$likes" },
+                                TotalComments: { $size: "$comments" },
+                                likes: 1,
+                                comments: 1,
+                                createdAt: 1 // Optional
+                            }
+                        }
+                    ],
+                    total: [{ $count: "count" }]
                 }
             }
         ]);
 
-        const totalArticles = await Article.countDocuments();
+        const articles = result[0].articles;
+        const totalArticles = result[0].total[0]?.count || 0;
+
         if (articles.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Article not found!',
+                message: 'Articles not found!',
             });
-        };
+        }
 
         res.status(200).json({
             success: true,
-            message: 'Article fetched successfully...',
+            message: 'Articles fetched successfully...',
             totalArticles,
             articles
         });
     } catch (error) {
         next(error);
-    };
+    }
 };
 
 exports.getSingleArticle = async (req, res, next) => {

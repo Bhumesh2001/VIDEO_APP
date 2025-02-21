@@ -96,19 +96,6 @@ const startServer = async () => {
             console.log(`🚀 Worker ${process.pid} running at http://localhost:${PORT}`);
         });
 
-        // 📌 Graceful Shutdown Handling
-        const gracefulShutdown = (signal) => {
-            server.close(() => {
-                process.exit(0);
-            });
-            setTimeout(() => {
-                console.error('🛑 Forcing shutdown...');
-                process.exit(1);
-            }, 5000);
-        };
-        process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-        process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
     } catch (error) {
         console.error("Server startup failed:", error);
         process.exit(1);

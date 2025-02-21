@@ -65,61 +65,59 @@ exports.getAllVideosByCategory = async (req, res, next) => {
         if (!category) {
             return res.status(400).json({
                 success: false,
-                message: 'category is required',
+                message: 'Category is required',
             });
-        };
+        }
 
-        const userId = req.user._id;
-        if (!userId) {
-            return res.status(404).json({
+        if (!req.user || !req.user._id) {
+            return res.status(401).json({
                 success: false,
-                message: 'User ID not found!',
+                message: 'User not authenticated or ID not found!',
             });
-        };
+        }
+        const userId = req.user._id;
 
-        let videosByCategory = await Video.find({ category }, { __v: 0 }).lean();
+        let videosByCategory = await Video.find({ category: category.toLowerCase() }, { __v: 0 }).lean();
         if (videosByCategory.length === 0) {
             return res.status(404).json({
-                success: true,
-                message: "videos not found!",
+                success: false,
+                message: "Videos not found!",
             });
-        };
-
-        // Fetch user subscription details
-        const userSubscription = await UserSubscription(userId);
-        const subscribedCategoryName = userSubscription?.name || '';
-
-        if (subscribedCategoryName === 'all' || subscribedCategoryName === 'All') {
-            videosByCategory = videosByCategory.map(video => ({
-                ...video,
-                thumbnail: video.thumbnail.url,
-                likes: video.likes.length,
-                comments: video.comments.length,
-                video: video.video.url,
-                paid: true,  // User has paid for all categories
-            }));
         }
-        else {
-            // For specific category subscriptions
-            videosByCategory = videosByCategory.map(video => ({
+
+        // Fetch user subscription
+        let userSubscription;
+        try {
+            userSubscription = await UserSubscription(userId);
+        } catch (subError) {
+            return res.status(500).json({
+                success: false,
+                message: `Subscription error: ${subError.message}`,
+            });
+        }
+        const subscribedCategoryName = userSubscription?.name?.toLowerCase() || '';
+
+        // Transform video data
+        videosByCategory = videosByCategory.map(video => {
+            const isPaid = subscribedCategoryName === 'all' || subscribedCategoryName === video.category;
+            return {
                 ...video,
-                thumbnail: video.thumbnail.url,
-                likes: video.likes.length,
-                comments: video.comments.length,
-                video: video.video.url,
-                // Check if video belongs to a paid category
-                paid: subscribedCategoryName === video.category,
-            }));
-        };
+                thumbnail: video.thumbnail?.url || '',
+                likes: video.likes?.length || 0,
+                comments: video.comments?.length || 0,
+                video: video.video?.url || '',
+                paid: isPaid,
+            };
+        });
 
         res.status(200).json({
             success: true,
-            message: "Video fetched By category successfully...",
+            message: "Videos fetched by category successfully...",
             videosByCategory,
         });
     } catch (error) {
         next(error);
-    };
+    }
 };
 
 // 🔥 Fetch Related Videos API
@@ -127,25 +125,24 @@ exports.getRelatedVideos = async (req, res, next) => {
     try {
         const { videoId } = req.params;
 
-        // ✅ Get the Current Video
-        const currentVideo = await Video.findById(videoId).lean();
+        // Get the Current Video
+        const currentVideo = await Video.findById(videoId).select('category').lean();
         if (!currentVideo) {
             return res.status(404).json({ success: false, message: "Video not found" });
         }
 
-        // ✅ Find Related Videos by Matching Category & Tags
+        // Find Related Videos (case-insensitive)
         const relatedVideos = await Video.find({
-            _id: { $ne: videoId }, // Exclude current video
-            category: currentVideo.category,
-        })
-            .sort({ likes: -1 }) // Sort by most likes videos
-            .limit(10) // Limit to 10 results
-            .lean();
+            _id: { $ne: videoId },
+            category: { $regex: new RegExp(`^${currentVideo.category}$`, 'i') },
+        }, { __v: 0 })
+            .lean()
+            .then(videos => videos.sort((a, b) => b.likes.length - a.likes.length).slice(0, 10));
 
         res.status(200).json({
             success: true,
-            message: 'Related videos fetched successfully...!',
-            data: relatedVideos
+            message: relatedVideos.length > 0 ? 'Related videos fetched successfully...!' : 'No related videos found',
+            data: relatedVideos,
         });
     } catch (error) {
         next(error);

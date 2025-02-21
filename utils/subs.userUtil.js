@@ -153,34 +153,38 @@ exports.convertToISODate = (dateString) => {
 
 // 📌 Fetch User Subscription
 exports.UserSubscription = async (userId) => {
-    // await ensureDBConnection();
     try {
-        if (!mongoose.Types.ObjectId.isValid(userId)) throw new Error("Invalid userId");
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            throw new Error(`Invalid userId: ${userId}`);
+        }
 
-        const subscription = await Promise.all([
+        const [singleSub, allSub] = await Promise.all([
             SingleCategorySubscriptionModel.findOne({
                 userId,
                 paymentStatus: "completed",
-                status: "active"
+                status: "active",
             })
                 .select("categoryId")
                 .lean(),
             AllCategorySubscriptionModel.findOne({
                 userId,
                 paymentStatus: "completed",
-                status: "active"
+                status: "active",
             })
                 .select("categoryId")
                 .lean(),
         ]);
 
-        const userSubscription = subscription[0] || subscription[1];
-
+        const userSubscription = allSub || singleSub; // Prioritize "all" subscription
         if (!userSubscription) return null;
 
-        return mongoose.Types.ObjectId.isValid(userSubscription.categoryId)
-            ? (await Category.findById(userSubscription.categoryId).lean()) || { name: "unknown" }
-            : { name: "all" };
+        if (userSubscription.categoryId && mongoose.Types.ObjectId.isValid(userSubscription.categoryId)) {
+            const category = await Category.findById(userSubscription.categoryId).lean();
+            if (!category) throw new Error(`Category not found for ID: ${userSubscription.categoryId}`);
+            return category;
+        } else {
+            return { name: "all" };
+        }
     } catch (error) {
         console.error("Error in UserSubscription:", error);
         throw error;
