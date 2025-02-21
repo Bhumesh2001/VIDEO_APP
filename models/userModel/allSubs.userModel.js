@@ -47,6 +47,7 @@ const AllCategorySubscriptionSchema = new Schema({
 
 AllCategorySubscriptionSchema.index({ userId: 1 });
 AllCategorySubscriptionSchema.index({ paymentGetway: 1 });
+AllCategorySubscriptionSchema.index({ expiryDate: 1, status: 1 });
 
 function calculateExpiryDate(startDate, planType) {
     const expiryDate = new Date(startDate);
