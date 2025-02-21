@@ -5,8 +5,6 @@ const connectToDB = async () => {
         if (mongoose.connection.readyState === 1) return true;
         
         await mongoose.connect(process.env.DB_URI, {
-            useNewUrlParser: true,           // Avoid deprecation warnings
-            useUnifiedTopology: true,        // Use modern topology engine
             serverSelectionTimeoutMS: 30000, // Timeout for server selection
             socketTimeoutMS: 45000,          // Timeout for socket inactivity (increased)
             bufferCommands: true,            // Enable command buffering
