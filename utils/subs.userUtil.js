@@ -5,6 +5,7 @@ const SingleCategorySubscriptionModel = require("../models/userModel/subs.user.M
 const AllCategorySubscriptionModel = require("../models/userModel/allSubs.userModel");
 const { sendNotificationEmail, sendNotificationEmail2 } = require("../services/emailService");
 const { connectToDB } = require('../config/connect');
+const Category = require('../models/adminModel/category.adminModel');
 
 const ensureConnection = async () => {
     if (mongoose.connection.readyState !== 1) {
