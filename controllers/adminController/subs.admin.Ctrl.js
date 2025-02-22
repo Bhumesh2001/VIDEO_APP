@@ -3,7 +3,7 @@ const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
 exports.createSubscriptionPlan = async (req, res, next) => {
     try {
-        let { planName, planType, price, features, flatDiscount } = req.body;
+        let { planName, planType, price, features, discount } = req.body;
 
         // Ensure features is an array
         if (!Array.isArray(features)) {
@@ -24,7 +24,7 @@ exports.createSubscriptionPlan = async (req, res, next) => {
             planName,
             planType,
             price,
-            flatDiscount,
+            discount,
             features,
         });
         const savedSubscription = await newSubscription.save();

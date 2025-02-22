@@ -1865,7 +1865,7 @@ if (doesElementExist('#toggle-pass')) {
         const passwordField = document.getElementById("password_") ||
             document.getElementById("password") ||
             document.getElementById('smtpPassword');
-            
+
         const icon = document.querySelector(".toggle-password");
 
         if (passwordField.type === "password") {
