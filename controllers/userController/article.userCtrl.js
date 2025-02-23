@@ -1,47 +1,93 @@
+const busboy = require("busboy");
 const Article = require('../../models/adminModel/article.adminModel');
 const { deleteImageOnCloudinary, uploadImageOnCloudinary } = require('../../utils/uploadUtil');
 const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
+const { validateFile } = require("../../utils/validateUtil");
 
 exports.createArticle = async (req, res, next) => {
-    const { title, description } = req.body;
-    let imageData = { public_id: '', url: '' };
-
     try {
-        // Check if the article with the same title already exists
-        const existingArticle = await Article.findOne({ title }).lean();
-        if (existingArticle) {
-            return res.status(409).json({
-                success: false,
-                message: 'Article already exists!',
-            });
+        const bb = busboy({ headers: req.headers });
+
+        let articleData = {
+            userId: req.user._id,
+            title: "",
+            description: "",
+            image: "", 
+            public_id: "",
         };
 
-        if (req.file) {
-            const data = await uploadImageOnCloudinary(req.file.path, 'VleArticles');
-            imageData.url = data.secure_url;
-            imageData.public_id = data.public_id;
+        let fileUploadPromise = Promise.resolve();
+        let isImageUploaded = false;
+
+        let formFieldsPromise = new Promise((resolve, reject) => {
+            let formFieldsReceived = false;
+
+            // ✅ Extract and validate form fields
+            bb.on("field", async (fieldname, value) => {
+                formFieldsReceived = true;
+
+                if (fieldname === "title") articleData.title = value;
+                if (fieldname === "description") articleData.description = value;
+
+                if (articleData.title && articleData.description) {
+                    // ✅ Check if article already exists
+                    const existingArticle = await Article.findOne({ title: articleData.title }).lean();
+                    if (existingArticle) {
+                        return reject({ success: false, message: "Article with this title already exists!" });
+                    }
+                }
+            });
+
+            bb.on("finish", () => {
+                if (!formFieldsReceived) {
+                    reject({ success: false, message: "Title and description are required!" });
+                } else {
+                    resolve();
+                }
+            });
+        });
+
+        // ✅ Handle file upload & validation
+        bb.on("file", (fieldname, file, info) => {
+            if (fieldname === "image") {
+                isImageUploaded = true;
+
+                // ✅ Validate file before uploading
+                const validation = validateFile(info);
+                if (!validation.valid) {
+                    return res.status(400).json({ success: false, message: validation.message });
+                }
+
+                fileUploadPromise = uploadImageOnCloudinary(file, "VleArticles").then((data) => {
+                    articleData.image = data.secure_url;
+                    articleData.public_id = data.public_id;
+                });
+            }
+        });
+
+        // ✅ Process form data before image upload
+        req.pipe(bb);
+
+        await formFieldsPromise; // Ensure fields are valid before proceeding
+
+        if (!isImageUploaded) {
+            return res.status(400).json({ success: false, message: "Image is required!" });
         }
 
-        // Create the new article
-        const articleData = {
-            userId: req.user._id,
-            title,
-            description,
-            public_id: imageData.public_id,
-            image: imageData.url,
-        };
+        await fileUploadPromise; // Ensure image upload is done
 
-        const article = new Article(articleData);
-        await article.save();
+        // ✅ Save to DB
+        const article = await Article.create(articleData);
 
-        // Clear node-cache
+        // ✅ Clear Cache
         clearCache("node-cache");
 
-        res.status(200).json({
+        res.status(201).json({
             success: true,
             message: "Article created successfully!",
             article,
         });
+
     } catch (error) {
         next(error);
     }
@@ -119,50 +165,92 @@ exports.getSingleArticle = async (req, res, next) => {
 };
 
 exports.updateArticle = async (req, res, next) => {
-    const { articleId } = req.query;
-    const { title, description } = req.body;
-
     try {
-        // Check if article exists
-        const article = await Article.findOne({ userId: req.user._id, _id: articleId }).lean().exec();
-        if (!article) {
-            return res.status(404).json({
-                success: false,
-                message: 'Article not found',
-            });
+        const { articleId } = req.query;
+        if (!articleId) {
+            return res.status(400).json({ success: false, message: "Article ID is required!" });
         }
 
-        // Handle image upload (either URL or file)
-        let imageData = { url: article.image, public_id: article.public_id }; // Default to existing image
-        if (req.file) {
-            // Delete old image and upload the new one
-            if (article.public_id) await deleteImageOnCloudinary(article.public_id);
-            const data = await uploadImageOnCloudinary(req.file.path, 'VleArticles');
-            imageData.url = data.secure_url;
-            imageData.public_id = data.public_id;
+        // ✅ Check if the article exists
+        const existingArticle = await Article.findOne({ userId: req.user._id, _id: articleId }).lean();
+        if (!existingArticle) {
+            return res.status(404).json({ success: false, message: "Article not found!" });
         }
 
-        // Build update object dynamically
-        const updates = {
-            title: title || article.title,
-            description: description || article.description,
-            image: imageData.url,
-            public_id: imageData.public_id,
+        const bb = busboy({ headers: req.headers });
+
+        let updatedArticleData = {
+            title: existingArticle.title,
+            description: existingArticle.description,
+            image: existingArticle.image, 
+            public_id: existingArticle.public_id ,
         };
 
-        // Update article
+        let fileUploadPromise = Promise.resolve();
+
+        let formFieldsPromise = new Promise((resolve, reject) => {
+            let formFieldsReceived = false;
+
+            // ✅ Extract and validate form fields
+            bb.on("field", async (fieldname, value) => {
+                formFieldsReceived = true;
+                if (fieldname === "title") updatedArticleData.title = value;
+                if (fieldname === "description") updatedArticleData.description = value;
+            });
+
+            bb.on("finish", () => {
+                if (!formFieldsReceived) {
+                    reject({ success: false, message: "Title or description is required!" });
+                } else {
+                    resolve();
+                }
+            });
+        });
+
+        // ✅ Handle file upload & validation
+        bb.on("file", (fieldname, file, info) => {
+            if (fieldname === "image") {
+                isImageUploaded = true;
+
+                // ✅ Validate file before uploading
+                const validation = validateFile(info);
+                if (!validation.valid) {
+                    return res.status(400).json({ success: false, message: validation.message });
+                }
+
+                fileUploadPromise = (async () => {
+                    // ✅ Delete old image if exists
+                    if (existingArticle.public_id) {
+                        await deleteImageOnCloudinary(existingArticle.public_id);
+                    }
+
+                    // ✅ Upload new image
+                    const data = await uploadImageOnCloudinary(file, "VleArticles");
+                    updatedArticleData.image = data.secure_url;
+                    updatedArticleData.public_id = data.public_id;
+                })();
+            }
+        });
+
+        // ✅ Process form data before image upload
+        req.pipe(bb);
+
+        await formFieldsPromise; // Ensure fields are valid before proceeding
+        await fileUploadPromise; // Wait for image upload completion
+
+        // ✅ Update article in DB
         const updatedArticle = await Article.findOneAndUpdate(
             { userId: req.user._id, _id: articleId },
-            updates,
+            updatedArticleData,
             { new: true, runValidators: true }
         );
 
-        // Clear node-cache
+        // ✅ Clear Cache
         clearCache("node-cache");
 
-        return res.status(200).json({
+        res.status(200).json({
             success: true,
-            message: 'Article updated successfully',
+            message: "Article updated successfully!",
             article: updatedArticle,
         });
 

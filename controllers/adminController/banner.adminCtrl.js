@@ -1,16 +1,40 @@
+const busboy = require("busboy");
 const Banner = require('../../models/adminModel/banner.adminModlel');
 const { deleteImageOnCloudinary, uploadImageOnCloudinary } = require('../../utils/uploadUtil');
 const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
 exports.createBanner = async (req, res, next) => {
-    let imageData = { url: null, public_id: null };  // Initialize imageData here to use later for cleanup
-
     try {
-        if (req.file) {
-            const data = await uploadImageOnCloudinary(req.file.path, 'VleBanners');
-            imageData.url = data.secure_url;
-            imageData.public_id = data.public_id;
-        };
+        let imageData = { url: null, public_id: null };
+
+        // Handle file upload with Busboy
+        const bb = busboy({ headers: req.headers });
+
+        let fileUploadPromise = new Promise((resolve, reject) => {
+            let fileProcessed = false;
+
+            bb.on("file", async (name, file, info) => {
+                try {
+                    fileProcessed = true;
+
+                    // Upload image to Cloudinary
+                    const data = await uploadImageOnCloudinary(file, "VleBanners");
+                    imageData.url = data.secure_url;
+                    imageData.public_id = data.public_id;
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            bb.on("finish", () => {
+                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
+            });
+
+            req.pipe(bb);
+        });
+
+        await fileUploadPromise; // Wait for file upload to complete
 
         // Save new banner to the database
         const newBanner = new Banner({
@@ -22,16 +46,15 @@ exports.createBanner = async (req, res, next) => {
         // Clear node-cache
         clearCache("node-cache");
 
-        // Respond with success message
         res.status(201).json({
             success: true,
-            status: 201,
-            message: 'Banner created successfully',
+            message: "Banner created successfully",
             banner: newBanner,
         });
+
     } catch (error) {
         next(error);
-    };
+    }
 };
 
 exports.getAllBanners = async (req, res, next) => {
@@ -106,31 +129,55 @@ exports.getSingleBanner = async (req, res, next) => {
 };
 
 exports.updateBanner = async (req, res, next) => {
-    const { bannerId } = req.query;
-    let { status } = req.body;
-    let imageData = { url: null, public_id: null };
-
     try {
+        const { bannerId } = req.query;
+        let { status } = req.body;
+        let imageData = { url: null, public_id: null };
+
         // Check for existing banner
         const bannerData = await Banner.findById(bannerId).lean();
         if (!bannerData) {
-            return res.status(404).json({ success: false, status: 404, message: 'Banner not found!' });
+            return res.status(404).json({ success: false, message: "Banner not found!" });
         }
 
-        // Upload new image if provided
-        if (req.file) {
-            if (bannerData.public_id) await deleteImageOnCloudinary(bannerData.public_id);
-            const data = await uploadImageOnCloudinary(req.file.path, 'VleBanners');
-            imageData.url = data.secure_url;
-            imageData.public_id = data.public_id;
-        }
+        // Handle file upload with Busboy
+        const bb = busboy({ headers: req.headers });
+
+        let fileUploadPromise = new Promise((resolve, reject) => {
+            let fileProcessed = false;
+
+            bb.on("file", async (name, file, info) => {
+                try {
+                    fileProcessed = true;
+
+                    // Delete old image if exists
+                    if (bannerData.public_id) await deleteImageOnCloudinary(bannerData.public_id);
+
+                    // Upload new image to Cloudinary
+                    const data = await uploadImageOnCloudinary(file, "VleBanners");
+                    imageData.url = data.secure_url;
+                    imageData.public_id = data.public_id;
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            bb.on("finish", () => {
+                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
+            });
+
+            req.pipe(bb);
+        });
+
+        await fileUploadPromise; // Wait for file upload to complete
 
         // Prepare banner updates
         const bannerUpdates = {
-            status: status ? status : bannerData.status,
+            status: status || bannerData.status,
             updatedAt: Date.now(),
-            image: imageData.url ? imageData.url : bannerData.image,
-            public_id: imageData.public_id ? imageData.public_id : bannerData.public_id,
+            image: imageData.url || bannerData.image,
+            public_id: imageData.public_id || bannerData.public_id,
         };
 
         // Update the banner
@@ -144,13 +191,13 @@ exports.updateBanner = async (req, res, next) => {
 
         res.status(200).json({
             success: true,
-            status: 200,
-            message: 'Banner updated successfully',
+            message: "Banner updated successfully",
             banner: updatedBanner,
         });
+
     } catch (error) {
         next(error);
-    };
+    }
 };
 
 exports.deleteBanner = async (req, res, next) => {

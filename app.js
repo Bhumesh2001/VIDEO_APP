@@ -116,7 +116,7 @@ if (cluster.isPrimary) {  // ✅ Fixed `isMaster` to `isPrimary`
     cluster.on('exit', (worker, code, signal) => {
         console.error(`💀 Worker ${worker.process.pid} died with code ${code || 'NULL'}.`);
         console.log('♻️ Restarting worker...');
-        setTimeout(() => cluster.fork(), 2000); // Restart worker after delay
+        setTimeout(() => cluster.fork(), 5000); // Restart worker after delay
     });
 } else {
     startServer(); // ✅ Start Worker Server

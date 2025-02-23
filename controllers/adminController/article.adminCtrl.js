@@ -1,29 +1,68 @@
+const busboy = require("busboy");
 const Article = require('../../models/adminModel/article.adminModel');
 const { deleteImageOnCloudinary, uploadImageOnCloudinary } = require('../../utils/uploadUtil');
 const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
 exports.createArticle = async (req, res, next) => {
     try {
-        const { title, description } = req.body;
-
-        // Upload image to Cloudinary if provided
+        let articleData = { title: "", description: "", userId: req.admin?._id };
         let imageData = { url: null, public_id: null };
-        if (req.file) {
-            const data = await uploadImageOnCloudinary(req.file.path, 'VleArticles');
-            imageData.url = data.secure_url;
-            imageData.public_id = data.public_id;
+
+        // Check if an article with the same title already exists
+        let articleExists = false;
+
+        // Handle file upload with Busboy
+        const bb = busboy({ headers: req.headers });
+
+        let fileUploadPromise = new Promise((resolve, reject) => {
+            let fileProcessed = false;
+
+            bb.on("field", (name, value) => {
+                articleData[name] = value;
+                if (name === "title") {
+                    Article.findOne({ title: value }).lean().then((existingArticle) => {
+                        if (existingArticle) articleExists = true;
+                    }).catch(reject);
+                }
+            });
+
+            bb.on("file", async (name, file, info) => {
+                try {
+                    fileProcessed = true;
+
+                    // Upload image to Cloudinary
+                    const data = await uploadImageOnCloudinary(file, "VleArticles");
+                    imageData.url = data.secure_url;
+                    imageData.public_id = data.public_id;
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            bb.on("finish", () => {
+                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
+            });
+
+            req.pipe(bb);
+        });
+
+        await fileUploadPromise; // Wait for file upload to complete
+
+        if (articleExists) {
+            return res.status(409).json({
+                success: false,
+                message: "Article already exists!",
+            });
         }
 
-        // Create article
-        const articleData = {
-            userId: req.admin?._id, // Ensure req.admin exists
-            title,
-            description,
+        // Create and save article
+        const article = new Article({
+            ...articleData,
             image: imageData.url,
             public_id: imageData.public_id,
-        };
+        });
 
-        const article = new Article(articleData);
         await article.save();
 
         // Clear node-cache
@@ -31,10 +70,10 @@ exports.createArticle = async (req, res, next) => {
 
         res.status(201).json({
             success: true,
-            status: 201,
-            message: 'Article created successfully!',
+            message: "Article created successfully!",
             article,
         });
+
     } catch (error) {
         next(error);
     }
@@ -103,34 +142,64 @@ exports.getSingleArticle = async (req, res, next) => {
 };
 
 exports.updateArticle = async (req, res, next) => {
-    const { articleId } = req.query;
-    const { title, description, status } = req.body;
-    let imageData = { url: null, public_id: null };
-
     try {
+        const { articleId } = req.query;
+        let articleData = { title: "", description: "", status: "" };
+        let imageData = { url: null, public_id: null };
+
         // Find the article
-        const article = await Article.findById(articleId).lean();
-        if (!article) {
-            return res.status(404).json({ success: false, status: 404, message: 'Article not found!' });
+        const existingArticle = await Article.findById(articleId);
+        if (!existingArticle) {
+            return res.status(404).json({ success: false, message: "Article not found!" });
         }
 
-        // Upload image if file or URL is provided
-        if (req.file) {
-            if (article.public_id) await deleteImageOnCloudinary(article.public_id);
-            const data = await uploadImageOnCloudinary(req.file.path, 'VleArticles');
-            imageData.url = data.secure_url;
-            imageData.public_id = data.public_id;
-        };
+        // Handle file upload with Busboy
+        const bb = busboy({ headers: req.headers });
+
+        let fileUploadPromise = new Promise((resolve, reject) => {
+            let fileProcessed = false;
+
+            bb.on("field", (name, value) => {
+                articleData[name] = value;
+            });
+
+            bb.on("file", async (name, file, info) => {
+                try {
+                    fileProcessed = true;
+
+                    // Delete previous image if it exists
+                    if (existingArticle.public_id) {
+                        await deleteImageOnCloudinary(existingArticle.public_id);
+                    }
+
+                    // Upload new image to Cloudinary
+                    const data = await uploadImageOnCloudinary(file, "VleArticles");
+                    imageData.url = data.secure_url;
+                    imageData.public_id = data.public_id;
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            bb.on("finish", () => {
+                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
+            });
+
+            req.pipe(bb);
+        });
+
+        await fileUploadPromise; // Wait for file upload to complete
 
         // Update article data
         const updatedArticle = await Article.findByIdAndUpdate(
             articleId,
             {
-                title: title || article.title,
-                description: description || article.description,
-                image: imageData?.url || article.image,
-                public_id: imageData?.public_id || article.public_id,
-                status: status ? status : article.status,
+                title: articleData.title || existingArticle.title,
+                description: articleData.description || existingArticle.description,
+                status: articleData.status || existingArticle.status,
+                image: imageData.url || existingArticle.image,
+                public_id: imageData.public_id || existingArticle.public_id,
             },
             { new: true, runValidators: true }
         );
@@ -140,13 +209,13 @@ exports.updateArticle = async (req, res, next) => {
 
         res.status(200).json({
             success: true,
-            status: 200,
-            message: 'Article updated successfully...',
+            message: "Article updated successfully!",
             article: updatedArticle,
         });
+
     } catch (error) {
         next(error);
-    };
+    }
 };
 
 exports.deleteArticle = async (req, res, next) => {

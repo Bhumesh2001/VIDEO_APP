@@ -1,53 +1,88 @@
 const { v4: uuidv4 } = require("uuid");
+const busboy = require("busboy");
 const Story = require('../../models/adminModel/story.adminModel');
 const userModel = require('../../models/userModel/userModel');
 const Admin = require('../../models/adminModel/adminModel');
 const { deleteImageOnCloudinary, uploadImageOnCloudinary } = require('../../utils/uploadUtil');
 const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
+const { validateFile } = require('../../utils/validateUtil');
 
 exports.createStory = async (req, res, next) => {
     try {
-        const { title, caption } = req.body;
+        const bb = busboy({ headers: req.headers });
 
-        // Generate unique title if not provided
-        const storyTitle = title ? title : `Story-${uuidv4()}`;
-
-        // Check if the story title already exists
-        const existingStory = await Story.findOne({ title: storyTitle }).lean().exec();
-        if (existingStory) {
-            return res.status(409).json({
-                success: false,
-                message: "Story already exists!",
-            });
-        }
-
-        // Prepare story data
         let storyData = {
             userId: req.user._id,
-            title: storyTitle,
-            caption,
+            title: "",
+            caption: "",
             image: { url: "", public_id: "" },
         };
 
-        // Upload file if provided
-        if (req.file) {
-            const fileData = await uploadImageOnCloudinary(req.file.path, "VleStories");
-            storyData.image.url = fileData.secure_url;
-            storyData.image.public_id = fileData.public_id;
-        }
+        let fileUploadPromise = Promise.resolve(); // Default promise for file upload
+        let isImageUploaded = false;
 
-        // Create and save the story
-        const story = await Story.create(storyData);
-
-        // Clear node-cache
-        clearCache("node-cache");
-
-        res.status(200).json({
-            success: true,
-            message: "Story created successfully",
-            story,
+        // ✅ Extract form fields (title, caption)
+        bb.on("field", (fieldname, value) => {
+            if (fieldname === "title") {
+                storyData.title = value || `Story-${uuidv4()}`;
+            } else if (fieldname === "caption") {
+                storyData.caption = value;
+            }
         });
 
+        // ✅ Handle file upload & validate before uploading
+        bb.on("file", (fieldname, file, info) => {
+            if (fieldname === "image") {
+                isImageUploaded = true;
+                
+                // ✅ Validate file before uploading
+                const validation = validateFile(info);
+                if (!validation.valid) {
+                    return res.status(400).json({ success: false, message: validation.message });
+                }
+
+                fileUploadPromise = uploadImageOnCloudinary(file, "VleStories").then((data) => {
+                    storyData.image.url = data.secure_url;
+                    storyData.image.public_id = data.public_id;
+                });
+            }
+        });
+
+        // ✅ After parsing form & file, validate required image
+        bb.on("finish", async () => {
+            try {
+                if (!isImageUploaded) {
+                    return res.status(400).json({ success: false, message: "Image is required!" });
+                }
+
+                await fileUploadPromise; // Ensure image upload is done
+
+                // ✅ Check for existing story
+                const existingStory = await Story.findOne({ title: storyData.title }).lean();
+                if (existingStory) {
+                    return res.status(409).json({
+                        success: false,
+                        message: "Story already exists!",
+                    });
+                }
+
+                // ✅ Save to DB
+                const story = await Story.create(storyData);
+
+                // ✅ Clear Cache
+                clearCache("node-cache");
+
+                res.status(201).json({
+                    success: true,
+                    message: "Story created successfully",
+                    story,
+                });
+            } catch (error) {
+                next(error);
+            }
+        });
+
+        req.pipe(bb);
     } catch (error) {
         next(error);
     }
@@ -138,51 +173,84 @@ exports.getSingleStory = async (req, res, next) => {
 };
 
 exports.updateStory = async (req, res, next) => {
-    const { storyId } = req.query;
-    const { title, caption } = req.body;
-
-    let storyData = {
-        userId: req.user._id,
-        image: { url: '', public_id: '' },
-        title,
-        caption,
-    };
-
     try {
-        // Fetch the story with the given ID and user ID
-        const story_ = await Story.findOne({ _id: storyId, userId: req.user._id }).lean().exec();
-        if (!story_) {
-            return res.status(404).json({
-                success: false,
-                message: 'Story not found!',
-            });
+        const { storyId } = req.query;
+
+        // ✅ Check if story exists
+        const existingStory = await Story.findOne({ _id: storyId, userId: req.user._id }).lean();
+        if (!existingStory) {
+            return res.status(404).json({ success: false, message: "Story not found!" });
+        }
+
+        const bb = busboy({ headers: req.headers });
+
+        let updatedStoryData = {
+            userId: req.user._id,
+            title: existingStory.title,
+            caption: existingStory.caption,
+            image: { url: existingStory.image.url, public_id: existingStory.image.public_id },
         };
 
-        storyData.image.url = story_.image.url;
-        storyData.image.public_id = story_.image.public_id;
+        let fileUploadPromise = Promise.resolve();
+        let isImageUploaded = false;
 
-        if (req.file) {
-            if (story_.image.public_id) await deleteImageOnCloudinary(story_.image.public_id);
-            const data = await uploadImageOnCloudinary(req.file.path, 'VleStories');
-            storyData.image.url = data.secure_url;
-            storyData.image.public_id = data.public_id;
-        };
-
-        // Update the story with the new data
-        const updatedStory = await Story.findOneAndUpdate(
-            { _id: storyId, userId: req.user._id },
-            storyData,
-            { new: true, runValidators: true }
-        );
-
-        // Clear node-cache
-        clearCache("node-cache");
-
-        res.status(200).json({
-            success: true,
-            message: 'Story updated successfully...',
-            story: updatedStory,
+        // ✅ Extract form fields (title, caption)
+        bb.on("field", (fieldname, value) => {
+            if (fieldname === "title") updatedStoryData.title = value;
+            if (fieldname === "caption") updatedStoryData.caption = value;
         });
+
+        // ✅ Handle file upload & validation
+        bb.on("file", (fieldname, file, info) => {
+            if (fieldname === "image") {
+                isImageUploaded = true;
+
+                // ✅ Validate file before uploading
+                const validation = validateFile(info);
+                if (!validation.valid) {
+                    return res.status(400).json({ success: false, message: validation.message });
+                }
+
+                fileUploadPromise = (async () => {
+                    // ✅ Delete old image if exists
+                    if (existingStory.image.public_id) {
+                        await deleteImageOnCloudinary(existingStory.image.public_id);
+                    }
+
+                    // ✅ Upload new image
+                    const fileData = await uploadImageOnCloudinary(file, "VleStories");
+                    updatedStoryData.image.url = fileData.secure_url;
+                    updatedStoryData.image.public_id = fileData.public_id;
+                })();
+            }
+        });
+
+        // ✅ After parsing form & file, validate required image
+        bb.on("finish", async () => {
+            try {
+                await fileUploadPromise; // Wait for file upload completion
+
+                // ✅ Update story in DB
+                const updatedStory = await Story.findOneAndUpdate(
+                    { _id: storyId, userId: req.user._id },
+                    updatedStoryData,
+                    { new: true, runValidators: true }
+                );
+
+                // ✅ Clear cache
+                clearCache("node-cache");
+
+                res.status(200).json({
+                    success: true,
+                    message: "Story updated successfully!",
+                    story: updatedStory,
+                });
+            } catch (error) {
+                next(error);
+            }
+        });
+
+        req.pipe(bb);
     } catch (error) {
         next(error);
     }

@@ -1,31 +1,67 @@
 const { faker } = require('@faker-js/faker');
+const busboy = require("busboy");
 const Story = require('../../models/adminModel/story.adminModel');
 const { deleteImageOnCloudinary, uploadImageOnCloudinary } = require('../../utils/uploadUtil');
 const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
 exports.createStoryByAdmin = async (req, res, next) => {
-    let { image, title, caption, ...data } = req.body;
-
-    let storyData = {
-        userId: req.admin._id,
-        title: title ? title : faker.lorem.sentence(),
-        caption: caption,
-        image: { url: '', public_id: '' },
-        ...data
-    };
-
     try {
-        // Check for existing story
-        const existingStory = await Story.findOne({ title }).lean();
-        if (existingStory) {
-            return res.status(409).json({ success: false, status: 409, message: 'Story already exists!' });
-        }
+        const bb = busboy({ headers: req.headers });
 
-        // Upload image
-        if (req.file) {
-            const data = await uploadImageOnCloudinary(req.file.path, 'VleStories');
-            storyData.image.url = data.secure_url;
-            storyData.image.public_id = data.public_id;
+        let storyData = {
+            userId: req.admin._id,
+            title: "",
+            caption: "",
+            image: { url: "", public_id: "" },
+        };
+
+        let imageFile = null;
+
+        // Parse form fields
+        bb.on("field", (name, value) => {
+            if (name === "title") {
+                storyData.title = value;
+            } else if (name === "caption") {
+                storyData.caption = value;
+            } else {
+                storyData[name] = value;
+            }
+        });
+
+        // Handle file uploads
+        let fileUploadPromise = new Promise((resolve, reject) => {
+            let fileProcessed = false;
+
+            bb.on("file", async (name, file, info) => {
+                try {
+                    if (name === "image") {
+                        fileProcessed = true;
+                        const data = await uploadImageOnCloudinary(file, "VleStories");
+                        storyData.image.url = data.secure_url;
+                        storyData.image.public_id = data.public_id;
+                    }
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            bb.on("finish", () => {
+                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
+            });
+
+            req.pipe(bb);
+        });
+
+        await fileUploadPromise; // Wait for file upload to complete
+
+        // Set default title if missing
+        storyData.title = storyData.title || faker.lorem.sentence();
+
+        // Check for existing story
+        const existingStory = await Story.findOne({ title: storyData.title }).lean();
+        if (existingStory) {
+            return res.status(409).json({ success: false, status: 409, message: "Story already exists!" });
         }
 
         // Save the story
@@ -38,12 +74,13 @@ exports.createStoryByAdmin = async (req, res, next) => {
         res.status(200).json({
             success: true,
             status: 200,
-            message: 'Story created successfully!',
-            story
+            message: "Story created successfully!",
+            story,
         });
+
     } catch (error) {
         next(error);
-    };
+    }
 };
 
 exports.getAllStoriesByAdmin = async (req, res, next) => {
@@ -105,37 +142,69 @@ exports.getSingleStoryByAdmin = async (req, res, next) => {
 };
 
 exports.updateStoryByAdmin = async (req, res, next) => {
-    const { storyId } = req.query;
-    const { title, caption } = req.body;
-
-    let storyData = {
-        userId: req.admin._id,
-        title,
-        caption,
-        image: { url: '', public_id: '' },
-    };
-
     try {
-        const story = await Story.findById(storyId).lean();
-        if (!story) {
-            return res.status(404).json({ success: false, status: 404, message: "Story not found!" });
-        };
-
-        // Handle image upload
-        if (req.file) {
-            if (story.image.public_id) await deleteImageOnCloudinary(story.image.public_id);
-            const data = await uploadImageOnCloudinary(req.file.path, 'VleStories');
-            storyData.image.url = data.secure_url;
-            storyData.image.public_id = data.public_id;
-        } else {
-            storyData.image = { public_id: story.image.public_id, url: story.image.url };
+        const { storyId } = req.query;
+        if (!storyId) {
+            return res.status(400).json({ success: false, status: 400, message: "Story ID is required!" });
         }
 
-        const updatedStory = await Story.findByIdAndUpdate(
-            storyId,
-            storyData,
-            { new: true, runValidators: true }
-        );
+        // Fetch existing story
+        const existingStory = await Story.findById(storyId);
+        if (!existingStory) {
+            return res.status(404).json({ success: false, status: 404, message: "Story not found!" });
+        }
+
+        const bb = busboy({ headers: req.headers });
+
+        let updatedData = {
+            title: existingStory.title,
+            caption: existingStory.caption,
+            image: { url: existingStory.image.url, public_id: existingStory.image.public_id },
+        };
+
+        let fileUploadPromise = new Promise((resolve, reject) => {
+            let fileProcessed = false;
+
+            bb.on("field", (name, value) => {
+                if (name === "title") updatedData.title = value;
+                else if (name === "caption") updatedData.caption = value;
+            });
+
+            bb.on("file", async (name, file, info) => {
+                try {
+                    if (name === "image") {
+                        fileProcessed = true;
+
+                        // Delete old image if exists
+                        if (existingStory.image.public_id) {
+                            await deleteImageOnCloudinary(existingStory.image.public_id);
+                        }
+
+                        // Upload new image
+                        const data = await uploadImageOnCloudinary(file, "VleStories");
+                        updatedData.image.url = data.secure_url;
+                        updatedData.image.public_id = data.public_id;
+                    }
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            bb.on("finish", () => {
+                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
+            });
+
+            req.pipe(bb);
+        });
+
+        await fileUploadPromise; // Wait for file upload completion
+
+        // Update story in DB
+        const updatedStory = await Story.findByIdAndUpdate(storyId, updatedData, {
+            new: true,
+            runValidators: true,
+        });
 
         // Clear node-cache
         clearCache("node-cache");
@@ -143,12 +212,13 @@ exports.updateStoryByAdmin = async (req, res, next) => {
         res.status(200).json({
             success: true,
             status: 200,
-            message: 'Story updated successfully...',
+            message: "Story updated successfully!",
             story: updatedStory,
         });
+
     } catch (error) {
         next(error);
-    };
+    }
 };
 
 exports.deleteStoryByAdmin = async (req, res, next) => {

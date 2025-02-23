@@ -305,8 +305,8 @@ exports.getSingleHistory = async (req, res, next) => {
 
         // Fetch history from both models based on userId and paymentId
         const [singleHistory, allHistory] = await Promise.all([
-            SingleCategorySubscriptionModel.findOne({ userId, paymentId }).lean().exec(),
-            AllCategorySubscriptionModel.findOne({ userId, paymentId }).lean().exec()
+            SingleCategorySubscriptionModel.findOne({ userId, paymentId }).lean(),
+            AllCategorySubscriptionModel.findOne({ userId, paymentId }).lean()
         ]);
 
         // If history is found in any model, return it

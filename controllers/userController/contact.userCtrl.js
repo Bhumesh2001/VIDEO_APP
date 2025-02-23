@@ -55,8 +55,7 @@ exports.getContactUserById = async (req, res, next) => {
         const contactUser = await ContactUseModel.findOne(
             { userId: req.params.userId },
             { createdAt: 0, updatedAt: 0, __v: 0 })
-            .lean()
-            .exec();
+            .lean();
         if (!contactUser) {
             return res.status(404).json({
                 success: false,

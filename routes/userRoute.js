@@ -25,7 +25,6 @@ const {
 } = require('../middlewares/adminMiddleware/validate.adminMidlwr');
 const { cacheMiddleware } = require('../middlewares/userMiddleware/redisMidlwr');
 const userValidation = require('../validation/userValidation');
-const { upload } = require('../utils/uploadUtil');
 
 // ********************* login/signup routes **********************
 
@@ -183,8 +182,7 @@ userRouter.get('/banners', userAuthentication, cacheMiddleware, bannerAdminContr
 userRouter.post(
     '/create-article',
     userAuthentication,
-    upload.single('image'),
-    validateFields(userValidation.validateArticle),
+    // validateFields(userValidation.validateArticle),
     articleUserController.createArticle
 );
 userRouter.get('/articles', userAuthentication, cacheMiddleware, articleUserController.getAllArticles);
@@ -199,7 +197,6 @@ userRouter.put(
     '/update-article',
     userAuthentication,
     validateObjectIds(['articleId']),
-    upload.single('image'),
     articleUserController.updateArticle
 );
 userRouter.delete(
@@ -214,8 +211,7 @@ userRouter.delete(
 userRouter.post(
     '/create-story',
     userAuthentication,
-    upload.single('image'),
-    validateFields(userValidation.validateStory),
+    // validateFields(userValidation.validateStory),
     storyUserController.createStory
 );
 userRouter.get(
@@ -235,7 +231,6 @@ userRouter.put(
     '/update-story',
     userAuthentication,
     validateObjectIds(['storyId']),
-    upload.single('image'),
     storyUserController.updateStory
 );
 userRouter.delete(

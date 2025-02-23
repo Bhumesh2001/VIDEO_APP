@@ -25,7 +25,6 @@ const {
 } = require('../middlewares/adminMiddleware/validate.adminMidlwr');
 const { cacheMiddleware } = require('../middlewares/userMiddleware/redisMidlwr');
 const adminValidation = require('../validation/adminValidation');
-const { upload } = require('../utils/uploadUtil');
 
 // ****************** Pages route ****************
 
@@ -64,12 +63,10 @@ adminRouter.get('/profile', adminAuthentication, adminController.adminProfile);
 adminRouter.put(
     '/update-profile',
     adminAuthentication,
-    upload.single('profilePicture'),
     validateFields(adminValidation.validateUpdateAdminData),
     adminController.updateProfile
 );
 adminRouter.post('/logout', adminAuthentication, adminController.logoutAdmin);
-adminRouter.get("/get-token", adminController.getToken);
 
 // ****************** Countact Us routes **********************
 
@@ -104,7 +101,6 @@ adminRouter.post(
     '/upload-video',
     adminAuthentication,
     // validateFields(adminValidation.videoValidationRules),
-    upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]),
     videoController.uploadVideo
 );
 adminRouter.get('/videos', adminAuthentication, cacheMiddleware, videoController.getAllVideos);
@@ -123,7 +119,6 @@ adminRouter.get(
 adminRouter.put(
     '/update-video/:videoId',
     adminAuthentication,
-    upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]),
     videoController.updateVideo
 );
 adminRouter.delete('/delete-video/:videoId', adminAuthentication, videoController.deleteVideo);
@@ -133,7 +128,6 @@ adminRouter.delete('/delete-video/:videoId', adminAuthentication, videoControlle
 adminRouter.post(
     '/create-category',
     adminAuthentication,
-    upload.single('image'),
     validateFields(adminValidation.categoryValidationRules),
     categoryController.createCategory
 );
@@ -154,7 +148,6 @@ adminRouter.put(
     '/update-category',
     adminAuthentication,
     validateObjectIds(['categoryId']),
-    upload.single('image'),
     categoryController.updateCategory
 );
 adminRouter.delete(
@@ -203,7 +196,6 @@ adminRouter.delete(
 adminRouter.post(
     '/create-article',
     adminAuthentication,
-    upload.single('image'),
     validateFields(adminValidation.articleValidationRules),
     articleController.createArticle
 );
@@ -219,7 +211,6 @@ adminRouter.put(
     '/update-article',
     adminAuthentication,
     validateObjectIds(['articleId']),
-    upload.single('image'),
     articleController.updateArticle
 );
 adminRouter.delete(
@@ -234,7 +225,6 @@ adminRouter.delete(
 adminRouter.post(
     '/create-story',
     adminAuthentication,
-    upload.single('image'),
     validateFields(adminValidation.storyValidationRules),
     storyController.createStoryByAdmin
 );
@@ -250,7 +240,6 @@ adminRouter.put(
     '/update-story',
     adminAuthentication,
     validateObjectIds(['storyId']),
-    upload.single('image'),
     storyController.updateStoryByAdmin
 );
 adminRouter.delete(
@@ -264,7 +253,6 @@ adminRouter.delete(
 adminRouter.post(
     '/create-banner',
     adminAuthentication,
-    upload.single('image'),
     validateFields(adminValidation.bannerValidationRules),
     bannerController.createBanner
 );
@@ -280,7 +268,6 @@ adminRouter.put(
     '/update-banner',
     adminAuthentication,
     validateObjectIds(['bannerId']),
-    upload.single('image'),
     bannerController.updateBanner
 );
 adminRouter.delete(
@@ -367,7 +354,6 @@ adminRouter.delete(
 adminRouter.route('/setting/general')
     .post(
         adminAuthentication,
-        upload.fields([{ name: "siteLogo", maxCount: 1 }, { name: "siteFavicon", maxCount: 1 }]),
         settingController.saveGeneralSettings
     )
     .get(adminAuthentication, cacheMiddleware, settingController.getGeneralSettings)

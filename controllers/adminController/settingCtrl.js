@@ -1,3 +1,4 @@
+const busboy = require("busboy");
 const {
     GeneralSettings,
     SmtpEmailSettings,
@@ -13,64 +14,94 @@ const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
 // ****************** General settings ******************
 
+
 exports.saveGeneralSettings = async (req, res, next) => {
     try {
-        const {
-            siteName, siteKeywords, email, _description, headerCode, footerCode,
-            copyrightText, facebook, twitter, instagram, googlePlay, appStore
-        } = req.body;
+        const bb = busboy({ headers: req.headers });
 
-        // Fetch existing settings (select only necessary fields)
+        let settingsData = {
+            siteName: "",
+            siteKeywords: "",
+            email: "",
+            _description: "",
+            headerCode: "",
+            footerCode: "",
+            copyrightText: "",
+            socialMediaLinks: { facebook: "", twitter: "", instagram: "" },
+            appDownloadLinks: { googlePlay: "", appStore: "" },
+            siteLogo: null,
+            siteFavicon: null,
+        };
+
+        // Fetch existing settings
         const existingSettings = await GeneralSettings.findOne()
             .select("siteLogo siteFavicon socialMediaLinks appDownloadLinks")
             .lean();
 
-        // Extract uploaded files (if available)
-        const logoFile = req.files?.siteLogo?.[0]?.path || null;
-        const faviconFile = req.files?.siteFavicon?.[0]?.path || null;
-
-        // Delete old images only if new ones are provided
-        if (logoFile && existingSettings?.siteLogo?.public_id) {
-            await deleteImageOnCloudinary(existingSettings.siteLogo.public_id);
-        }
-        if (faviconFile && existingSettings?.siteFavicon?.public_id) {
-            await deleteImageOnCloudinary(existingSettings.siteFavicon.public_id);
-        }
-
-        // Upload new images (only if a file exists)
-        const siteLogo = logoFile ? await uploadImageOnCloudinary(logoFile, "VleSiteLogos") : null;
-        const siteFavicon = faviconFile ? await uploadImageOnCloudinary(faviconFile, "VleSiteFavicons") : null;
-
-        // Prepare update data
-        const settingsData = {
-            siteName: siteName || existingSettings?.siteName,
-            siteLogo: siteLogo ? { url: siteLogo.secure_url, public_id: siteLogo.public_id } :
-                existingSettings?.siteLogo,
-            siteFavicon: siteFavicon ? { url: siteFavicon.secure_url, public_id: siteFavicon.public_id } :
-                existingSettings?.siteFavicon,
-            siteKeywords: siteKeywords || existingSettings?.siteKeywords,
-            email: email || existingSettings?.email,
-            _description: _description || existingSettings?._description,
-            headerCode: headerCode || existingSettings?.headerCode,
-            footerCode: footerCode || existingSettings?.footerCode,
-            copyrightText: copyrightText || existingSettings?.copyrightText,
-            socialMediaLinks: {
-                facebook: facebook || existingSettings?.socialMediaLinks?.facebook,
-                twitter: twitter || existingSettings?.socialMediaLinks?.twitter,
-                instagram: instagram || existingSettings?.socialMediaLinks?.instagram,
-            },
-            appDownloadLinks: {
-                googlePlay: googlePlay || existingSettings?.appDownloadLinks?.googlePlay,
-                appStore: appStore || existingSettings?.appDownloadLinks?.appStore,
+        // Parse form fields
+        bb.on("field", (name, value) => {
+            if (["facebook", "twitter", "instagram"].includes(name)) {
+                settingsData.socialMediaLinks[name] = value;
+            } else if (["googlePlay", "appStore"].includes(name)) {
+                settingsData.appDownloadLinks[name] = value;
+            } else {
+                settingsData[name] = value;
             }
+        });
+
+        // Handle file uploads
+        let fileUploadPromise = new Promise((resolve, reject) => {
+            let fileProcessed = false;
+
+            bb.on("file", async (name, file, info) => {
+                try {
+                    fileProcessed = true;
+
+                    // Handle siteLogo upload
+                    if (name === "siteLogo") {
+                        if (existingSettings?.siteLogo?.public_id) {
+                            await deleteImageOnCloudinary(existingSettings.siteLogo.public_id);
+                        }
+                        const data = await uploadImageOnCloudinary(file, "VleSiteLogos");
+                        settingsData.siteLogo = { url: data.secure_url, public_id: data.public_id };
+                    }
+
+                    // Handle siteFavicon upload
+                    if (name === "siteFavicon") {
+                        if (existingSettings?.siteFavicon?.public_id) {
+                            await deleteImageOnCloudinary(existingSettings.siteFavicon.public_id);
+                        }
+                        const data = await uploadImageOnCloudinary(file, "VleSiteFavicons");
+                        settingsData.siteFavicon = { url: data.secure_url, public_id: data.public_id };
+                    }
+
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            bb.on("finish", () => {
+                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
+            });
+
+            req.pipe(bb);
+        });
+
+        await fileUploadPromise; // Wait for file upload to complete
+
+        // Merge with existing settings
+        settingsData = {
+            ...existingSettings,
+            ...settingsData,
+            updatedAt: Date.now(),
         };
 
-        // Upsert the settings (create if it doesn't exist, otherwise update)
-        const savedSettings = await GeneralSettings.findOneAndUpdate(
-            {},
-            settingsData,
-            { new: true, upsert: true }
-        );
+        // Upsert the settings
+        const savedSettings = await GeneralSettings.findOneAndUpdate({}, settingsData, {
+            new: true,
+            upsert: true,
+        });
 
         // Clear node-cache
         clearCache("node-cache");
@@ -78,11 +109,10 @@ exports.saveGeneralSettings = async (req, res, next) => {
         res.status(200).json({
             success: true,
             message: "Settings updated successfully.",
-            settings: savedSettings
+            settings: savedSettings,
         });
 
     } catch (error) {
-        console.log(error);
         next(error);
     }
 };

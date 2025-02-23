@@ -1,4 +1,4 @@
-const { body } = require('express-validator');
+const { body, validationResult } = require('express-validator');
 
 // ****************** user validation ******************
 exports.validateUser = [
@@ -262,26 +262,4 @@ exports.validateStory = [
         .optional()
         .isString().withMessage('Caption must be a string')
         .isLength({ max: 500 }).withMessage('Caption must not exceed 500 characters'),
-
-    body('image').custom((value, { req }) => {
-        const uploadedFile = req.file;
-
-        if (!uploadedFile) {
-            throw new Error("Image is required");
-        }
-
-        if (req.file.size > 2 * 1024 * 1024) { // 2MB limit
-            throw new Error("Image must be 2MB or less!");
-        }
-
-        // If file is uploaded
-        if (uploadedFile) {
-            const allowedMimeTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-            if (!allowedMimeTypes.includes(uploadedFile.mimetype)) {
-                throw new Error("Uploaded file must be an image (jpg, png, gif, webp)");
-            }
-        }
-
-        return true;
-    }),
 ];

@@ -1,3 +1,4 @@
+const busboy = require("busboy");
 const Category = require('../../models/adminModel/category.adminModel');
 const { deleteImageOnCloudinary, uploadImageOnCloudinary } = require('../../utils/uploadUtil');
 const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
@@ -10,18 +11,42 @@ exports.createCategory = async (req, res, next) => {
         if (await Category.findOne({ name }).lean()) {
             return res.status(409).json({
                 success: false,
-                status: 409,
-                message: 'Category already exists.'
+                message: "Category already exists."
             });
         }
 
         let imageData = { url: null, public_id: null };
-        if (req.file) {
-            const data = await uploadImageOnCloudinary(req.file.path, 'VleCategories');
-            imageData.url = data.secure_url;
-            imageData.public_id = data.public_id;
-        }
 
+        // Handle file upload with Busboy
+        const bb = busboy({ headers: req.headers });
+
+        let fileUploadPromise = new Promise((resolve, reject) => {
+            let fileProcessed = false;
+
+            bb.on("file", async (name, file, info) => {
+                try {
+                    fileProcessed = true;
+
+                    // Upload image to Cloudinary
+                    const data = await uploadImageOnCloudinary(file, "VleCategories");
+                    imageData.url = data.secure_url;
+                    imageData.public_id = data.public_id;
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            bb.on("finish", () => {
+                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
+            });
+
+            req.pipe(bb);
+        });
+
+        await fileUploadPromise; // Wait for file upload to complete
+
+        // Create category
         const category = new Category({
             name,
             image_url: imageData.url,
@@ -34,13 +59,13 @@ exports.createCategory = async (req, res, next) => {
 
         res.status(201).json({
             success: true,
-            status: 201,
-            message: 'Category created successfully.',
-            category
+            message: "Category created successfully.",
+            category,
         });
+
     } catch (error) {
         next(error);
-    };
+    }
 };
 
 exports.getAllCategories = async (req, res, next) => {
@@ -107,45 +132,69 @@ exports.updateCategory = async (req, res, next) => {
     try {
         const categoryData = await Category.findById(categoryId).lean();
         if (!categoryData) {
-            return res.status(404).json({ success: false, status: 404, message: 'Category not found!' });
+            return res.status(404).json({ success: false, message: "Category not found!" });
         }
 
-        // Prepare updates
-        const updates = {
+        let updates = {
             name: name || categoryData.name,
             status: status !== undefined ? status : categoryData.status,
             updatedAt: Date.now(),
+            image_url: categoryData.image_url,
+            public_id: categoryData.public_id,
         };
 
-        // Handle image upload if provided
-        if (req.file) {
-            await deleteImageOnCloudinary(categoryData.public_id);
-            const data = await uploadImageOnCloudinary(req.file.path, 'VleCategories');
-            updates.url = data.secure_url;
-            updates.public_id = data.public_id;
-        } else {
-            updates.public_id = categoryData.public_id;
-            updates.image_url = categoryData.image_url;
-        }
+        // Handle file upload with Busboy
+        const bb = busboy({ headers: req.headers });
 
-        const updatedCategory = await Category.findByIdAndUpdate(
-            categoryId,
-            updates,
-            { new: true, runValidators: true }
-        );
+        let fileUploadPromise = new Promise((resolve, reject) => {
+            let fileProcessed = false;
+
+            bb.on("file", async (name, file, info) => {
+                try {
+                    fileProcessed = true;
+
+                    // Delete old image if exists
+                    if (categoryData.public_id) {
+                        await deleteImageOnCloudinary(categoryData.public_id);
+                    }
+
+                    // Upload new image to Cloudinary
+                    const data = await uploadImageOnCloudinary(file, "VleCategories");
+                    updates.image_url = data.secure_url;
+                    updates.public_id = data.public_id;
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            bb.on("finish", () => {
+                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
+            });
+
+            req.pipe(bb);
+        });
+
+        await fileUploadPromise; // Wait for file upload to complete
+
+        // Update category in database
+        const updatedCategory = await Category.findByIdAndUpdate(categoryId, updates, {
+            new: true,
+            runValidators: true,
+        });
 
         // Clear node-cache
         clearCache("node-cache");
 
         res.status(200).json({
             success: true,
-            status: 200,
             message: "Category updated successfully...",
             category: updatedCategory,
         });
+
     } catch (error) {
         next(error);
-    };
+    }
 };
 
 exports.deleteCategories = async (req, res, next) => {

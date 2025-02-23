@@ -1,4 +1,4 @@
-const fs = require('fs');
+const Busboy = require("busboy");
 const Video = require('../../models/adminModel/video.adminModel');
 const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 const { isValidURL } = require('../../utils/validateUtil');
@@ -109,80 +109,154 @@ exports.getVideoById = async (req, res, next) => {
 // Upload video on Cloudinary
 exports.uploadVideo = async (req, res, next) => {
     try {
-        const { title, description, category, video } = req.body;
+        const bb = Busboy({ headers: req.headers });
 
-        // ✅ Process thumbnail
-        const thumbnailPath = req.files.thumbnail[0].path;
-        const imageData = await uploadImageOnCloudinary(thumbnailPath, "VleThumbnails");
+        let videoData = { url: "", publicId: "" };
+        let imageData = { url: "", publicId: "" };
+        let formData = { title: "", description: "", category: "", video: "" };
 
-        // ✅ Process video (File Upload or URL Upload)
-        let videoData;
-        if (isValidURL(video)) {
-            videoData = await uploadVideoFromURL(video, "VleVideos");  // 📌 Upload video from URL
-        } else {
-            const videoPath = req.files.video[0].path;
-            videoData = await uploadVideoOnCloudinary(videoPath, "VleVideos");  // 📌 Upload video from file
+        let thumbnailUploadPromise = Promise.resolve();
+        let videoUploadPromise = Promise.resolve();
 
-            // ✅ Delete local file after upload
-            if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
-        }
-
-        // ✅ Save to DB
-        const newVideo = new Video({
-            title,
-            description,
-            category,
-            thumbnail: { url: imageData.secure_url, publicId: imageData.public_id },
-            video: { url: videoData.secure_url, publicId: videoData.public_id }
+        bb.on("field", (fieldname, val) => {
+            if (["title", "description", "category", "video"].includes(fieldname)) {
+                formData[fieldname] = val;
+            }
         });
-        await newVideo.save();
 
-        // ✅ Clear Cache
-        clearCache("node-cache");
+        bb.on("file", (fieldname, file, filename) => {
+            if (fieldname === "thumbnail") {
+                thumbnailUploadPromise = uploadImageOnCloudinary(file, "VleThumbnails").then(data => {
+                    imageData.url = data.secure_url;
+                    imageData.publicId = data.public_id;
+                });
+            }
 
-        res.status(200).json({
-            success: true,
-            message: "Video uploaded successfully...!",
-            data: newVideo
+            if (fieldname === "video") {
+                isVideoUploaded = true;
+                videoUploadPromise = uploadVideoOnCloudinary(file, "VleVideos").then(data => {
+                    videoData.url = data.secure_url;
+                    videoData.publicId = data.public_id;
+                    console.log(videoData,'===');
+                    
+                });
+            }
         });
+
+        bb.on("finish", async () => {
+            try {
+                // ✅ Ensure thumbnail upload completes
+                await thumbnailUploadPromise;
+
+                // ✅ Handle Video Upload (File or URL)
+                if (formData.video && isValidURL(formData.video)) {
+                    const videoData_ = await uploadVideoFromURL(formData.video, "VleVideos");
+                    console.log(videoData_, '====');
+
+                    videoData.url = videoData_.secure_url
+                    videoData.publicId = videoData_.public_id
+                } else {
+                    await videoUploadPromise; // ✅ Ensure file video is uploaded
+                }
+
+                // ✅ Check if video was actually uploaded
+                if (!videoData.url || !videoData.publicId) {
+                    return res.status(400).json({ success: false, message: "Video upload failed!" });
+                }
+
+                // ✅ Save to DB
+                const newVideo = new Video({
+                    title: formData.title,
+                    description: formData.description,
+                    category: formData.category,
+                    thumbnail: { url: imageData.url, publicId: imageData.publicId },
+                    video: { url: videoData.url, publicId: videoData.publicId },
+                });
+
+                await newVideo.save();
+
+                // ✅ Clear Cache
+                clearCache("node-cache");
+
+                res.status(200).json({
+                    success: true,
+                    message: "Video uploaded successfully!",
+                    data: newVideo,
+                });
+            } catch (error) {
+                next(error);
+            }
+        });
+
+        req.pipe(bb);
     } catch (error) {
-        console.log(error, '====');
         next(error);
     }
 };
 
 // update video
 exports.updateVideo = async (req, res, next) => {
-    const { title, description, category } = req.body;
-    const { videoId } = req.params;
-
     try {
+        const { videoId } = req.params;
         const videoDoc = await Video.findById(videoId);
         if (!videoDoc) return res.status(404).json({ success: false, message: "Video not found" });
 
-        // 🔹 Update thumbnail if new file provided
-        if (req.files?.thumbnail) {
-            await deleteImageOnCloudinary(videoDoc.thumbnail.publicId);
-            const newImage = await uploadImageOnCloudinary(req.files.thumbnail[0].path, "VleThumbnails");
-            videoDoc.thumbnail = { url: newImage.secure_url, publicId: newImage.public_id };
-        }
+        const bb = Busboy({ headers: req.headers });
 
-        // 🔹 Update video file if new file provided
-        if (req.files?.video) {
-            await deleteVideoOnCloudinary(videoDoc.video.publicId);
-            const newVideo = await uploadVideoOnCloudinary(req.files.video[0].path, "VleVideos");
-            videoDoc.video = { url: newVideo.secure_url, publicId: newVideo.public_id };
-            fs.unlinkSync(req.files.video[0].path);
-        }
+        let updatedFields = {};
+        let thumbnailUploadPromise = Promise.resolve();
+        let videoUploadPromise = Promise.resolve();
 
-        // 🔹 Update text fields if provided
-        if (title) videoDoc.title = title;
-        if (description) videoDoc.description = description;
-        if (category) videoDoc.category = category;
+        bb.on("field", (fieldname, val) => {
+            if (["title", "description", "category"].includes(fieldname)) {
+                updatedFields[fieldname] = val;
+            }
+        });
 
-        await videoDoc.save();
-        clearCache('node-cache');
-        res.status(200).json({ success: true, message: "Video updated successfully!", data: videoDoc });
+        bb.on("file", (fieldname, file, filename) => {
+            if (fieldname === "thumbnail") {
+                // Delete old thumbnail
+                deleteImageOnCloudinary(videoDoc.thumbnail.publicId);
+
+                // Upload new thumbnail
+                thumbnailUploadPromise = uploadImageOnCloudinary(file, "VleThumbnails").then(data => {
+                    updatedFields.thumbnail = { url: data.secure_url, publicId: data.public_id };
+                });
+            }
+
+            if (fieldname === "video") {
+                // Delete old video
+                deleteVideoOnCloudinary(videoDoc.video.publicId);
+
+                // Upload new video
+                videoUploadPromise = uploadVideoOnCloudinary(file, "VleVideos").then(data => {
+                    updatedFields.video = { url: data.secure_url, publicId: data.public_id };
+                });
+            }
+        });
+
+        bb.on("finish", async () => {
+            try {
+                await Promise.all([thumbnailUploadPromise, videoUploadPromise]);
+
+                // 🔹 Update document with new data
+                Object.assign(videoDoc, updatedFields);
+                await videoDoc.save();
+
+                // 🔹 Clear cache
+                clearCache("node-cache");
+
+                res.status(200).json({
+                    success: true,
+                    message: "Video updated successfully!",
+                    data: videoDoc,
+                });
+            } catch (error) {
+                next(error);
+            }
+        });
+
+        req.pipe(bb);
     } catch (error) {
         next(error);
     }

@@ -47,8 +47,8 @@ exports.applyCoupon = async (req, res, next) => {
                 couponCode,
                 status: 'Active',
                 expirationDate: { $gt: Date.now() }
-            }).lean().exec(),
-            SubscriptionPlan.findById(planId).lean().exec()
+            }).lean(),
+            SubscriptionPlan.findById(planId).lean()
         ]);
 
         // Validate coupon and subscription plan
@@ -59,7 +59,7 @@ exports.applyCoupon = async (req, res, next) => {
         });
 
         // Check if coupon is already applied
-        const existingCoupon = await CouponApplication.findOne({ userId, couponCode }).lean().exec();
+        const existingCoupon = await CouponApplication.findOne({ userId, couponCode }).lean();
         if (existingCoupon) {
             return res.status(409).json({
                 success: false,
@@ -96,4 +96,3 @@ exports.applyCoupon = async (req, res, next) => {
         next(error);
     }
 };
-

@@ -1,5 +1,3 @@
-const { clearTempFiles } = require('../utils/uploadUtil');
-
 // error handler
 module.exports = (err, req, res, next) => {
     // Default error response structure
@@ -33,9 +31,6 @@ module.exports = (err, req, res, next) => {
         errorResponse.message = 'File not found.';
         errorResponse.status = 404; // Not Found
     }
-
-    // clear temfiles
-    clearTempFiles();
 
     // Send a structured error response
     res.status(errorResponse.status).json({

@@ -73,15 +73,15 @@ exports.generateUPIQRcode = async (req, res, next) => {
     try {
         const upiString = `upi://pay?pa=${UPI_ID}&pn=Bhumesh&am=${AMOUNT}&cu=INR`;
         const qrCode = await QRCode.toDataURL(upiString);
-        res.send(`<img src="${qrCode}" alt="UPI QR Code" />`);
-        // res.status(200).json({
-        //     success: true,
-        //     message: "QrCode generated successfully...!",
-        //     data: {
-        //         upiId: UPI_ID,
-        //         qrCode
-        //     },
-        // });
+        // res.send(`<img src="${qrCode}" alt="UPI QR Code" />`);
+        res.status(200).json({
+            success: true,
+            message: "QrCode generated successfully...!",
+            data: {
+                upiId: UPI_ID,
+                qrCode
+            },
+        });
     } catch (error) {
         next(error);
     }

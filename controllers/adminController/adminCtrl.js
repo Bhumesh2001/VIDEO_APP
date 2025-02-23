@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const busboy = require("busboy");
 const Admin = require('../../models/adminModel/adminModel');
 const { uploadImageOnCloudinary, deleteImageOnCloudinary } = require('../../utils/uploadUtil');
 const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
@@ -71,19 +72,6 @@ exports.loginAdmin = async (req, res, next) => {
     };
 };
 
-exports.getToken = (req, res, next) => {
-    try {
-        const token = req.cookies;
-        if (!token) {
-            return res.status(404).json({ success: false, message: "No token found" });
-        };
-
-        res.status(200).json({ success: true, token: token.adminToken });
-    } catch (error) {
-        next(error);
-    };
-};
-
 exports.adminProfile = async (req, res, next) => {
     try {
         const adminId = req.admin?._id;
@@ -124,44 +112,86 @@ exports.adminProfile = async (req, res, next) => {
 exports.updateProfile = async (req, res, next) => {
     try {
         const userId = req.admin?._id;
-        if (!userId) return res.status(404).json({ success: false, message: "User ID not found!" });
+        if (!userId) {
+            return res.status(400).json({ success: false, message: "User ID not found!" });
+        }
 
-        // Fetch admin profile by ID
-        const admin = await Admin.findById(userId);
-        if (!admin) return res.status(404).json({ success: false, message: "Admin not found!" });
+        // Fetch the admin profile by ID
+        const admin = await Admin.findById(userId).lean();
+        if (!admin) {
+            return res.status(404).json({ success: false, message: "Admin not found!" });
+        }
 
         // Extract data from request body
         const { username, email, phone } = req.body;
         let imageData = admin.profilePicture; // Retain old image if no new one is uploaded
 
-        // Handle image upload (delete old image if new one is uploaded)
-        if (req.file) {
-            if (admin.profilePicture?.public_id) {
-                await deleteImageOnCloudinary(admin.profilePicture.public_id);
-            };
-            const data = await uploadImageOnCloudinary(req.file.path, 'VleProfiles');
-            imageData = { url: data.secure_url, public_id: data.public_id }; // Set new image data
+        // Handle image upload using Busboy
+        const bb = busboy({ headers: req.headers });
+
+        let fileUploadPromise = new Promise((resolve, reject) => {
+            let fileProcessed = false;
+
+            bb.on("file", async (name, file, info) => {
+                try {
+                    fileProcessed = true;
+
+                    // Delete old image if a new one is uploaded
+                    if (admin.profilePicture?.public_id) {
+                        await deleteImageOnCloudinary(admin.profilePicture.public_id);
+                    }
+
+                    // Upload new image
+                    const data = await uploadImageOnCloudinary(file, "VleProfiles");
+                    imageData = { url: data.secure_url, public_id: data.public_id };
+
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            bb.on("finish", () => {
+                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
+            });
+
+            req.pipe(bb);
+        });
+
+        await fileUploadPromise; // Wait for image upload to complete
+
+        // Prepare update object dynamically
+        const updates = {};
+        if (username && username !== admin.username) updates.username = username;
+        if (email && email !== admin.email) updates.email = email;
+        if (phone && phone.toString() !== admin.phone) updates.phone = phone.toString();
+        if (imageData.url !== admin.profilePicture?.url) updates.profilePicture = imageData;
+
+        // Only update if there are changes
+        if (Object.keys(updates).length > 0) {
+            const updatedAdmin = await Admin.findByIdAndUpdate(
+                userId,
+                updates,
+                { new: true, runValidators: true }
+            );
+
+            // Clear node-cache
+            clearCache("node-cache");
+
+            return res.status(200).json({
+                success: true,
+                message: "Profile updated successfully!",
+                admin: updatedAdmin,
+            });
         }
 
-        // Update admin profile
-        admin.username = username || admin.username;
-        admin.email = email || admin.email;
-        admin.phone = phone ? phone.toString() : admin.phone;
-        admin.profilePicture = imageData;
-
-        await admin.save();
-
-        // Clear node-cache
-        clearCache("node-cache");
-
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
-            status: 200,
-            message: "Profile updated successfully.",
+            message: "No changes were made.",
             admin,
         });
+
     } catch (error) {
-        console.log(error);
         next(error);
     }
 };

@@ -15,10 +15,10 @@ const connectToDB = async () => {
             console.error("MongoDB connection error:", err.message);
         });
 
-        mongoose.connection.on("disconnected", () => {
-            console.warn("MongoDB disconnected");
+        mongoose.connection.on("disconnected", async () => {
+            await connectToDB();
         });
-
+        
         return true; // Connection succeeded
     } catch (error) {
         console.error("MongoDB Connection Error:", error.message);
