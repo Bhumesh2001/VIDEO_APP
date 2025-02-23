@@ -60,7 +60,6 @@ exports.registerUser = async (req, res, next) => {
             Code: verificationCode,
             isVerified: false
         };
-        temporaryStorage.delete(email);
         temporaryStorage.set(email, userData);
 
         const data = {
