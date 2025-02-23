@@ -415,8 +415,8 @@ exports.resendVerificationCode = async (req, res, next) => {
         // Generate a new verification code
         const verificationCode = generateCode();
 
+        // temporaryStorage.delete(email);
         user.Code = verificationCode;
-        temporaryStorage.delete(email);
         temporaryStorage.set(email, user);
 
         const data = {
