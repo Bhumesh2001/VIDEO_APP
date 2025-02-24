@@ -7,18 +7,19 @@ exports.createArticle = async (req, res, next) => {
     try {
         let articleData = { title: "", description: "", userId: req.admin?._id };
         let imageData = { url: null, public_id: null };
-
-        // Check if an article with the same title already exists
         let articleExists = false;
 
-        // Handle file upload with Busboy
+        // Initialize Busboy
         const bb = busboy({ headers: req.headers });
 
         let fileUploadPromise = new Promise((resolve, reject) => {
             let fileProcessed = false;
 
             bb.on("field", (name, value) => {
-                articleData[name] = value;
+                if (name === "title" || name === "description") {
+                    articleData[name] = value.trim(); // ✅ Trim whitespace
+                }
+
                 if (name === "title") {
                     Article.findOne({ title: value }).lean().then((existingArticle) => {
                         if (existingArticle) articleExists = true;
@@ -29,8 +30,6 @@ exports.createArticle = async (req, res, next) => {
             bb.on("file", async (name, file, info) => {
                 try {
                     fileProcessed = true;
-
-                    // Upload image to Cloudinary
                     const data = await uploadImageOnCloudinary(file, "VleArticles");
                     imageData.url = data.secure_url;
                     imageData.public_id = data.public_id;
@@ -41,14 +40,23 @@ exports.createArticle = async (req, res, next) => {
             });
 
             bb.on("finish", () => {
-                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
+                if (!fileProcessed) resolve(); // Resolve even if no file was uploaded
             });
 
             req.pipe(bb);
         });
 
-        await fileUploadPromise; // Wait for file upload to complete
+        await fileUploadPromise; // ✅ Wait for file & field parsing
 
+        // ✅ Validation Check: Title & Description Required
+        if (!articleData.title || !articleData.description) {
+            return res.status(400).json({
+                success: false,
+                message: "Title and description are required.",
+            });
+        }
+
+        // ✅ Check if the article already exists
         if (articleExists) {
             return res.status(409).json({
                 success: false,
@@ -56,7 +64,7 @@ exports.createArticle = async (req, res, next) => {
             });
         }
 
-        // Create and save article
+        // ✅ Create and Save Article
         const article = new Article({
             ...articleData,
             image: imageData.url,
@@ -65,7 +73,7 @@ exports.createArticle = async (req, res, next) => {
 
         await article.save();
 
-        // Clear node-cache
+        // ✅ Clear Cache
         clearCache("node-cache");
 
         res.status(201).json({

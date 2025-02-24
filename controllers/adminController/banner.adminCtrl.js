@@ -146,6 +146,11 @@ exports.updateBanner = async (req, res, next) => {
         let fileUploadPromise = new Promise((resolve, reject) => {
             let fileProcessed = false;
 
+            // Handle form fields (Extract category name)
+            bb.on("field", (filedname, value) => {
+                if (filedname === "status") status = value;
+            });
+
             bb.on("file", async (name, file, info) => {
                 try {
                     fileProcessed = true;

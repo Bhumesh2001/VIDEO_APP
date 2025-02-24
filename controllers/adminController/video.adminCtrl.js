@@ -137,7 +137,6 @@ exports.uploadVideo = async (req, res, next) => {
                 videoUploadPromise = uploadVideoOnCloudinary(file, "VleVideos").then(data => {
                     videoData.url = data.secure_url;
                     videoData.publicId = data.public_id;
-                    console.log(videoData,'===');
                     
                 });
             }
@@ -151,13 +150,11 @@ exports.uploadVideo = async (req, res, next) => {
                 // ✅ Handle Video Upload (File or URL)
                 if (formData.video && isValidURL(formData.video)) {
                     const videoData_ = await uploadVideoFromURL(formData.video, "VleVideos");
-                    console.log(videoData_, '====');
-
                     videoData.url = videoData_.secure_url
                     videoData.publicId = videoData_.public_id
                 } else {
                     await videoUploadPromise; // ✅ Ensure file video is uploaded
-                }
+                }                
 
                 // ✅ Check if video was actually uploaded
                 if (!videoData.url || !videoData.publicId) {

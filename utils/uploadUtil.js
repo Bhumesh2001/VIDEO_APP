@@ -25,25 +25,29 @@ exports.uploadVideoOnCloudinary = async (fileStream, folder = "VleVideos") => {
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
             {
-                resource_type: "auto", // ✅ Automatically detects file type
+                resource_type: "video", // ✅ Ensures video processing
                 folder: folder,
-                async: true, // ✅ Enable asynchronous processing
-                eager_async: true, // ✅ Process transformations asynchronously
-                chunk_size: 25000000, // ✅ Increase chunk size to 25MB for faster upload
+                chunk_size: 25000000, // ✅ 25MB chunk size for faster upload
                 timeout: 900000, // ✅ 15 min timeout for large files
-                backup: false, // ✅ Disable backup to avoid unnecessary storage
-                invalidate: true, // ✅ Ensure new uploads replace old ones faster
+                invalidate: true, // ✅ Ensure old versions are replaced
             },
             (error, result) => {
-                if (error) reject(error);
-                else resolve({
+                if (error) return reject(error);
+                if (!result || !result.public_id || !result.secure_url) {
+                    return reject(new Error("Failed to get Cloudinary response."));
+                }
+                resolve({
                     public_id: result.public_id,
                     secure_url: result.secure_url,
                 });
             }
         );
 
-        fileStream.pipe(uploadStream); // ✅ Stream file directly to Cloudinary for faster upload
+        if (!fileStream) {
+            return reject(new Error("Invalid file stream."));
+        }
+
+        fileStream.pipe(uploadStream); // ✅ Stream directly for efficiency
     });
 };
 
@@ -55,15 +59,15 @@ exports.uploadVideoFromURL = async (videoURL, folder = "VleVideos") => {
             {
                 resource_type: "video",
                 folder: folder,
-                async: true, // ✅ Enables asynchronous processing for faster uploads
-                eager_async: true, // ✅ Process transformations asynchronously
-                chunk_size: 10000000, // ✅ 10MB chunks for faster uploads
-                timeout: 600000, // ✅ 10 minutes timeout for large files
-                backup: false, // ✅ Avoid unnecessary backup storage
+                timeout: 600000, // ✅ 10 min timeout
+                invalidate: true, // ✅ Replace old uploads
             },
             (error, result) => {
-                if (error) reject(error);
-                else resolve({
+                if (error) return reject(error);
+                if (!result || !result.public_id || !result.secure_url) {
+                    return reject(new Error("Failed to get Cloudinary response."));
+                }
+                resolve({
                     public_id: result.public_id,
                     secure_url: result.secure_url,
                 });

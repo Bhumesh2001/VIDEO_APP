@@ -23,6 +23,11 @@ exports.createCategory = async (req, res, next) => {
         let fileUploadPromise = new Promise((resolve, reject) => {
             let fileProcessed = false;
 
+            // Handle form fields (Extract category name)
+            bb.on("field", (filedname, value) => {
+                if (filedname === "name") name = value;
+            });
+
             bb.on("file", async (name, file, info) => {
                 try {
                     fileProcessed = true;
@@ -148,6 +153,10 @@ exports.updateCategory = async (req, res, next) => {
 
         let fileUploadPromise = new Promise((resolve, reject) => {
             let fileProcessed = false;
+
+            bb.on("field", (filedname, value) => {
+                if (filedname === "name") name = value;
+            });
 
             bb.on("file", async (name, file, info) => {
                 try {

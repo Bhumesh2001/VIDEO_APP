@@ -128,7 +128,7 @@ adminRouter.delete('/delete-video/:videoId', adminAuthentication, videoControlle
 adminRouter.post(
     '/create-category',
     adminAuthentication,
-    validateFields(adminValidation.categoryValidationRules),
+    // validateFields(adminValidation.categoryValidationRules),
     categoryController.createCategory
 );
 adminRouter.get(
@@ -196,7 +196,7 @@ adminRouter.delete(
 adminRouter.post(
     '/create-article',
     adminAuthentication,
-    validateFields(adminValidation.articleValidationRules),
+    // validateFields(adminValidation.articleValidationRules),
     articleController.createArticle
 );
 adminRouter.get('/articls', adminAuthentication, cacheMiddleware, articleController.getAllArticles);
@@ -225,7 +225,7 @@ adminRouter.delete(
 adminRouter.post(
     '/create-story',
     adminAuthentication,
-    validateFields(adminValidation.storyValidationRules),
+    // validateFields(adminValidation.storyValidationRules),
     storyController.createStoryByAdmin
 );
 adminRouter.get('/stories', adminAuthentication, cacheMiddleware, storyController.getAllStoriesByAdmin);
@@ -253,7 +253,7 @@ adminRouter.delete(
 adminRouter.post(
     '/create-banner',
     adminAuthentication,
-    validateFields(adminValidation.bannerValidationRules),
+    // validateFields(adminValidation.bannerValidationRules),
     bannerController.createBanner
 );
 adminRouter.get('/banners', adminAuthentication, cacheMiddleware, bannerController.getAllBanners);
