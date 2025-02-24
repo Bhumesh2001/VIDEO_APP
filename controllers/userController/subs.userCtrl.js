@@ -157,11 +157,11 @@ exports.updateSubscriptionStatus = async (req, res, next) => {
         if (categoryId.toLowerCase() === 'allcombo') {
             subscriptionPromise = AllCategorySubscriptionModel.findOne({
                 userId, categoryId, planId
-            }).lean();
+            });
         } else {
             subscriptionPromise = SingleCategorySubscriptionModel.findOne({
                 userId, categoryId, planId
-            }).lean();
+            });
         }
 
         // Wait for the selected subscription to be fetched

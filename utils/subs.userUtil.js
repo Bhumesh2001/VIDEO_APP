@@ -182,10 +182,3 @@ exports.UserSubscription = async (userId) => {
 };
 
 exports.isValidRazorpayOrderId = (orderId) => /^order_[a-zA-Z0-9]{14,}$/.test(orderId);
-
-// Graceful Shutdown
-// process.on('SIGINT', async () => {
-//     // console.log('Shutting down cron jobs...');
-//     await mongoose.connection.close();
-//     process.exit(0);
-// });

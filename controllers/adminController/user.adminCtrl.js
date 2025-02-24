@@ -19,7 +19,7 @@ exports.createUserByAdmin = async (req, res, next) => {
             email,
             password,
             username: username ? username : `User_${crypto.randomBytes(2).toString('hex')}`,
-            mobileNumber,
+            mobileNumber: mobileNumber ? mobileNumber : null,
             status: status ? status.toLowerCase() : 'inactive',
         });
         const savedUser = await newUser.save();

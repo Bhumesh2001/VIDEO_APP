@@ -30,7 +30,6 @@ const cleanExpiredData = async () => {
 
         // Delete expired coupons
         const deletedCoupons = await Coupon.deleteMany({ expirationDate: { $lt: now } });
-        console.log(`Deleted ${deletedCoupons.deletedCount} expired coupons`);
 
         // Delete applied coupon applications
         await CouponApplication.deleteMany({ status: 'applied' });
@@ -80,10 +79,3 @@ connectWithRetry().catch(err => {
     console.error('Initial DB connection failed:', err.message);
     process.exit(1);
 });
-
-// Graceful Shutdown
-// process.on('SIGINT', async () => {
-//     // console.log('Shutting down cron jobs...');
-//     await mongoose.connection.close();
-//     process.exit(0);
-// });
