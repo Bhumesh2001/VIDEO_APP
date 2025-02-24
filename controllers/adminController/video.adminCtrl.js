@@ -137,7 +137,7 @@ exports.uploadVideo = async (req, res, next) => {
                 videoUploadPromise = uploadVideoOnCloudinary(file, "VleVideos").then(data => {
                     videoData.url = data.secure_url;
                     videoData.publicId = data.public_id;
-                    
+
                 });
             }
         });
@@ -154,7 +154,7 @@ exports.uploadVideo = async (req, res, next) => {
                     videoData.publicId = videoData_.public_id
                 } else {
                     await videoUploadPromise; // ✅ Ensure file video is uploaded
-                }                
+                }
 
                 // ✅ Check if video was actually uploaded
                 if (!videoData.url || !videoData.publicId) {
@@ -195,65 +195,101 @@ exports.uploadVideo = async (req, res, next) => {
 exports.updateVideo = async (req, res, next) => {
     try {
         const { videoId } = req.params;
+
+        // 🔹 Find the existing video document
         const videoDoc = await Video.findById(videoId);
-        if (!videoDoc) return res.status(404).json({ success: false, message: "Video not found" });
+        if (!videoDoc) {
+            return res.status(404).json({ success: false, message: "Video not found!" });
+        }
 
         const bb = Busboy({ headers: req.headers });
 
-        let updatedFields = {};
-        let thumbnailUploadPromise = Promise.resolve();
-        let videoUploadPromise = Promise.resolve();
+        let updatedFields = {
+            title: videoDoc.title,
+            description: videoDoc.description,
+            category: videoDoc.category,
+            thumbnail: videoDoc.thumbnail,
+            video: videoDoc.video,
+        };
 
+        let fileUploadPromises = [];
+        let isFileUploaded = false;
+        let isTextUpdated = false;
+
+        // ✅ Handle text fields (title, description, category)
         bb.on("field", (fieldname, val) => {
             if (["title", "description", "category"].includes(fieldname)) {
-                updatedFields[fieldname] = val;
+                if (val && val !== videoDoc[fieldname]) {
+                    updatedFields[fieldname] = val;
+                    isTextUpdated = true;
+                }
             }
         });
 
-        bb.on("file", (fieldname, file, filename) => {
-            if (fieldname === "thumbnail") {
-                // Delete old thumbnail
-                deleteImageOnCloudinary(videoDoc.thumbnail.publicId);
+        // ✅ Handle file uploads (thumbnail and video)
+        bb.on("file", (fieldname, file, info) => {
+            const { filename } = info;
 
-                // Upload new thumbnail
-                thumbnailUploadPromise = uploadImageOnCloudinary(file, "VleThumbnails").then(data => {
-                    updatedFields.thumbnail = { url: data.secure_url, publicId: data.public_id };
-                });
+            if (!filename) {
+                file.resume(); // 🔹 Drain empty file stream to avoid blocking request
+                return;
+            }
+
+            isFileUploaded = true;
+
+            if (fieldname === "thumbnail") {
+                fileUploadPromises.push(
+                    uploadImageOnCloudinary(file, "VleThumbnails").then(data => {
+                        if (videoDoc.thumbnail?.publicId) {
+                            deleteImageOnCloudinary(videoDoc.thumbnail.publicId);
+                        }
+                        updatedFields.thumbnail = { url: data.secure_url, publicId: data.public_id };
+                    })
+                );
             }
 
             if (fieldname === "video") {
-                // Delete old video
-                deleteVideoOnCloudinary(videoDoc.video.publicId);
-
-                // Upload new video
-                videoUploadPromise = uploadVideoOnCloudinary(file, "VleVideos").then(data => {
-                    updatedFields.video = { url: data.secure_url, publicId: data.public_id };
-                });
+                fileUploadPromises.push(
+                    uploadVideoOnCloudinary(file, "VleVideos").then(data => {
+                        if (videoDoc.video?.publicId) {
+                            deleteVideoOnCloudinary(videoDoc.video.publicId);
+                        }
+                        updatedFields.video = { url: data.secure_url, publicId: data.public_id };
+                    })
+                );
             }
         });
 
+        // ✅ When all files and fields are processed
         bb.on("finish", async () => {
             try {
-                await Promise.all([thumbnailUploadPromise, videoUploadPromise]);
+                await Promise.all(fileUploadPromises);
 
-                // 🔹 Update document with new data
-                Object.assign(videoDoc, updatedFields);
-                await videoDoc.save();
+                if (isFileUploaded || isTextUpdated) {
+                    Object.assign(videoDoc, updatedFields);
+                    await videoDoc.save();
+                    clearCache("node-cache");
 
-                // 🔹 Clear cache
-                clearCache("node-cache");
+                    return res.status(200).json({
+                        success: true,
+                        message: "Video updated successfully!",
+                        data: videoDoc,
+                    });
+                }
 
-                res.status(200).json({
+                return res.status(200).json({
                     success: true,
-                    message: "Video updated successfully!",
+                    message: "No changes were made, but request was successful.",
                     data: videoDoc,
                 });
+
             } catch (error) {
                 next(error);
             }
         });
 
         req.pipe(bb);
+
     } catch (error) {
         next(error);
     }

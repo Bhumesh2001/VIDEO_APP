@@ -132,73 +132,79 @@ exports.updateBanner = async (req, res, next) => {
     try {
         const { bannerId } = req.query;
         let { status } = req.body;
-        let imageData = { url: null, public_id: null };
+        let imageData = {};
 
-        // Check for existing banner
+        // 🔹 Check if banner exists
         const bannerData = await Banner.findById(bannerId).lean();
         if (!bannerData) {
             return res.status(404).json({ success: false, message: "Banner not found!" });
         }
 
-        // Handle file upload with Busboy
         const bb = busboy({ headers: req.headers });
+        let fileUploadPromise = [];
+        let isFileUploaded = false;
 
-        let fileUploadPromise = new Promise((resolve, reject) => {
-            let fileProcessed = false;
-
-            // Handle form fields (Extract category name)
-            bb.on("field", (filedname, value) => {
-                if (filedname === "status") status = value;
-            });
-
-            bb.on("file", async (name, file, info) => {
-                try {
-                    fileProcessed = true;
-
-                    // Delete old image if exists
-                    if (bannerData.public_id) await deleteImageOnCloudinary(bannerData.public_id);
-
-                    // Upload new image to Cloudinary
-                    const data = await uploadImageOnCloudinary(file, "VleBanners");
-                    imageData.url = data.secure_url;
-                    imageData.public_id = data.public_id;
-                    resolve();
-                } catch (error) {
-                    reject(error);
-                }
-            });
-
-            bb.on("finish", () => {
-                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
-            });
-
-            req.pipe(bb);
+        // ✅ Handle text fields
+        bb.on("field", (fieldName, value) => {
+            if (fieldName === "status") status = value;
         });
 
-        await fileUploadPromise; // Wait for file upload to complete
+        // ✅ Handle file upload (only if a file is provided)
+        bb.on("file", (name, file, info) => {
+            if (!info.filename) {
+                file.resume(); // Drain the file stream
+                return;
+            }
 
-        // Prepare banner updates
-        const bannerUpdates = {
-            status: status || bannerData.status,
-            updatedAt: Date.now(),
-            image: imageData.url || bannerData.image,
-            public_id: imageData.public_id || bannerData.public_id,
-        };
+            isFileUploaded = true;
 
-        // Update the banner
-        const updatedBanner = await Banner.findByIdAndUpdate(bannerId, bannerUpdates, {
-            new: true,
-            runValidators: true,
+            fileUploadPromise.push(
+                uploadImageOnCloudinary(file, "VleBanners").then(async (data) => {
+                    // ✅ Delete old image after successful upload
+                    if (bannerData.public_id) {
+                        await deleteImageOnCloudinary(bannerData.public_id);
+                    }
+
+                    imageData = { url: data.secure_url, public_id: data.public_id };
+                }).catch((err) => console.error("File Upload Error:", err))
+            );
         });
 
-        // Clear node-cache
-        clearCache("node-cache");
+        // ✅ When all files and fields are processed
+        bb.on("finish", async () => {
+            try {
+                await Promise.all(fileUploadPromise); // ✅ Wait for all uploads
 
-        res.status(200).json({
-            success: true,
-            message: "Banner updated successfully",
-            banner: updatedBanner,
+                // ✅ Prepare update object
+                const bannerUpdates = {
+                    status: status || bannerData.status,
+                    updatedAt: Date.now(),
+                    image: isFileUploaded ? imageData.url : bannerData.image, // ✅ Use old image if no new file
+                    public_id: isFileUploaded ? imageData.public_id : bannerData.public_id,
+                };
+
+                // ✅ Update the banner in DB
+                const updatedBanner = await Banner.findByIdAndUpdate(bannerId, bannerUpdates, {
+                    new: true,
+                    runValidators: true,
+                });
+
+                // ✅ Clear Cloudinary Cache
+                clearCache("node-cache");
+
+                // ✅ Send Response
+                res.status(200).json({
+                    success: true,
+                    message: "Banner updated successfully",
+                    banner: updatedBanner,
+                });
+
+            } catch (error) {
+                next(error);
+            }
         });
+
+        req.pipe(bb); // ✅ Ensure Busboy processes the request
 
     } catch (error) {
         next(error);

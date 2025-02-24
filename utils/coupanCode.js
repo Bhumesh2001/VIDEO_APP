@@ -33,7 +33,7 @@ const cleanExpiredData = async () => {
         console.log(`Deleted ${deletedCoupons.deletedCount} expired coupons`);
 
         // Delete applied coupon applications
-        const deletedApplications = await CouponApplication.deleteMany({ status: 'applied' });
+        await CouponApplication.deleteMany({ status: 'applied' });
         // console.log(`Deleted ${deletedApplications.deletedCount} applied coupon applications`);
 
     } catch (error) {

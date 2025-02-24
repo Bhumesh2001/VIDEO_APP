@@ -145,76 +145,81 @@ exports.updateStoryByAdmin = async (req, res, next) => {
     try {
         const { storyId } = req.query;
         if (!storyId) {
-            return res.status(400).json({ success: false, status: 400, message: "Story ID is required!" });
+            return res.status(400).json({ success: false, message: "Story ID is required!" });
         }
 
-        // Fetch existing story
+        // 🔹 Fetch existing story
         const existingStory = await Story.findById(storyId);
         if (!existingStory) {
-            return res.status(404).json({ success: false, status: 404, message: "Story not found!" });
+            return res.status(404).json({ success: false, message: "Story not found!" });
         }
 
+        // 🔹 Initialize Busboy
         const bb = busboy({ headers: req.headers });
 
         let updatedData = {
             title: existingStory.title,
             caption: existingStory.caption,
-            image: { url: existingStory.image.url, public_id: existingStory.image.public_id },
+            image: existingStory.image || { url: null, public_id: null },
         };
 
-        let fileUploadPromise = new Promise((resolve, reject) => {
-            let fileProcessed = false;
+        let fileUploadPromises = [];
+        let isFileUploaded = false;
 
-            bb.on("field", (name, value) => {
-                if (name === "title") updatedData.title = value;
-                else if (name === "caption") updatedData.caption = value;
-            });
+        // ✅ Handle text fields
+        bb.on("field", (name, value) => {
+            if (["title", "caption"].includes(name)) updatedData[name] = value;
+        });
 
-            bb.on("file", async (name, file, info) => {
-                try {
-                    if (name === "image") {
-                        fileProcessed = true;
+        // ✅ Handle file uploads
+        bb.on("file", (name, file, info) => {
+            if (!info.filename) {
+                file.resume(); // ✅ Drain the empty file
+                return;
+            }
 
-                        // Delete old image if exists
-                        if (existingStory.image.public_id) {
+            if (name === "image") {
+                isFileUploaded = true;
+                fileUploadPromises.push(
+                    uploadImageOnCloudinary(file, "VleStories").then(async (data) => {
+                        // ✅ Delete old image if new image uploaded successfully
+                        if (existingStory.image?.public_id) {
                             await deleteImageOnCloudinary(existingStory.image.public_id);
                         }
-
-                        // Upload new image
-                        const data = await uploadImageOnCloudinary(file, "VleStories");
-                        updatedData.image.url = data.secure_url;
-                        updatedData.image.public_id = data.public_id;
-                    }
-                    resolve();
-                } catch (error) {
-                    reject(error);
-                }
-            });
-
-            bb.on("finish", () => {
-                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
-            });
-
-            req.pipe(bb);
+                        updatedData.image = { url: data.secure_url, public_id: data.public_id };
+                    }).catch((err) => console.error("File Upload Error:", err))
+                );
+            }
         });
 
-        await fileUploadPromise; // Wait for file upload completion
+        // ✅ When all files & fields are processed
+        bb.on("finish", async () => {
+            try {
+                await Promise.all(fileUploadPromises); // ✅ Ensure all uploads complete
 
-        // Update story in DB
-        const updatedStory = await Story.findByIdAndUpdate(storyId, updatedData, {
-            new: true,
-            runValidators: true,
+                // ✅ Update story with new or existing data
+                const updatedStory = await Story.findByIdAndUpdate(
+                    storyId,
+                    updatedData,
+                    { new: true, runValidators: true }
+                );
+
+                // ✅ Clear cache for fresh data
+                clearCache("node-cache");
+
+                // ✅ Send success response
+                res.status(200).json({
+                    success: true,
+                    message: "Story updated successfully!",
+                    story: updatedStory,
+                });
+
+            } catch (error) {
+                next(error);
+            }
         });
 
-        // Clear node-cache
-        clearCache("node-cache");
-
-        res.status(200).json({
-            success: true,
-            status: 200,
-            message: "Story updated successfully!",
-            story: updatedStory,
-        });
+        req.pipe(bb); // ✅ Ensure Busboy processes the request
 
     } catch (error) {
         next(error);

@@ -116,80 +116,90 @@ exports.updateProfile = async (req, res, next) => {
             return res.status(400).json({ success: false, message: "User ID not found!" });
         }
 
-        // Fetch the admin profile by ID
-        const admin = await Admin.findById(userId).lean();
+        // 🔹 Fetch existing admin profile
+        const admin = await Admin.findById(userId);
         if (!admin) {
             return res.status(404).json({ success: false, message: "Admin not found!" });
         }
 
-        // Extract data from request body
-        const { username, email, phone } = req.body;
-        let imageData = admin.profilePicture; // Retain old image if no new one is uploaded
-
-        // Handle image upload using Busboy
         const bb = busboy({ headers: req.headers });
 
-        let fileUploadPromise = new Promise((resolve, reject) => {
-            let fileProcessed = false;
+        let updatedData = {
+            username: admin.username,
+            email: admin.email,
+            phone: admin.phone,
+            profilePicture: admin.profilePicture || { url: null, public_id: null },
+        };
 
-            bb.on("file", async (name, file, info) => {
-                try {
-                    fileProcessed = true;
+        let fileUploadPromises = [];
+        let isFileUploaded = false;
 
-                    // Delete old image if a new one is uploaded
-                    if (admin.profilePicture?.public_id) {
-                        await deleteImageOnCloudinary(admin.profilePicture.public_id);
-                    }
+        // ✅ Handle text fields (username, email, phone)
+        bb.on("field", (name, value) => {
+            if (["username", "email", "phone"].includes(name) && value !== admin[name]) {
+                updatedData[name] = value;
+            }
+        });
 
-                    // Upload new image
-                    const data = await uploadImageOnCloudinary(file, "VleProfiles");
-                    imageData = { url: data.secure_url, public_id: data.public_id };
+        // ✅ Handle file uploads (profile picture)
+        bb.on("file", (name, file, info) => {
+            if (!info.filename) {
+                file.resume(); // ✅ Drain the empty file
+                return;
+            }
 
-                    resolve();
-                } catch (error) {
-                    reject(error);
+            if (name === "profilePicture") {
+                isFileUploaded = true;
+                fileUploadPromises.push(
+                    uploadImageOnCloudinary(file, "VleProfiles").then(async (data) => {
+                        // ✅ Delete old image if a new one is uploaded
+                        if (admin.profilePicture?.public_id) {
+                            await deleteImageOnCloudinary(admin.profilePicture.public_id);
+                        }
+                        updatedData.profilePicture = { url: data.secure_url, public_id: data.public_id };
+                    }).catch((err) => console.error("File Upload Error:", err))
+                );
+            }
+        });
+
+        // ✅ When all files & fields are processed
+        bb.on("finish", async () => {
+            try {
+                await Promise.all(fileUploadPromises); // ✅ Ensure all uploads complete
+
+                // ✅ Only update fields if changes are detected
+                if (
+                    updatedData.username !== admin.username ||
+                    updatedData.email !== admin.email ||
+                    updatedData.phone !== admin.phone ||
+                    (isFileUploaded && updatedData.profilePicture.url !== admin.profilePicture?.url)
+                ) {
+                    const updatedAdmin = await Admin.findByIdAndUpdate(userId, updatedData, {
+                        new: true,
+                        runValidators: true,
+                    });
+
+                    clearCache("node-cache"); // ✅ Clear cache after update
+
+                    return res.status(200).json({
+                        success: true,
+                        message: "Profile updated successfully!",
+                        admin: updatedAdmin,
+                    });
                 }
-            });
 
-            bb.on("finish", () => {
-                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
-            });
+                return res.status(200).json({
+                    success: true,
+                    message: "No changes were made.",
+                    admin,
+                });
 
-            req.pipe(bb);
+            } catch (error) {
+                next(error);
+            }
         });
 
-        await fileUploadPromise; // Wait for image upload to complete
-
-        // Prepare update object dynamically
-        const updates = {};
-        if (username && username !== admin.username) updates.username = username;
-        if (email && email !== admin.email) updates.email = email;
-        if (phone && phone.toString() !== admin.phone) updates.phone = phone.toString();
-        if (imageData.url !== admin.profilePicture?.url) updates.profilePicture = imageData;
-
-        // Only update if there are changes
-        if (Object.keys(updates).length > 0) {
-            const updatedAdmin = await Admin.findByIdAndUpdate(
-                userId,
-                updates,
-                { new: true, runValidators: true }
-            );
-
-            // Clear node-cache
-            clearCache("node-cache");
-
-            return res.status(200).json({
-                success: true,
-                message: "Profile updated successfully!",
-                admin: updatedAdmin,
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: "No changes were made.",
-            admin,
-        });
+        req.pipe(bb); // ✅ Ensure Busboy processes the request
 
     } catch (error) {
         next(error);

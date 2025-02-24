@@ -152,74 +152,85 @@ exports.getSingleArticle = async (req, res, next) => {
 exports.updateArticle = async (req, res, next) => {
     try {
         const { articleId } = req.query;
-        let articleData = { title: "", description: "", status: "" };
-        let imageData = { url: null, public_id: null };
+        if (!articleId) {
+            return res.status(400).json({ success: false, message: "Article ID is required!" });
+        }
 
-        // Find the article
+        // 🔹 Find existing article
         const existingArticle = await Article.findById(articleId);
         if (!existingArticle) {
             return res.status(404).json({ success: false, message: "Article not found!" });
         }
 
-        // Handle file upload with Busboy
+        // 🔹 Initialize Busboy
         const bb = busboy({ headers: req.headers });
 
-        let fileUploadPromise = new Promise((resolve, reject) => {
-            let fileProcessed = false;
+        let updatedData = {
+            title: existingArticle.title,
+            description: existingArticle.description,
+            status: existingArticle.status,
+            image: existingArticle.image,
+            public_id: existingArticle.public_id,
+        };
 
-            bb.on("field", (name, value) => {
-                articleData[name] = value;
-            });
+        let fileUploadPromises = [];
+        let isFileUploaded = false;
 
-            bb.on("file", async (name, file, info) => {
-                try {
-                    fileProcessed = true;
-
-                    // Delete previous image if it exists
-                    if (existingArticle.public_id) {
-                        await deleteImageOnCloudinary(existingArticle.public_id);
-                    }
-
-                    // Upload new image to Cloudinary
-                    const data = await uploadImageOnCloudinary(file, "VleArticles");
-                    imageData.url = data.secure_url;
-                    imageData.public_id = data.public_id;
-                    resolve();
-                } catch (error) {
-                    reject(error);
-                }
-            });
-
-            bb.on("finish", () => {
-                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
-            });
-
-            req.pipe(bb);
+        // ✅ Handle text fields
+        bb.on("field", (name, value) => {
+            if (["title", "description", "status"].includes(name)) updatedData[name] = value;
         });
 
-        await fileUploadPromise; // Wait for file upload to complete
+        // ✅ Handle file uploads
+        bb.on("file", (name, file, info) => {
+            if (!info.filename) {
+                file.resume(); // ✅ Drain the empty file
+                return;
+            }
 
-        // Update article data
-        const updatedArticle = await Article.findByIdAndUpdate(
-            articleId,
-            {
-                title: articleData.title || existingArticle.title,
-                description: articleData.description || existingArticle.description,
-                status: articleData.status || existingArticle.status,
-                image: imageData.url || existingArticle.image,
-                public_id: imageData.public_id || existingArticle.public_id,
-            },
-            { new: true, runValidators: true }
-        );
-
-        // Clear node-cache
-        clearCache("node-cache");
-
-        res.status(200).json({
-            success: true,
-            message: "Article updated successfully!",
-            article: updatedArticle,
+            if (name === "image") {
+                isFileUploaded = true;
+                fileUploadPromises.push(
+                    uploadImageOnCloudinary(file, "VleArticles").then(async (data) => {
+                        // ✅ Delete old image if new image uploaded successfully
+                        if (existingArticle.public_id) {
+                            await deleteImageOnCloudinary(existingArticle.public_id);
+                        }
+                        updatedData.image = data.secure_url;
+                        updatedData.public_id = data.public_id;
+                    }).catch((err) => console.error("File Upload Error:", err))
+                );
+            }
         });
+
+        // ✅ When all files & fields are processed
+        bb.on("finish", async () => {
+            try {
+                await Promise.all(fileUploadPromises); // ✅ Ensure all uploads complete
+
+                // ✅ Update article with new or existing data
+                const updatedArticle = await Article.findByIdAndUpdate(
+                    articleId,
+                    updatedData,
+                    { new: true, runValidators: true }
+                );
+
+                // ✅ Clear cache for fresh data
+                clearCache("node-cache");
+
+                // ✅ Send success response
+                res.status(200).json({
+                    success: true,
+                    message: "Article updated successfully!",
+                    article: updatedArticle,
+                });
+
+            } catch (error) {
+                next(error);
+            }
+        });
+
+        req.pipe(bb); // ✅ Ensure Busboy processes the request
 
     } catch (error) {
         next(error);

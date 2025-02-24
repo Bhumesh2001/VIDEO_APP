@@ -131,75 +131,87 @@ exports.getCategory = async (req, res, next) => {
 };
 
 exports.updateCategory = async (req, res, next) => {
-    const { categoryId } = req.query;
-    let { name, status } = req.body;
-
     try {
-        const categoryData = await Category.findById(categoryId).lean();
+        const { categoryId } = req.query;
+        if (!categoryId) {
+            return res.status(400).json({ success: false, message: "Category ID is required!" });
+        }
+
+        // 🔹 Fetch existing category
+        const categoryData = await Category.findById(categoryId);
         if (!categoryData) {
             return res.status(404).json({ success: false, message: "Category not found!" });
         }
 
+        // 🔹 Initialize Busboy
+        const bb = busboy({ headers: req.headers });
+
         let updates = {
-            name: name || categoryData.name,
-            status: status !== undefined ? status : categoryData.status,
+            name: categoryData.name,
+            status: categoryData.status,
             updatedAt: Date.now(),
             image_url: categoryData.image_url,
             public_id: categoryData.public_id,
         };
 
-        // Handle file upload with Busboy
-        const bb = busboy({ headers: req.headers });
+        let fileUploadPromises = [];
+        let isFileUploaded = false;
 
-        let fileUploadPromise = new Promise((resolve, reject) => {
-            let fileProcessed = false;
-
-            bb.on("field", (filedname, value) => {
-                if (filedname === "name") name = value;
-            });
-
-            bb.on("file", async (name, file, info) => {
-                try {
-                    fileProcessed = true;
-
-                    // Delete old image if exists
-                    if (categoryData.public_id) {
-                        await deleteImageOnCloudinary(categoryData.public_id);
-                    }
-
-                    // Upload new image to Cloudinary
-                    const data = await uploadImageOnCloudinary(file, "VleCategories");
-                    updates.image_url = data.secure_url;
-                    updates.public_id = data.public_id;
-                    resolve();
-                } catch (error) {
-                    reject(error);
-                }
-            });
-
-            bb.on("finish", () => {
-                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
-            });
-
-            req.pipe(bb);
+        // ✅ Handle text fields
+        bb.on("field", (name, value) => {
+            if (["name", "status"].includes(name)) updates[name] = value;
         });
 
-        await fileUploadPromise; // Wait for file upload to complete
+        // ✅ Handle file uploads
+        bb.on("file", (name, file, info) => {
+            if (!info.filename) {
+                file.resume(); // ✅ Drain the empty file
+                return;
+            }
 
-        // Update category in database
-        const updatedCategory = await Category.findByIdAndUpdate(categoryId, updates, {
-            new: true,
-            runValidators: true,
+            if (name === "image") {
+                isFileUploaded = true;
+                fileUploadPromises.push(
+                    uploadImageOnCloudinary(file, "VleCategories").then(async (data) => {
+                        // ✅ Delete old image only if new image uploaded successfully
+                        if (categoryData.public_id) {
+                            await deleteImageOnCloudinary(categoryData.public_id);
+                        }
+                        updates.image_url = data.secure_url;
+                        updates.public_id = data.public_id;
+                    }).catch((err) => console.error("File Upload Error:", err))
+                );
+            }
         });
 
-        // Clear node-cache
-        clearCache("node-cache");
+        // ✅ When all files & fields are processed
+        bb.on("finish", async () => {
+            try {
+                await Promise.all(fileUploadPromises); // ✅ Ensure all uploads complete
 
-        res.status(200).json({
-            success: true,
-            message: "Category updated successfully...",
-            category: updatedCategory,
+                // ✅ Update category with new or existing data
+                const updatedCategory = await Category.findByIdAndUpdate(
+                    categoryId,
+                    updates,
+                    { new: true, runValidators: true }
+                );
+
+                // ✅ Clear cache for fresh data
+                clearCache("node-cache");
+
+                // ✅ Send success response
+                res.status(200).json({
+                    success: true,
+                    message: "Category updated successfully!",
+                    category: updatedCategory,
+                });
+
+            } catch (error) {
+                next(error);
+            }
         });
+
+        req.pipe(bb); // ✅ Ensure Busboy processes the request
 
     } catch (error) {
         next(error);

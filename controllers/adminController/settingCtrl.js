@@ -14,7 +14,6 @@ const { clearCache } = require('../../middlewares/userMiddleware/redisMidlwr');
 
 // ****************** General settings ******************
 
-
 exports.saveGeneralSettings = async (req, res, next) => {
     try {
         const bb = busboy({ headers: req.headers });
@@ -29,16 +28,17 @@ exports.saveGeneralSettings = async (req, res, next) => {
             copyrightText: "",
             socialMediaLinks: { facebook: "", twitter: "", instagram: "" },
             appDownloadLinks: { googlePlay: "", appStore: "" },
-            siteLogo: null,
-            siteFavicon: null,
         };
 
-        // Fetch existing settings
-        const existingSettings = await GeneralSettings.findOne()
+        // ✅ Fetch existing settings
+        let existingSettings = await GeneralSettings.findOne()
             .select("siteLogo siteFavicon socialMediaLinks appDownloadLinks")
-            .lean();
+            .lean() || {}; // ✅ Ensure it's always an object
 
-        // Parse form fields
+        let fileUploadPromises = [];
+        let isFileUploaded = { siteLogo: false, siteFavicon: false };
+
+        // ✅ Parse form fields
         bb.on("field", (name, value) => {
             if (["facebook", "twitter", "instagram"].includes(name)) {
                 settingsData.socialMediaLinks[name] = value;
@@ -49,68 +49,75 @@ exports.saveGeneralSettings = async (req, res, next) => {
             }
         });
 
-        // Handle file uploads
-        let fileUploadPromise = new Promise((resolve, reject) => {
-            let fileProcessed = false;
+        // ✅ Handle file uploads (only upload if file is provided)
+        bb.on("file", (name, file, info) => {
+            if (!info.filename) {
+                file.resume(); // ✅ Skip empty file
+                return;
+            }
 
-            bb.on("file", async (name, file, info) => {
-                try {
-                    fileProcessed = true;
-
-                    // Handle siteLogo upload
-                    if (name === "siteLogo") {
-                        if (existingSettings?.siteLogo?.public_id) {
+            if (name === "siteLogo") {
+                isFileUploaded.siteLogo = true;
+                fileUploadPromises.push(
+                    uploadImageOnCloudinary(file, "VleSiteLogos").then(async (data) => {
+                        // ✅ Delete old image if a new one is uploaded
+                        if (existingSettings.siteLogo?.public_id) {
                             await deleteImageOnCloudinary(existingSettings.siteLogo.public_id);
                         }
-                        const data = await uploadImageOnCloudinary(file, "VleSiteLogos");
                         settingsData.siteLogo = { url: data.secure_url, public_id: data.public_id };
-                    }
+                    }).catch((err) => console.error("File Upload Error:", err))
+                );
+            }
 
-                    // Handle siteFavicon upload
-                    if (name === "siteFavicon") {
-                        if (existingSettings?.siteFavicon?.public_id) {
+            if (name === "siteFavicon") {
+                isFileUploaded.siteFavicon = true;
+                fileUploadPromises.push(
+                    uploadImageOnCloudinary(file, "VleSiteFavicons").then(async (data) => {
+                        // ✅ Delete old image if a new one is uploaded
+                        if (existingSettings.siteFavicon?.public_id) {
                             await deleteImageOnCloudinary(existingSettings.siteFavicon.public_id);
                         }
-                        const data = await uploadImageOnCloudinary(file, "VleSiteFavicons");
                         settingsData.siteFavicon = { url: data.secure_url, public_id: data.public_id };
-                    }
-
-                    resolve();
-                } catch (error) {
-                    reject(error);
-                }
-            });
-
-            bb.on("finish", () => {
-                if (!fileProcessed) resolve(); // Resolve if no file was uploaded
-            });
-
-            req.pipe(bb);
+                    }).catch((err) => console.error("File Upload Error:", err))
+                );
+            }
         });
 
-        await fileUploadPromise; // Wait for file upload to complete
+        bb.on("finish", async () => {
+            try {
+                await Promise.all(fileUploadPromises); // ✅ Wait for all uploads
 
-        // Merge with existing settings
-        settingsData = {
-            ...existingSettings,
-            ...settingsData,
-            updatedAt: Date.now(),
-        };
+                // ✅ Retain existing siteLogo & siteFavicon if no new file was uploaded
+                settingsData.siteLogo = isFileUploaded.siteLogo ? settingsData.siteLogo : existingSettings.siteLogo;
+                settingsData.siteFavicon = isFileUploaded.siteFavicon ? settingsData.siteFavicon : existingSettings.siteFavicon;
 
-        // Upsert the settings
-        const savedSettings = await GeneralSettings.findOneAndUpdate({}, settingsData, {
-            new: true,
-            upsert: true,
+                // ✅ Merge with existing settings
+                const updatedSettings = {
+                    ...existingSettings,
+                    ...settingsData,
+                    updatedAt: Date.now(),
+                };
+
+                // ✅ Upsert the settings
+                const savedSettings = await GeneralSettings.findOneAndUpdate({}, updatedSettings, {
+                    new: true,
+                    upsert: true,
+                });
+
+                // ✅ Clear cache
+                clearCache("node-cache");
+
+                res.status(200).json({
+                    success: true,
+                    message: "Settings updated successfully.",
+                    settings: savedSettings,
+                });
+            } catch (error) {
+                next(error);
+            }
         });
 
-        // Clear node-cache
-        clearCache("node-cache");
-
-        res.status(200).json({
-            success: true,
-            message: "Settings updated successfully.",
-            settings: savedSettings,
-        });
+        req.pipe(bb); // ✅ Ensure Busboy processes the request
 
     } catch (error) {
         next(error);
