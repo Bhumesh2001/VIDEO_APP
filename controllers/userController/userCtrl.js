@@ -31,47 +31,44 @@ exports.registerUser = async (req, res, next) => {
     try {
         const { name, email, username, password, mobileNumber } = req.body;
 
-        // Check for existing user
-        const existingUser = await userModel.findOne({ email }).lean();
-        if (existingUser) {
-            return res.status(400).json({ success: false, status: 400, message: 'User already exists' });
+        // Check if the user already exists
+        if (await userModel.findOne({ email }).lean()) {
+            return res.status(400).json({ success: false, status: 400, message: "User already exists" });
         }
 
-        // Create and store user data
+        // Generate verification code & prepare user data
         const verificationCode = generateCode();
         const userData = {
-            name: name ? name : `User_${crypto.randomBytes(4).toString('hex')}`,
+            name: name || `User_${crypto.randomBytes(4).toString("hex")}`,
             email,
             password,
-            username: username ? username : `User_${crypto.randomBytes(2).toString('hex')}`,
+            username: username || `User_${crypto.randomBytes(2).toString("hex")}`,
             mobileNumber,
             Code: verificationCode,
-            isVerified: false
+            isVerified: false,
         };
-        temporaryStorage.delete(email);
+
+        // Store in temporary storage
         temporaryStorage.set(email, userData);
 
-        const data = {
+        // Send verification email
+        sendVerificationEmail(email, {
             verificationCode,
-            subject: '🔐 Verify Your Account & Unlock Exclusive Features!',
-        };
-        sendVerificationEmail(email, data);
-
-        // Respond with success
-        res.status(201).json({
-            success: true,
-            status: 201,
-            message: 'Please verify your email',
+            subject: "🔐 Verify Your Account & Unlock Exclusive Features!",
         });
 
-        // Set timeout for temporary data expiration (10 minutes)
+        res.status(201).json({ success: true, status: 201, message: "Please verify your email" });
+
+        // Set expiration for temporary storage
         setTimeout(() => {
-            temporaryStorage.delete(email);
-        }, 10 * 60 * 1000);  // 10 minutes
+            if (temporaryStorage.has(email)) {
+                temporaryStorage.delete(email);
+            }
+        }, 10 * 60 * 1000); // 10 minutes expiration
 
     } catch (error) {
         next(error);
-    };
+    }
 };
 
 // ---------------- Register with email -----------------
@@ -182,45 +179,43 @@ exports.verifyUser = async (req, res, next) => {
     const { email, code } = req.body;
 
     try {
-        // Check if temporary storage has user data
+        // Check if user data exists in temporary storage
         const user_data = temporaryStorage.get(email);
         if (!user_data) {
-            return res.status(400).json({
-                success: false,
-                status: 400,
-                message: 'Invalid or expired verification code!',
+            return res.status(400).json({ 
+                success: false, 
+                status: 400, 
+                message: "Invalid or expired verification code!" 
             });
         }
 
         const { Code, ...userDetails } = user_data;
         if (parseInt(code) !== Code) {
-            return res.status(400).json({
-                success: false,
-                status: 400,
-                message: 'Incorrect verification code.',
+            return res.status(400).json({ 
+                success: false, 
+                status: 400, 
+                message: "Incorrect verification code." 
             });
         }
 
-        // Create new user and save
+        // Save verified user in DB
         const user = new userModel({ ...userDetails, isVerified: true });
         await user.save();
 
-        // Delete temporary user data after successful verification
+        // Remove from temporary storage after success
         temporaryStorage.delete(email);
 
-        // Clear node-cache
+        // Clear cache
         clearCache("node-cache");
 
-        // Respond with success
         res.status(200).json({
             success: true,
-            status: 200,
-            message: 'Verified successfully...!',
+            message: "Verified successfully!",
             userId: user._id,
         });
     } catch (error) {
         next(error);
-    };
+    }
 };
 
 // -------------- Forget password -----------------
