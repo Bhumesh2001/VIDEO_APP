@@ -220,18 +220,18 @@ exports.verifyUser = async (req, res, next) => {
         // Delete temporary user data after successful verification
         temporaryStorage.delete(email);
 
-        const token = generateToken(user);
-        const deviceId = crypto.createHash("sha256")
-            .update(req.ip + req.headers["user-agent"])
-            .digest("hex"); // or generate a custom unique device ID
-        await createSession(user, token, deviceId); // Create a session for the user
+        // const token = generateToken(user);
+        // const deviceId = crypto.createHash("sha256")
+        //     .update(req.ip + req.headers["user-agent"])
+        //     .digest("hex"); // or generate a custom unique device ID
+        // await createSession(user, token, deviceId); // Create a session for the user
 
-        res.cookie('userToken', token, {
-            httpOnly: true,
-            secure: true,
-            maxAge: 1000 * 60 * 60 * 48, // 2 days
-            sameSite: 'Strict',
-        });
+        // res.cookie('userToken', token, {
+        //     httpOnly: true,
+        //     secure: true,
+        //     maxAge: 1000 * 60 * 60 * 48, // 2 days
+        //     sameSite: 'Strict',
+        // });
 
         // Clear node-cache
         clearCache("node-cache");
