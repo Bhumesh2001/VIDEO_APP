@@ -16,7 +16,6 @@ const {
     checkSession
 } = require('../../utils/token');
 const {
-    isValidPassword,
     isValidImageUrl,
     isValidEmail,
     isValidMobileNumber
@@ -31,17 +30,6 @@ const temporaryStorage = new Map();
 exports.registerUser = async (req, res, next) => {
     try {
         const { name, email, username, password, mobileNumber } = req.body;
-
-        // Validate strong password
-        if (password) {
-            if (!isValidPassword(password)) {
-                return res.status(400).json({
-                    success: false,
-                    status: 400,
-                    message: 'Password must be strong!',
-                });
-            };
-        };
 
         // Check for existing user
         const existingUser = await userModel.findOne({ email }).lean();
@@ -220,19 +208,6 @@ exports.verifyUser = async (req, res, next) => {
         // Delete temporary user data after successful verification
         temporaryStorage.delete(email);
 
-        // const token = generateToken(user);
-        // const deviceId = crypto.createHash("sha256")
-        //     .update(req.ip + req.headers["user-agent"])
-        //     .digest("hex"); // or generate a custom unique device ID
-        // await createSession(user, token, deviceId); // Create a session for the user
-
-        // res.cookie('userToken', token, {
-        //     httpOnly: true,
-        //     secure: true,
-        //     maxAge: 1000 * 60 * 60 * 48, // 2 days
-        //     sameSite: 'Strict',
-        // });
-
         // Clear node-cache
         clearCache("node-cache");
 
@@ -240,9 +215,8 @@ exports.verifyUser = async (req, res, next) => {
         res.status(200).json({
             success: true,
             status: 200,
-            message: 'Logged in successfully.',
+            message: 'Verified successfully...!',
             userId: user._id,
-            token,
         });
     } catch (error) {
         next(error);

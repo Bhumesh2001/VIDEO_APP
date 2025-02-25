@@ -14,14 +14,10 @@ exports.validateUser = [
         .normalizeEmail(),
 
     body('password')
+        .trim()
         .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long.')
-        .isStrongPassword({
-            minLength: 12,
-            minLowercase: 1,
-            minUppercase: 1,
-            minNumbers: 1,
-            minSymbols: 1,
-        }).withMessage('Password must be strong!'),
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#._-])[\S]{8,}$/)
+        .withMessage('Password must be strong!'),
 
     body('mobileNumber')
         .optional()
