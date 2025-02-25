@@ -182,19 +182,19 @@ exports.verifyUser = async (req, res, next) => {
         // Check if user data exists in temporary storage
         const user_data = temporaryStorage.get(email);
         if (!user_data) {
-            return res.status(400).json({ 
-                success: false, 
-                status: 400, 
-                message: "Invalid or expired verification code!" 
+            return res.status(400).json({
+                success: false,
+                status: 400,
+                message: "Invalid or expired verification code!"
             });
         }
 
         const { Code, ...userDetails } = user_data;
         if (parseInt(code) !== Code) {
-            return res.status(400).json({ 
-                success: false, 
-                status: 400, 
-                message: "Incorrect verification code." 
+            return res.status(400).json({
+                success: false,
+                status: 400,
+                message: "Incorrect verification code."
             });
         }
 
@@ -490,35 +490,44 @@ exports.checkMobileNumber = async (req, res, next) => {
 // ------------- Logout User -----------------
 exports.logoutUser = async (req, res, next) => {
     try {
-        const userToken = req.headers.authorization?.split(' ')[1] || req.cookies?.userToken;
-        if (!userToken) {
-            return res.status(400).json({
-                success: false,
-                status: 400,
-                message: 'Already logged out!',
+        const { userId } = req.body;
+
+        // Validate userId
+        if (!userId) {
+            return res.status(400).json({ success: false, message: 'userId is required!' });
+        }
+
+        // Find and verify session
+        const session = await Session.findOne({ userId }).lean();
+        if (!session) {
+            return res.status(404).json({ 
+                success: false, 
+                status: 404,
+                message: 'No active session found for this user!' 
             });
-        };
+        }
 
-        const decoded = jwt.verify(userToken, process.env.USER_SECRET_KEY);
-        await Session.deleteMany({ userId: decoded._id });
+        // Verify token (optional, if security requires it)
+        jwt.verify(session.token, process.env.USER_SECRET_KEY); // Throws if invalid
 
+        // Delete all sessions for this user
+        await Session.deleteMany({ userId });
+
+        // Clear cookie
         res.clearCookie('userToken', {
             httpOnly: true,
-            secure: true,
+            secure: true, // Match login settings
             sameSite: 'Strict',
         });
 
-        // Send success response
-        return res.status(200).json({
+        res.status(200).json({
             success: true,
-            message: 'Logged out successfully.',
             status: 200,
-            token: userToken,
+            message: 'Logged out successfully',
         });
-
     } catch (error) {
         next(error);
-    };
+    }
 };
 
 // ---------------- login with google ----------------- 
