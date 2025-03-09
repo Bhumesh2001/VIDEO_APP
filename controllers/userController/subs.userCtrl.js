@@ -344,11 +344,11 @@ exports.uploadScreenshot = (req, res, next) => {
             const existingTransaction = await Transaction.findOne({ userId, subscriptionId });
 
             if (existingTransaction) {
-                return res.status(409).json({ 
-                    success: false, 
-                    message: "Screenshot already uploaded for this subscription" 
+                return res.status(409).json({
+                    success: false,
+                    message: "Screenshot already uploaded for this subscription"
                 });
-            }
+            };
 
             // ✅ **Upload the file**
             const result = await uploadImageOnCloudinary(file, "screenshots");
