@@ -12,7 +12,6 @@ const categorAdminController = require('../controllers/adminController/category.
 const couponUserController = require('../controllers/userController/coupon.userCtrl');
 const bannerAdminController = require('../controllers/adminController/banner.adminCtrl');
 const subscriptionPlanAdminController = require('../controllers/adminController/subs.admin.Ctrl');
-const paymentGetwayController = require('../controllers/userController/pGetway.userCtrl');
 const contactUserController = require('../controllers/userController/contact.userCtrl');
 
 // ****************** middlewares *******************
@@ -134,6 +133,13 @@ userRouter.post(
     validateFields(userValidation.validateCategoryPlanPayment),
     subscriptionUserController.updateSubscriptionStatus
 );
+
+userRouter.post(
+    '/screenshot/upload',
+    userAuthentication,
+    subscriptionUserController.uploadScreenshot
+);
+
 userRouter.get(
     '/my-subscription',
     userAuthentication,
@@ -148,7 +154,7 @@ userRouter.get(
 );
 userRouter.get('/history', userAuthentication, cacheMiddleware, subscriptionUserController.getHistory);
 userRouter.get(
-    '/single-history/:paymentId',
+    '/single-history/:subscriptionId',
     userAuthentication,
     cacheMiddleware,
     subscriptionUserController.getSingleHistory
@@ -311,23 +317,5 @@ userRouter.delete(
     validateObjectIds(['videoId', 'commentId']),
     videoUserController.deleteComment
 );
-
-// ******************* razorpay routes *********************
-
-userRouter.post(
-    '/rozorpay/create-order',
-    validateRequiredFields(['amount', 'currency']),
-    paymentGetwayController.createOrder
-);
-
-userRouter.post(
-    '/rozorpay/verify-payment',
-    validateRequiredFields(['order_id', 'payment_id', 'signature']),
-    paymentGetwayController.verifyPayment
-);
-
-userRouter.get('/generate-qr', paymentGetwayController.generateUPIQRcode);
-userRouter.post('/save', userAuthentication, paymentGetwayController.saveTransaction);
-userRouter.get('/fetch', userAuthentication, paymentGetwayController.getTransactions);
 
 module.exports = userRouter;
