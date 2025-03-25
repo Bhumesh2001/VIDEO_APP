@@ -7,8 +7,6 @@ const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: { user: process.env.EMAIL, pass: process.env.EMAIL_PASSWORD },
     pool: true,
-    maxConnections: 5,
-    maxMessages: 100,
 });
 
 // 📌 Universal Function to Replace Placeholders in Email Templates
